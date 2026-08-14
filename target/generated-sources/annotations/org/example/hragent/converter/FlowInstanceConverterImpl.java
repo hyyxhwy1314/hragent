@@ -2,37 +2,37 @@ package org.example.hragent.converter;
 
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.FlowInstanceSaveDto;
-import org.example.hragent.entity.TFlowInstance;
+import org.example.hragent.entity.FlowInstance;
 import org.example.hragent.vo.FlowInstanceVO;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-14T10:43:46+0800",
+    date = "2026-08-14T23:10:55+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class FlowInstanceConverterImpl implements FlowInstanceConverter {
 
     @Override
-    public TFlowInstance saveDtoToEntity(FlowInstanceSaveDto dto) {
+    public FlowInstance saveDtoToEntity(FlowInstanceSaveDto dto) {
         if ( dto == null ) {
             return null;
         }
 
-        TFlowInstance tFlowInstance = new TFlowInstance();
+        FlowInstance flowInstance = new FlowInstance();
 
-        tFlowInstance.setFlowType( dto.getFlowType() );
-        tFlowInstance.setBizId( dto.getBizId() );
-        tFlowInstance.setApplyEmpId( dto.getApplyEmpId() );
-        tFlowInstance.setFlowableProcInstId( dto.getFlowableProcInstId() );
-        tFlowInstance.setBizJson( dto.getBizJson() );
+        flowInstance.setFlowType( dto.getFlowType() );
+        flowInstance.setBizId( dto.getBizId() );
+        flowInstance.setApplyEmpId( dto.getApplyEmpId() );
+        flowInstance.setFlowableProcInstId( dto.getFlowableProcInstId() );
+        flowInstance.setBizJson( dto.getBizJson() );
 
-        return tFlowInstance;
+        return flowInstance;
     }
 
     @Override
-    public FlowInstanceVO entityToVo(TFlowInstance entity) {
+    public FlowInstanceVO entityToVo(FlowInstance entity) {
         if ( entity == null ) {
             return null;
         }

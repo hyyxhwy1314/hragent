@@ -3,48 +3,48 @@ package org.example.hragent.converter;
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.EmployeeSaveDto;
 import org.example.hragent.dto.EmployeeUpdateDto;
-import org.example.hragent.entity.TEmployee;
+import org.example.hragent.entity.Employee;
 import org.example.hragent.vo.EmployeeVO;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-14T10:43:47+0800",
+    date = "2026-08-14T23:10:55+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class EmployeeConverterImpl implements EmployeeConverter {
 
     @Override
-    public TEmployee saveDtoToEntity(EmployeeSaveDto dto) {
+    public Employee saveDtoToEntity(EmployeeSaveDto dto) {
         if ( dto == null ) {
             return null;
         }
 
-        TEmployee tEmployee = new TEmployee();
+        Employee employee = new Employee();
 
-        tEmployee.setEmpNo( dto.getEmpNo() );
-        tEmployee.setEmpName( dto.getEmpName() );
-        tEmployee.setGender( dto.getGender() );
-        tEmployee.setBirthDate( dto.getBirthDate() );
-        tEmployee.setPhone( dto.getPhone() );
-        tEmployee.setEmail( dto.getEmail() );
-        tEmployee.setIdCard( dto.getIdCard() );
-        tEmployee.setDeptName( dto.getDeptName() );
-        tEmployee.setPositionName( dto.getPositionName() );
-        tEmployee.setEntryDate( dto.getEntryDate() );
-        tEmployee.setRegularDate( dto.getRegularDate() );
-        tEmployee.setLeaveDate( dto.getLeaveDate() );
-        tEmployee.setEmpStatus( dto.getEmpStatus() );
-        tEmployee.setBaseSalary( dto.getBaseSalary() );
-        tEmployee.setWorkCity( dto.getWorkCity() );
-        tEmployee.setRemark( dto.getRemark() );
+        employee.setEmpNo( dto.getEmpNo() );
+        employee.setEmpName( dto.getEmpName() );
+        employee.setGender( dto.getGender() );
+        employee.setBirthDate( dto.getBirthDate() );
+        employee.setPhone( dto.getPhone() );
+        employee.setEmail( dto.getEmail() );
+        employee.setIdCard( dto.getIdCard() );
+        employee.setDeptName( dto.getDeptName() );
+        employee.setPositionName( dto.getPositionName() );
+        employee.setEntryDate( dto.getEntryDate() );
+        employee.setRegularDate( dto.getRegularDate() );
+        employee.setLeaveDate( dto.getLeaveDate() );
+        employee.setEmpStatus( dto.getEmpStatus() );
+        employee.setBaseSalary( dto.getBaseSalary() );
+        employee.setWorkCity( dto.getWorkCity() );
+        employee.setRemark( dto.getRemark() );
 
-        return tEmployee;
+        return employee;
     }
 
     @Override
-    public void updateDtoToEntity(EmployeeUpdateDto dto, TEmployee entity) {
+    public void updateDtoToEntity(EmployeeUpdateDto dto, Employee entity) {
         if ( dto == null ) {
             return;
         }
@@ -68,7 +68,7 @@ public class EmployeeConverterImpl implements EmployeeConverter {
     }
 
     @Override
-    public EmployeeVO entityToVo(TEmployee entity) {
+    public EmployeeVO entityToVo(Employee entity) {
         if ( entity == null ) {
             return null;
         }

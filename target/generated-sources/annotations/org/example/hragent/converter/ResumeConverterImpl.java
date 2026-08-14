@@ -3,56 +3,56 @@ package org.example.hragent.converter;
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.ResumeSaveDto;
 import org.example.hragent.dto.ResumeUpdateDto;
-import org.example.hragent.entity.TResume;
+import org.example.hragent.entity.Resume;
 import org.example.hragent.vo.ResumeVO;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-14T10:43:47+0800",
+    date = "2026-08-14T23:10:55+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class ResumeConverterImpl implements ResumeConverter {
 
     @Override
-    public TResume saveDtoToEntity(ResumeSaveDto dto) {
+    public Resume saveDtoToEntity(ResumeSaveDto dto) {
         if ( dto == null ) {
             return null;
         }
 
-        TResume tResume = new TResume();
+        Resume resume = new Resume();
 
-        tResume.setResumeName( dto.getResumeName() );
-        tResume.setGender( dto.getGender() );
-        tResume.setBirthDate( dto.getBirthDate() );
-        tResume.setPhone( dto.getPhone() );
-        tResume.setEmail( dto.getEmail() );
-        tResume.setIdCard( dto.getIdCard() );
-        tResume.setExpectPosition( dto.getExpectPosition() );
-        tResume.setExpectSalaryMin( dto.getExpectSalaryMin() );
-        tResume.setExpectSalaryMax( dto.getExpectSalaryMax() );
-        tResume.setExpectCity( dto.getExpectCity() );
-        tResume.setWorkYears( dto.getWorkYears() );
-        tResume.setEducation( dto.getEducation() );
-        tResume.setSchool( dto.getSchool() );
-        tResume.setMajor( dto.getMajor() );
-        tResume.setResumeContent( dto.getResumeContent() );
-        tResume.setResumeStructJson( dto.getResumeStructJson() );
-        tResume.setResumeFileId( dto.getResumeFileId() );
-        tResume.setResumeStatus( dto.getResumeStatus() );
-        tResume.setDeliverySource( dto.getDeliverySource() );
-        tResume.setTargetJobId( dto.getTargetJobId() );
-        tResume.setMatchScore( dto.getMatchScore() );
-        tResume.setScreeningOpinion( dto.getScreeningOpinion() );
-        tResume.setOwnerEmpId( dto.getOwnerEmpId() );
-        tResume.setRemark( dto.getRemark() );
+        resume.setResumeName( dto.getResumeName() );
+        resume.setGender( dto.getGender() );
+        resume.setBirthDate( dto.getBirthDate() );
+        resume.setPhone( dto.getPhone() );
+        resume.setEmail( dto.getEmail() );
+        resume.setIdCard( dto.getIdCard() );
+        resume.setExpectPosition( dto.getExpectPosition() );
+        resume.setExpectSalaryMin( dto.getExpectSalaryMin() );
+        resume.setExpectSalaryMax( dto.getExpectSalaryMax() );
+        resume.setExpectCity( dto.getExpectCity() );
+        resume.setWorkYears( dto.getWorkYears() );
+        resume.setEducation( dto.getEducation() );
+        resume.setSchool( dto.getSchool() );
+        resume.setMajor( dto.getMajor() );
+        resume.setResumeContent( dto.getResumeContent() );
+        resume.setResumeStructJson( dto.getResumeStructJson() );
+        resume.setResumeFileId( dto.getResumeFileId() );
+        resume.setResumeStatus( dto.getResumeStatus() );
+        resume.setDeliverySource( dto.getDeliverySource() );
+        resume.setTargetJobId( dto.getTargetJobId() );
+        resume.setMatchScore( dto.getMatchScore() );
+        resume.setScreeningOpinion( dto.getScreeningOpinion() );
+        resume.setOwnerEmpId( dto.getOwnerEmpId() );
+        resume.setRemark( dto.getRemark() );
 
-        return tResume;
+        return resume;
     }
 
     @Override
-    public void updateDtoToEntity(ResumeUpdateDto dto, TResume entity) {
+    public void updateDtoToEntity(ResumeUpdateDto dto, Resume entity) {
         if ( dto == null ) {
             return;
         }
@@ -85,7 +85,7 @@ public class ResumeConverterImpl implements ResumeConverter {
     }
 
     @Override
-    public ResumeVO entityToVo(TResume entity) {
+    public ResumeVO entityToVo(Resume entity) {
         if ( entity == null ) {
             return null;
         }

@@ -1,7 +1,8 @@
 package org.example.hragent.converter;
 
 import org.example.hragent.dto.ResumeAbilityRelSaveDto;
-import org.example.hragent.entity.TResumeAbilityRel;
+import org.example.hragent.entity.ResumeAbilityRel;
+import org.example.hragent.entity.ResumeAbilityRel;
 import org.example.hragent.vo.ResumeAbilityRelVO;
 import org.mapstruct.Mapper;
 
@@ -11,11 +12,11 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface ResumeAbilityRelConverter {
 
-    TResumeAbilityRel saveDtoToEntity(ResumeAbilityRelSaveDto dto);
+    ResumeAbilityRel saveDtoToEntity(ResumeAbilityRelSaveDto dto);
 
-    ResumeAbilityRelVO entityToVo(TResumeAbilityRel entity);
+    ResumeAbilityRelVO entityToVo(ResumeAbilityRel entity);
 
-    default List<ResumeAbilityRelVO> entityListToVoList(List<TResumeAbilityRel> list) {
+    default List<ResumeAbilityRelVO> entityListToVoList(List<ResumeAbilityRel> list) {
         if (list == null) {
             return Collections.emptyList();
         }

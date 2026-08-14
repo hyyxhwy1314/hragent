@@ -2,7 +2,8 @@ package org.example.hragent.converter;
 
 import org.example.hragent.dto.PerformanceSaveDto;
 import org.example.hragent.dto.PerformanceUpdateDto;
-import org.example.hragent.entity.TPerformance;
+import org.example.hragent.entity.Performance;
+import org.example.hragent.entity.Performance;
 import org.example.hragent.vo.PerformanceVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
@@ -13,13 +14,13 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface PerformanceConverter {
 
-    TPerformance saveDtoToEntity(PerformanceSaveDto dto);
+    Performance saveDtoToEntity(PerformanceSaveDto dto);
 
-    void updateDtoToEntity(PerformanceUpdateDto dto, @MappingTarget TPerformance entity);
+    void updateDtoToEntity(PerformanceUpdateDto dto, @MappingTarget Performance entity);
 
-    PerformanceVO entityToVo(TPerformance entity);
+    PerformanceVO entityToVo(Performance entity);
 
-    default List<PerformanceVO> entityListToVoList(List<TPerformance> list) {
+    default List<PerformanceVO> entityListToVoList(List<Performance> list) {
         if (list == null) {
             return Collections.emptyList();
         }

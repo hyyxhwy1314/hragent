@@ -3,42 +3,42 @@ package org.example.hragent.converter;
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.PerformanceSaveDto;
 import org.example.hragent.dto.PerformanceUpdateDto;
-import org.example.hragent.entity.TPerformance;
+import org.example.hragent.entity.Performance;
 import org.example.hragent.vo.PerformanceVO;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-14T10:43:47+0800",
+    date = "2026-08-14T23:10:55+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class PerformanceConverterImpl implements PerformanceConverter {
 
     @Override
-    public TPerformance saveDtoToEntity(PerformanceSaveDto dto) {
+    public Performance saveDtoToEntity(PerformanceSaveDto dto) {
         if ( dto == null ) {
             return null;
         }
 
-        TPerformance tPerformance = new TPerformance();
+        Performance performance = new Performance();
 
-        tPerformance.setEmpId( dto.getEmpId() );
-        tPerformance.setPeriodCode( dto.getPeriodCode() );
-        tPerformance.setKpiJson( dto.getKpiJson() );
-        tPerformance.setSelfScore( dto.getSelfScore() );
-        tPerformance.setLeaderScore( dto.getLeaderScore() );
-        tPerformance.setFinalScore( dto.getFinalScore() );
-        tPerformance.setPerformanceLevel( dto.getPerformanceLevel() );
-        tPerformance.setAiComment( dto.getAiComment() );
-        tPerformance.setFlowInstanceId( dto.getFlowInstanceId() );
-        tPerformance.setStatus( dto.getStatus() );
+        performance.setEmpId( dto.getEmpId() );
+        performance.setPeriodCode( dto.getPeriodCode() );
+        performance.setKpiJson( dto.getKpiJson() );
+        performance.setSelfScore( dto.getSelfScore() );
+        performance.setLeaderScore( dto.getLeaderScore() );
+        performance.setFinalScore( dto.getFinalScore() );
+        performance.setPerformanceLevel( dto.getPerformanceLevel() );
+        performance.setAiComment( dto.getAiComment() );
+        performance.setFlowInstanceId( dto.getFlowInstanceId() );
+        performance.setStatus( dto.getStatus() );
 
-        return tPerformance;
+        return performance;
     }
 
     @Override
-    public void updateDtoToEntity(PerformanceUpdateDto dto, TPerformance entity) {
+    public void updateDtoToEntity(PerformanceUpdateDto dto, Performance entity) {
         if ( dto == null ) {
             return;
         }
@@ -57,7 +57,7 @@ public class PerformanceConverterImpl implements PerformanceConverter {
     }
 
     @Override
-    public PerformanceVO entityToVo(TPerformance entity) {
+    public PerformanceVO entityToVo(Performance entity) {
         if ( entity == null ) {
             return null;
         }

@@ -3,49 +3,49 @@ package org.example.hragent.converter;
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.JobPostSaveDto;
 import org.example.hragent.dto.JobPostUpdateDto;
-import org.example.hragent.entity.TJobPost;
+import org.example.hragent.entity.JobPost;
 import org.example.hragent.vo.JobPostVO;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-14T10:43:47+0800",
+    date = "2026-08-14T23:10:55+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class JobPostConverterImpl implements JobPostConverter {
 
     @Override
-    public TJobPost saveDtoToEntity(JobPostSaveDto dto) {
+    public JobPost saveDtoToEntity(JobPostSaveDto dto) {
         if ( dto == null ) {
             return null;
         }
 
-        TJobPost tJobPost = new TJobPost();
+        JobPost jobPost = new JobPost();
 
-        tJobPost.setJobCode( dto.getJobCode() );
-        tJobPost.setJobName( dto.getJobName() );
-        tJobPost.setDeptName( dto.getDeptName() );
-        tJobPost.setWorkCity( dto.getWorkCity() );
-        tJobPost.setWorkAddress( dto.getWorkAddress() );
-        tJobPost.setJobDuty( dto.getJobDuty() );
-        tJobPost.setJobRequirement( dto.getJobRequirement() );
-        tJobPost.setSalaryMin( dto.getSalaryMin() );
-        tJobPost.setSalaryMax( dto.getSalaryMax() );
-        tJobPost.setEducationReq( dto.getEducationReq() );
-        tJobPost.setWorkYearReq( dto.getWorkYearReq() );
-        tJobPost.setHeadCount( dto.getHeadCount() );
-        tJobPost.setJobStatus( dto.getJobStatus() );
-        tJobPost.setIsPublic( dto.getIsPublic() );
-        tJobPost.setPublishTime( dto.getPublishTime() );
-        tJobPost.setCloseTime( dto.getCloseTime() );
-        tJobPost.setCreatorEmpId( dto.getCreatorEmpId() );
+        jobPost.setJobCode( dto.getJobCode() );
+        jobPost.setJobName( dto.getJobName() );
+        jobPost.setDeptName( dto.getDeptName() );
+        jobPost.setWorkCity( dto.getWorkCity() );
+        jobPost.setWorkAddress( dto.getWorkAddress() );
+        jobPost.setJobDuty( dto.getJobDuty() );
+        jobPost.setJobRequirement( dto.getJobRequirement() );
+        jobPost.setSalaryMin( dto.getSalaryMin() );
+        jobPost.setSalaryMax( dto.getSalaryMax() );
+        jobPost.setEducationReq( dto.getEducationReq() );
+        jobPost.setWorkYearReq( dto.getWorkYearReq() );
+        jobPost.setHeadCount( dto.getHeadCount() );
+        jobPost.setJobStatus( dto.getJobStatus() );
+        jobPost.setIsPublic( dto.getIsPublic() );
+        jobPost.setPublishTime( dto.getPublishTime() );
+        jobPost.setCloseTime( dto.getCloseTime() );
+        jobPost.setCreatorEmpId( dto.getCreatorEmpId() );
 
-        return tJobPost;
+        return jobPost;
     }
 
     @Override
-    public void updateDtoToEntity(JobPostUpdateDto dto, TJobPost entity) {
+    public void updateDtoToEntity(JobPostUpdateDto dto, JobPost entity) {
         if ( dto == null ) {
             return;
         }
@@ -71,7 +71,7 @@ public class JobPostConverterImpl implements JobPostConverter {
     }
 
     @Override
-    public JobPostVO entityToVo(TJobPost entity) {
+    public JobPostVO entityToVo(JobPost entity) {
         if ( entity == null ) {
             return null;
         }

@@ -2,7 +2,8 @@ package org.example.hragent.converter;
 
 import org.example.hragent.dto.AbilityTagSaveDto;
 import org.example.hragent.dto.AbilityTagUpdateDto;
-import org.example.hragent.entity.TAbilityTag;
+import org.example.hragent.entity.AbilityTag;
+import org.example.hragent.entity.AbilityTag;
 import org.example.hragent.vo.AbilityTagVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
@@ -13,13 +14,13 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface AbilityTagConverter {
 
-    TAbilityTag saveDtoToEntity(AbilityTagSaveDto dto);
+    AbilityTag saveDtoToEntity(AbilityTagSaveDto dto);
 
-    void updateDtoToEntity(AbilityTagUpdateDto dto, @MappingTarget TAbilityTag entity);
+    void updateDtoToEntity(AbilityTagUpdateDto dto, @MappingTarget AbilityTag entity);
 
-    AbilityTagVO entityToVo(TAbilityTag entity);
+    AbilityTagVO entityToVo(AbilityTag entity);
 
-    default List<AbilityTagVO> entityListToVoList(List<TAbilityTag> list) {
+    default List<AbilityTagVO> entityListToVoList(List<AbilityTag> list) {
         if (list == null) {
             return Collections.emptyList();
         }

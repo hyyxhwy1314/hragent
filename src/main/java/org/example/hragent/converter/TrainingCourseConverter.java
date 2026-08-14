@@ -2,7 +2,8 @@ package org.example.hragent.converter;
 
 import org.example.hragent.dto.TrainingCourseSaveDto;
 import org.example.hragent.dto.TrainingCourseUpdateDto;
-import org.example.hragent.entity.TTrainingCourse;
+import org.example.hragent.entity.TrainingCourse;
+import org.example.hragent.entity.TrainingCourse;
 import org.example.hragent.vo.TrainingCourseVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
@@ -13,13 +14,13 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface TrainingCourseConverter {
 
-    TTrainingCourse saveDtoToEntity(TrainingCourseSaveDto dto);
+    TrainingCourse saveDtoToEntity(TrainingCourseSaveDto dto);
 
-    void updateDtoToEntity(TrainingCourseUpdateDto dto, @MappingTarget TTrainingCourse entity);
+    void updateDtoToEntity(TrainingCourseUpdateDto dto, @MappingTarget TrainingCourse entity);
 
-    TrainingCourseVO entityToVo(TTrainingCourse entity);
+    TrainingCourseVO entityToVo(TrainingCourse entity);
 
-    default List<TrainingCourseVO> entityListToVoList(List<TTrainingCourse> list) {
+    default List<TrainingCourseVO> entityListToVoList(List<TrainingCourse> list) {
         if (list == null) {
             return Collections.emptyList();
         }

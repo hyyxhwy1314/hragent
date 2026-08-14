@@ -3,40 +3,40 @@ package org.example.hragent.converter;
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.TrainingCourseSaveDto;
 import org.example.hragent.dto.TrainingCourseUpdateDto;
-import org.example.hragent.entity.TTrainingCourse;
+import org.example.hragent.entity.TrainingCourse;
 import org.example.hragent.vo.TrainingCourseVO;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-14T10:43:47+0800",
+    date = "2026-08-14T23:10:55+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class TrainingCourseConverterImpl implements TrainingCourseConverter {
 
     @Override
-    public TTrainingCourse saveDtoToEntity(TrainingCourseSaveDto dto) {
+    public TrainingCourse saveDtoToEntity(TrainingCourseSaveDto dto) {
         if ( dto == null ) {
             return null;
         }
 
-        TTrainingCourse tTrainingCourse = new TTrainingCourse();
+        TrainingCourse trainingCourse = new TrainingCourse();
 
-        tTrainingCourse.setCourseName( dto.getCourseName() );
-        tTrainingCourse.setCourseCode( dto.getCourseCode() );
-        tTrainingCourse.setCourseType( dto.getCourseType() );
-        tTrainingCourse.setCourseDesc( dto.getCourseDesc() );
-        tTrainingCourse.setCourseTarget( dto.getCourseTarget() );
-        tTrainingCourse.setDurationMin( dto.getDurationMin() );
-        tTrainingCourse.setTagIds( dto.getTagIds() );
-        tTrainingCourse.setStatus( dto.getStatus() );
+        trainingCourse.setCourseName( dto.getCourseName() );
+        trainingCourse.setCourseCode( dto.getCourseCode() );
+        trainingCourse.setCourseType( dto.getCourseType() );
+        trainingCourse.setCourseDesc( dto.getCourseDesc() );
+        trainingCourse.setCourseTarget( dto.getCourseTarget() );
+        trainingCourse.setDurationMin( dto.getDurationMin() );
+        trainingCourse.setTagIds( dto.getTagIds() );
+        trainingCourse.setStatus( dto.getStatus() );
 
-        return tTrainingCourse;
+        return trainingCourse;
     }
 
     @Override
-    public void updateDtoToEntity(TrainingCourseUpdateDto dto, TTrainingCourse entity) {
+    public void updateDtoToEntity(TrainingCourseUpdateDto dto, TrainingCourse entity) {
         if ( dto == null ) {
             return;
         }
@@ -53,7 +53,7 @@ public class TrainingCourseConverterImpl implements TrainingCourseConverter {
     }
 
     @Override
-    public TrainingCourseVO entityToVo(TTrainingCourse entity) {
+    public TrainingCourseVO entityToVo(TrainingCourse entity) {
         if ( entity == null ) {
             return null;
         }

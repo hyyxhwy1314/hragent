@@ -1,7 +1,8 @@
 package org.example.hragent.converter;
 
 import org.example.hragent.dto.FlowInstanceSaveDto;
-import org.example.hragent.entity.TFlowInstance;
+import org.example.hragent.entity.FlowInstance;
+import org.example.hragent.entity.FlowInstance;
 import org.example.hragent.vo.FlowInstanceVO;
 import org.mapstruct.Mapper;
 
@@ -11,11 +12,11 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface FlowInstanceConverter {
 
-    TFlowInstance saveDtoToEntity(FlowInstanceSaveDto dto);
+    FlowInstance saveDtoToEntity(FlowInstanceSaveDto dto);
 
-    FlowInstanceVO entityToVo(TFlowInstance entity);
+    FlowInstanceVO entityToVo(FlowInstance entity);
 
-    default List<FlowInstanceVO> entityListToVoList(List<TFlowInstance> list) {
+    default List<FlowInstanceVO> entityListToVoList(List<FlowInstance> list) {
         if (list == null) {
             return Collections.emptyList();
         }

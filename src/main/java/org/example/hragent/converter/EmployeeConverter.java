@@ -2,7 +2,8 @@ package org.example.hragent.converter;
 
 import org.example.hragent.dto.EmployeeSaveDto;
 import org.example.hragent.dto.EmployeeUpdateDto;
-import org.example.hragent.entity.TEmployee;
+import org.example.hragent.entity.Employee;
+import org.example.hragent.entity.Employee;
 import org.example.hragent.vo.EmployeeVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
@@ -16,22 +17,22 @@ public interface EmployeeConverter {
     /**
      * 新增DTO → Entity
      */
-    TEmployee saveDtoToEntity(EmployeeSaveDto dto);
+    Employee saveDtoToEntity(EmployeeSaveDto dto);
 
     /**
      * 更新DTO → 覆盖已有Entity
      */
-    void updateDtoToEntity(EmployeeUpdateDto dto, @MappingTarget TEmployee entity);
+    void updateDtoToEntity(EmployeeUpdateDto dto, @MappingTarget Employee entity);
 
     /**
      * Entity → VO 返回前端
      */
-    EmployeeVO entityToVo(TEmployee entity);
+    EmployeeVO entityToVo(Employee entity);
 
     /**
      * 集合批量转换：List<Entity> → List<VO>，用于分页
      */
-    default List<EmployeeVO> entityListToVoList(List<TEmployee> list) {
+    default List<EmployeeVO> entityListToVoList(List<Employee> list) {
         if (list == null) {
             return Collections.emptyList();
         }

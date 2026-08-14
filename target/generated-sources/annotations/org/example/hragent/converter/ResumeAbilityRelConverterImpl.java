@@ -2,36 +2,36 @@ package org.example.hragent.converter;
 
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.ResumeAbilityRelSaveDto;
-import org.example.hragent.entity.TResumeAbilityRel;
+import org.example.hragent.entity.ResumeAbilityRel;
 import org.example.hragent.vo.ResumeAbilityRelVO;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-14T10:43:46+0800",
+    date = "2026-08-14T23:10:55+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class ResumeAbilityRelConverterImpl implements ResumeAbilityRelConverter {
 
     @Override
-    public TResumeAbilityRel saveDtoToEntity(ResumeAbilityRelSaveDto dto) {
+    public ResumeAbilityRel saveDtoToEntity(ResumeAbilityRelSaveDto dto) {
         if ( dto == null ) {
             return null;
         }
 
-        TResumeAbilityRel tResumeAbilityRel = new TResumeAbilityRel();
+        ResumeAbilityRel resumeAbilityRel = new ResumeAbilityRel();
 
-        tResumeAbilityRel.setResumeId( dto.getResumeId() );
-        tResumeAbilityRel.setAbilityTagId( dto.getAbilityTagId() );
-        tResumeAbilityRel.setConfidence( dto.getConfidence() );
-        tResumeAbilityRel.setSource( dto.getSource() );
+        resumeAbilityRel.setResumeId( dto.getResumeId() );
+        resumeAbilityRel.setAbilityTagId( dto.getAbilityTagId() );
+        resumeAbilityRel.setConfidence( dto.getConfidence() );
+        resumeAbilityRel.setSource( dto.getSource() );
 
-        return tResumeAbilityRel;
+        return resumeAbilityRel;
     }
 
     @Override
-    public ResumeAbilityRelVO entityToVo(TResumeAbilityRel entity) {
+    public ResumeAbilityRelVO entityToVo(ResumeAbilityRel entity) {
         if ( entity == null ) {
             return null;
         }
