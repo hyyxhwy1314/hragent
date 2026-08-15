@@ -1,9 +1,10 @@
 package org.example.hragent.entity;
-
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @TableName("t_job_post")
@@ -97,13 +98,15 @@ public class JobPost extends BaseEntity {
      * 发布时间
      */
     @TableField("publish_time")
-    private java.time.LocalDateTime publishTime;
+    @JsonFormat(pattern = "yyyy‑MM‑dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime publishTime;
 
     /**
      * 截止时间
      */
     @TableField("close_time")
-    private java.time.LocalDateTime closeTime;
+    @JsonFormat(pattern = "yyyy‑MM‑dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime closeTime;
 
     /**
      * 创建该岗位的HR，关联t_employee.id

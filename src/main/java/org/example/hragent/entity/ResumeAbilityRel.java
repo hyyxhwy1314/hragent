@@ -1,9 +1,7 @@
 package org.example.hragent.entity;
-
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-
 import java.math.BigDecimal;
 
 @Data

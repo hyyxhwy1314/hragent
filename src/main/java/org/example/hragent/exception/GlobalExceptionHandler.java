@@ -1,5 +1,4 @@
 package org.example.hragent.exception;
-
 import org.example.hragent.vo.R;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -12,7 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -74,8 +73,17 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public R<?> handleNoResourceFoundException(NoResourceFoundException e) {
-        // favicon.ico浏览器自动请求，直接返回404，不输出日志
         return R.fail(404, "资源不存在");
+    }
+
+    /**
+     * HTTP方法不支持（如 GET 请求了 POST 端点）
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public R<?> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        log.warn("请求方法不支持: {} - {}", e.getMethod(), e.getMessage());
+        return R.fail(405, "请求方法不支持: " + e.getMethod());
     }
 
     /**

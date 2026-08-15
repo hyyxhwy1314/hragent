@@ -1,5 +1,4 @@
 package org.example.hragent.exception;
-
 import lombok.Getter;
 
 @Getter

@@ -1,12 +1,15 @@
 package org.example.hragent.dto;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class PerformanceQueryDto {
+@EqualsAndHashCode(callSuper = true)
+public class PerformanceQueryDto extends BaseQueryDto {
+
     private Long empId;
+
     private String periodCode;
+
     private Integer status;
-    private Long pageNum;
-    private Long pageSize;
 }

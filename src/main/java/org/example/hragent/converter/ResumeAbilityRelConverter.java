@@ -1,25 +1,22 @@
 package org.example.hragent.converter;
 
 import org.example.hragent.dto.ResumeAbilityRelSaveDto;
-import org.example.hragent.entity.ResumeAbilityRel;
+import org.example.hragent.dto.ResumeAbilityRelUpdateDto;
 import org.example.hragent.entity.ResumeAbilityRel;
 import org.example.hragent.vo.ResumeAbilityRelVO;
 import org.mapstruct.Mapper;
-
-import java.util.Collections;
-import java.util.List;
+import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
-public interface ResumeAbilityRelConverter {
+public interface ResumeAbilityRelConverter
+        extends BaseFullConverter<ResumeAbilityRel, ResumeAbilityRelVO, ResumeAbilityRelSaveDto, ResumeAbilityRelUpdateDto> {
 
+    @Override
     ResumeAbilityRel saveDtoToEntity(ResumeAbilityRelSaveDto dto);
 
-    ResumeAbilityRelVO entityToVo(ResumeAbilityRel entity);
+    @Override
+    void updateDtoToEntity(ResumeAbilityRelUpdateDto dto, @MappingTarget ResumeAbilityRel entity);
 
-    default List<ResumeAbilityRelVO> entityListToVoList(List<ResumeAbilityRel> list) {
-        if (list == null) {
-            return Collections.emptyList();
-        }
-        return list.stream().map(this::entityToVo).toList();
-    }
+    @Override
+    ResumeAbilityRelVO entityToVo(ResumeAbilityRel entity);
 }

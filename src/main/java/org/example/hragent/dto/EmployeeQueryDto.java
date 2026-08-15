@@ -1,13 +1,17 @@
 package org.example.hragent.dto;
 
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Data
-public class EmployeeQueryDto {
+@EqualsAndHashCode(callSuper = true)
+public class EmployeeQueryDto extends BaseQueryDto {
+
     private String empNo;
+
     private String empName;
+
     private String deptName;
+
     private Integer empStatus;
-    private Long pageNum;
-    private Long pageSize;
 }

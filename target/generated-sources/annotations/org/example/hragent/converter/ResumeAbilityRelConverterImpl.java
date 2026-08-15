@@ -2,13 +2,14 @@ package org.example.hragent.converter;
 
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.ResumeAbilityRelSaveDto;
+import org.example.hragent.dto.ResumeAbilityRelUpdateDto;
 import org.example.hragent.entity.ResumeAbilityRel;
 import org.example.hragent.vo.ResumeAbilityRelVO;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-14T23:10:55+0800",
+    date = "2026-08-15T17:23:12+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
@@ -28,6 +29,19 @@ public class ResumeAbilityRelConverterImpl implements ResumeAbilityRelConverter 
         resumeAbilityRel.setSource( dto.getSource() );
 
         return resumeAbilityRel;
+    }
+
+    @Override
+    public void updateDtoToEntity(ResumeAbilityRelUpdateDto dto, ResumeAbilityRel entity) {
+        if ( dto == null ) {
+            return;
+        }
+
+        entity.setId( dto.getId() );
+        entity.setResumeId( dto.getResumeId() );
+        entity.setAbilityTagId( dto.getAbilityTagId() );
+        entity.setConfidence( dto.getConfidence() );
+        entity.setSource( dto.getSource() );
     }
 
     @Override

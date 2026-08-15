@@ -23,19 +23,27 @@ spring:
 flowable:
   database-schema-update: true
   history-level: full
+  async-executor-activate: false
 
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml
-  type-aliases-package: com.xxx.hr.entity
+  type-aliases-package: org.example.hragent.entity
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: auto
       logic-delete-field: isDeleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+
+logging:
+  level:
+    root: INFO
+    org.example.hragent: DEBUG
+    com.baomidou.mybatisplus: WARN
+    org.flowable: WARN
+    org.apache.ibatis: WARN
 
 # Elasticsearch7.17.9
 elasticsearch:
