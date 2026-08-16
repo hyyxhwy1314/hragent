@@ -1,14 +1,24 @@
-﻿﻿import { createCrudApi } from '../request'
+import { createCrudApi } from '../request'
 
 export interface JobPost {
   id?: number
   jobCode?: string
   jobName?: string
   deptName?: string
-  jobDesc?: string
-  requirement?: string
-  headcount?: number
+  workCity?: string
+  workAddress?: string
+  jobDuty?: string
+  jobRequirement?: string
+  salaryMin?: number | string
+  salaryMax?: number | string
+  educationReq?: number
+  workYearReq?: number
+  headCount?: number
   jobStatus?: number
+  isPublic?: number
+  publishTime?: string
+  closeTime?: string
+  creatorEmpId?: number
   createTime?: string
   updateTime?: string
 }

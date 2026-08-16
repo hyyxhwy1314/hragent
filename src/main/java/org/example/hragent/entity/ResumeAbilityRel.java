@@ -1,10 +1,16 @@
 package org.example.hragent.entity;
+
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("t_resume_ability_rel")
 public class ResumeAbilityRel extends BaseEntity {
 

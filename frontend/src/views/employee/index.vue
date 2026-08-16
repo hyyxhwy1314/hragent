@@ -1,14 +1,38 @@
 <script setup lang="ts">
 import { ref, computed, h, reactive } from 'vue'
-import { Table, Button, Space, Input, Select, Form, message, Tag } from 'ant-design-vue'
-import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons-vue'
-import { employeeApi } from '@/api/modules/employee'
+import {
+  Table, Button, Space, Input, Select, Form, Modal, Tag, message, App as AntApp, Descriptions,
+  Row as ARow, Col as ACol
+} from 'ant-design-vue'
+import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { employeeApi, type Employee } from '@/api/modules/employee'
 import { useCrud } from '@/composables/useCrud'
 
 defineOptions({ name: 'EmployeePage' })
+const { modal } = AntApp.useApp()
 
+const formRef = ref()
 const queryForm = ref<Record<string, any>>({})
-const crud = reactive(useCrud(employeeApi))
+const mode = ref<'view' | 'edit' | 'create'>('create')
+const visible = ref(false)
+const current = ref<Employee | null>(null)
+const formState = reactive<Partial<Employee>>({})
+function resetFormState() {
+  Object.keys(formState).forEach((k) => { delete (formState as any)[k] })
+}
+
+const statusOpts = [
+  { label: '在职', value: 1 },
+  { label: '离职', value: 0 },
+  { label: '试用', value: 2 }
+]
+const statusColor: Record<number, string> = { 1: 'green', 0: 'red', 2: 'orange' }
+const genderOpts = [
+  { label: '男', value: 1 },
+  { label: '女', value: 0 }
+]
+
+const crud = reactive(useCrud<Employee>(employeeApi))
 crud.fetch()
 
 const safeDataSource = computed(() =>
@@ -21,19 +45,58 @@ const pagination = computed(() => ({
   total: crud.total,
   showSizeChanger: true,
   showQuickJumper: true,
-  showTotal: (t) => `共 ${t} 条`
+  showTotal: (t: number) => `共 ${t} 条`
 }))
 
 function onSearch() { crud.reload({ ...queryForm.value }) }
 function onReset() { queryForm.value = {}; crud.reload() }
-function onCreate() { message.info('新增功能开发中') }
+function onCreate() {
+  resetFormState()
+  mode.value = 'create'
+  current.value = null
+  visible.value = true
+}
+function onView(r: Employee) { mode.value = 'view'; current.value = r; visible.value = true }
+function onEdit(r: Employee) {
+  resetFormState()
+  Object.assign(formState, r)
+  mode.value = 'edit'
+  current.value = { ...r }
+  visible.value = true
+}
+
+async function onSubmit() {
+  try {
+    await formRef.value.validate()
+    if (mode.value === 'create') {
+      await crud.save({ ...formState })
+      message.success('新增成功')
+    } else if (mode.value === 'edit' && current.value?.id) {
+      await crud.update(current.value.id, { ...formState })
+      message.success('更新成功')
+    }
+    visible.value = false
+  } catch (e) {
+    /* validation */
+  }
+}
+function onDelete(r: Employee) {
+  if (!r.id) return
+  modal.confirm({
+    title: '确认删除', content: `确定删除员工「${r.empName}」吗？`,
+    okText: '删除', okType: 'danger', cancelText: '取消',
+    onOk: async () => { await crud.remove(r.id!); message.success('删除成功') }
+  })
+}
+function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
+function genderText(g?: number) { return genderOpts.find(o => o.value === g)?.label ?? '-' }
 
 const columns = [
   { title: '工号', dataIndex: 'empNo', width: 110 },
   { title: '姓名', dataIndex: 'empName', width: 110 },
   {
     title: '性别', dataIndex: 'gender', width: 70,
-    customRender: ({ record }: any) => record.gender === 1 ? '男' : record.gender === 0 ? '女' : '-'
+    customRender: ({ record }: any) => genderText(record.gender)
   },
   { title: '部门', dataIndex: 'deptName', width: 140 },
   { title: '职位', dataIndex: 'positionName', width: 140 },
@@ -41,24 +104,15 @@ const columns = [
   { title: '入职日期', dataIndex: 'entryDate', width: 120 },
   {
     title: '状态', dataIndex: 'empStatus', width: 90,
-    customRender: ({ record }: any) => {
-      const map: Record<number, { text: string; color: string }> = {
-        1: { text: '在职', color: 'green' },
-        0: { text: '离职', color: 'red' },
-        2: { text: '试用', color: 'orange' }
-      }
-      const s = map[record.empStatus] || { text: '-', color: 'default' }
-      return h(Tag, { color: s.color }, () => s.text)
-    }
+    customRender: ({ record }: any) => h(Tag, { color: statusColor[record.empStatus] || 'default' }, () => statusText(record.empStatus))
   },
   {
-    title: '操作', key: 'action', width: 200,
-    customRender: ({ record }: any) =>
-      h(Space, {}, () => [
-        h(Button, { size: 'small', type: 'link', onClick: () => message.info('查看: ' + record.empNo) }, () => '查看'),
-        h(Button, { size: 'small', type: 'link', onClick: () => message.info('编辑: ' + record.empNo) }, () => '编辑'),
-        h(Button, { size: 'small', type: 'link', danger: true, onClick: () => message.warning('删除: ' + record.empNo) }, () => '删除')
-      ])
+    title: '操作', key: 'action', width: 200, fixed: 'right',
+    customRender: ({ record }: any) => h(Space, {}, () => [
+      h(Button, { size: 'small', type: 'link', onClick: () => onView(record) }, () => '查看'),
+      h(Button, { size: 'small', type: 'link', onClick: () => onEdit(record) }, () => '编辑'),
+      h(Button, { size: 'small', type: 'link', danger: true, onClick: () => onDelete(record) }, () => '删除')
+    ])
   }
 ]
 </script>
@@ -80,7 +134,7 @@ const columns = [
         </Form.Item>
         <Form.Item label="状态">
           <Select v-model:value="queryForm.empStatus" placeholder="全部" allow-clear style="width: 120px"
-            :options="[{ label: '在职', value: 1 }, { label: '离职', value: 0 }, { label: '试用', value: 2 }]" />
+            :options="statusOpts" />
         </Form.Item>
         <Form.Item>
           <Space>
@@ -102,15 +156,82 @@ const columns = [
         </div>
       </div>
 
-      <Table
-        :columns="columns"
-        :data-source="safeDataSource"
-        :loading="crud.loading"
+      <Table :columns="columns" :data-source="safeDataSource" :loading="crud.loading"
         :pagination="pagination"
-        :scroll="{ x: 1100 }"
-        row-key="id"
-        @change="crud.handleTableChange"
-      />
+        :scroll="{ x: 1100 }" row-key="id" @change="crud.handleTableChange" />
     </div>
+
+    <Modal v-model:open="visible"
+      :title="mode === 'create' ? '新增员工' : mode === 'edit' ? '编辑员工' : '员工详情'"
+      :footer="mode === 'view' ? null : undefined" width="720px" destroy-on-close>
+      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :model="formState" :initial-values="mode === 'edit' ? current : {}">
+        <a-row :gutter="16">
+          <a-col :span="12"><Form.Item label="工号" name="empNo" :rules="[{ required: true, message: '请输入工号' }]">
+            <Input v-model:value="formState.empNo" placeholder="如 EMP001" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="姓名" name="empName" :rules="[{ required: true, message: '请输入姓名' }]">
+            <Input v-model:value="formState.empName" placeholder="请输入姓名" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="性别" name="gender">
+            <Select v-model:value="formState.gender" :options="genderOpts" placeholder="请选择" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="出生日期" name="birthDate">
+            <Input v-model:value="formState.birthDate" placeholder="YYYY-MM-DD" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="手机号" name="phone">
+            <Input v-model:value="formState.phone" placeholder="请输入手机号" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="邮箱" name="email">
+            <Input v-model:value="formState.email" placeholder="请输入邮箱" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="部门" name="deptName">
+            <Input v-model:value="formState.deptName" placeholder="请输入部门" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="职位" name="positionName">
+            <Input v-model:value="formState.positionName" placeholder="请输入职位" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="入职日期" name="entryDate">
+            <Input v-model:value="formState.entryDate" placeholder="YYYY-MM-DD" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="转正日期" name="regularDate">
+            <Input v-model:value="formState.regularDate" placeholder="YYYY-MM-DD" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="离职日期" name="leaveDate">
+            <Input v-model:value="formState.leaveDate" placeholder="YYYY-MM-DD" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="状态" name="empStatus">
+            <Select v-model:value="formState.empStatus" :options="statusOpts" placeholder="请选择" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="工作城市" name="workCity">
+            <Input v-model:value="formState.workCity" placeholder="请输入工作城市" />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="备注" name="remark">
+            <Input.TextArea v-model:value="formState.remark" :rows="3" placeholder="请输入备注" />
+          </Form.Item></a-col>
+        </a-row>
+      </Form>
+      <Descriptions v-else :column="2" bordered>
+        <Descriptions.Item label="工号">{{ current?.empNo || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="姓名">{{ current?.empName || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="性别">{{ genderText(current?.gender) }}</Descriptions.Item>
+        <Descriptions.Item label="出生日期">{{ current?.birthDate || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="手机号">{{ current?.phone || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="邮箱">{{ current?.email || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="部门">{{ current?.deptName || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="职位">{{ current?.positionName || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="入职日期">{{ current?.entryDate || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="转正日期">{{ current?.regularDate || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="离职日期">{{ current?.leaveDate || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="状态">{{ statusText(current?.empStatus) }}</Descriptions.Item>
+        <Descriptions.Item label="工作城市">{{ current?.workCity || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="备注" :span="2">{{ current?.remark || '-' }}</Descriptions.Item>
+      </Descriptions>
+      <template #footer v-if="mode !== 'view'">
+        <Space>
+          <Button @click="visible = false">取消</Button>
+          <Button type="primary" @click="onSubmit">确定</Button>
+        </Space>
+      </template>
+    </Modal>
   </div>
 </template>

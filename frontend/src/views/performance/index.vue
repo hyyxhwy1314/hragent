@@ -15,12 +15,16 @@ const queryForm = ref<Record<string, any>>({})
 const mode = ref<'view' | 'edit' | 'create'>('create')
 const visible = ref(false)
 const current = ref<Performance | null>(null)
+const formState = reactive<Partial<Performance>>({})
+function resetFormState() {
+  Object.keys(formState).forEach((k) => { delete (formState as any)[k] })
+}
 
 const statusOpts = [
   { label: '草稿', value: 0 },
-  { label: '进行中', value: 1 },
+  { label: '待审核', value: 1 },
   { label: '已完成', value: 2 },
-  { label: '已归档', value: 3 }
+  { label: '已驳回', value: 3 }
 ]
 const statusColor: Record<number, string> = { 0: 'default', 1: 'blue', 2: 'green', 3: 'orange' }
 const rankOpts = ['S', 'A', 'B', 'C', 'D']
@@ -43,36 +47,39 @@ const pagination = computed(() => ({
 
 function onSearch() { crud.reload({ ...queryForm.value }) }
 function onReset() { queryForm.value = {}; crud.reload() }
-function onCreate() { mode.value = 'create'; current.value = null; visible.value = true }
+function onCreate() { resetFormState(); mode.value = 'create'; current.value = null; visible.value = true }
 function onView(r: Performance) { mode.value = 'view'; current.value = r; visible.value = true }
-function onEdit(r: Performance) { mode.value = 'edit'; current.value = { ...r }; visible.value = true }
+function onEdit(r: Performance) { resetFormState(); Object.assign(formState, r); mode.value = 'edit'; current.value = { ...r }; visible.value = true }
+
 async function onSubmit() {
   try {
-    const vals = await formRef.value.validate()
-    if (mode.value === 'create') { await crud.save(vals); message.success('新增成功') }
-    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, vals); message.success('更新成功') }
+    await formRef.value.validate()
+    const payload: any = { ...formState }
+    if (mode.value === 'create') { await crud.save(payload); message.success('新增成功') }
+    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, payload); message.success('更新成功') }
     visible.value = false
   } catch { /* validation */ }
 }
 function onDelete(r: Performance) {
   if (!r.id) return
-  modal.confirm({ title: '确认删除', content: `确定删除绩效记录吗？`,
+  modal.confirm({
+    title: '确认删除', content: `确定删除绩效记录吗？`,
     okText: '删除', okType: 'danger', cancelText: '取消',
-    onOk: async () => { await crud.remove(r.id!); message.success('删除成功') } })
+    onOk: async () => { await crud.remove(r.id!); message.success('删除成功') }
+  })
 }
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 
 const columns = [
   { title: '员工ID', dataIndex: 'empId', width: 100 },
   { title: '考核周期', dataIndex: 'periodCode', width: 130 },
-  { title: 'KPI得分', dataIndex: 'kpiScore', width: 100 },
-  { title: '态度得分', dataIndex: 'attitudeScore', width: 100 },
-  { title: '能力得分', dataIndex: 'abilityScore', width: 100 },
+  { title: '自评分数', dataIndex: 'selfScore', width: 110 },
+  { title: '领导评分', dataIndex: 'leaderScore', width: 110 },
   {
-    title: '综合得分', dataIndex: 'overallScore', width: 110,
-    customRender: ({ record }: any) => h('span', { style: { fontWeight: 600, color: '#2F54EB' } }, record.overallScore ?? '-')
+    title: '最终得分', dataIndex: 'finalScore', width: 110,
+    customRender: ({ record }: any) => h('span', { style: { fontWeight: 600, color: '#2F54EB' } }, record.finalScore ?? '-')
   },
-  { title: '等级', dataIndex: 'rankLevel', width: 80 },
+  { title: '绩效等级', dataIndex: 'performanceLevel', width: 100 },
   {
     title: '状态', dataIndex: 'status', width: 100,
     customRender: ({ record }: any) => h(Tag, { color: statusColor[record.status] || 'default' }, () => statusText(record.status))
@@ -101,7 +108,7 @@ const columns = [
           <InputNumber v-model:value="queryForm.empId" placeholder="员工ID" style="width: 140px" />
         </Form.Item>
         <Form.Item label="周期">
-          <Input v-model:value="queryForm.periodCode" placeholder="如 2025-Q1" allow-clear style="width: 160px" />
+          <Input v-model:value="queryForm.periodCode" placeholder="如 2026-Q3" allow-clear style="width: 160px" />
         </Form.Item>
         <Form.Item label="状态">
           <Select v-model:value="queryForm.status" placeholder="全部" allow-clear style="width: 130px" :options="statusOpts" />
@@ -134,38 +141,55 @@ const columns = [
     <Modal v-model:open="visible"
       :title="mode === 'create' ? '新增绩效' : mode === 'edit' ? '编辑绩效' : '绩效详情'"
       :footer="mode === 'view' ? null : undefined" width="640px" destroy-on-close>
-      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :initial-values="mode === 'edit' ? current : {}">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px">
-          <Form.Item label="员工ID" name="empId" :rules="[{ required: true, message: '请输入员工ID' }]">
-            <InputNumber :min="1" style="width: 100%" />
-          </Form.Item>
-          <Form.Item label="考核周期" name="periodCode" :rules="[{ required: true, message: '请输入考核周期' }]">
-            <Input placeholder="如 2025-Q1" />
-          </Form.Item>
-          <Form.Item label="KPI得分" name="kpiScore"><InputNumber :min="0" :max="100" style="width: 100%" /></Form.Item>
-          <Form.Item label="态度得分" name="attitudeScore"><InputNumber :min="0" :max="100" style="width: 100%" /></Form.Item>
-          <Form.Item label="能力得分" name="abilityScore"><InputNumber :min="0" :max="100" style="width: 100%" /></Form.Item>
-          <Form.Item label="综合得分" name="overallScore"><InputNumber :min="0" :max="100" style="width: 100%" /></Form.Item>
-          <Form.Item label="等级" name="rankLevel">
-            <Select :options="rankOpts.map(v => ({ label: v, value: v }))" placeholder="请选择" />
-          </Form.Item>
-          <Form.Item label="状态" name="status"><Select :options="statusOpts" placeholder="请选择" /></Form.Item>
-          <Form.Item label="评语" name="comment" :span="2">
-            <Input.TextArea :rows="3" placeholder="请输入评语" />
-          </Form.Item>
-        </div>
+      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :model="formState">
+        <a-row :gutter="16">
+          <a-col :span="12"><Form.Item label="员工ID" name="empId" :rules="[{ required: true, message: '请输入员工ID' }]">
+            <InputNumber v-model:value="formState.empId" :min="1" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="考核周期" name="periodCode" :rules="[{ required: true, message: '请输入考核周期' }]">
+            <Input v-model:value="formState.periodCode" placeholder="如 2026-Q3" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="自评分数" name="selfScore">
+            <InputNumber v-model:value="formState.selfScore" :min="0" :max="100" :precision="2" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="直属领导评分" name="leaderScore">
+            <InputNumber v-model:value="formState.leaderScore" :min="0" :max="100" :precision="2" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="最终得分" name="finalScore">
+            <InputNumber v-model:value="formState.finalScore" :min="0" :max="100" :precision="2" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="绩效等级" name="performanceLevel">
+            <Select v-model:value="formState.performanceLevel"
+              :options="rankOpts.map(v => ({ label: v, value: v }))"
+              placeholder="请选择" allow-clear />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="单据状态" name="status">
+            <Select v-model:value="formState.status" :options="statusOpts" placeholder="请选择" allow-clear />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="流程实例ID" name="flowInstanceId">
+            <InputNumber v-model:value="formState.flowInstanceId" :min="1" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="KPI指标JSON" name="kpiJson">
+            <Input.TextArea v-model:value="formState.kpiJson" :rows="2"
+              placeholder='如 {"销售额": 100, "客户满意度": 95}' />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="AI评语" name="aiComment">
+            <Input.TextArea v-model:value="formState.aiComment" :rows="3" placeholder="请输入/生成评语" />
+          </Form.Item></a-col>
+        </a-row>
       </Form>
-      <Descriptions v-else :column="2" bordered :items="[
-        { key: 'empId', label: '员工ID', children: current?.empId },
-        { key: 'periodCode', label: '考核周期', children: current?.periodCode },
-        { key: 'kpiScore', label: 'KPI得分', children: current?.kpiScore },
-        { key: 'attitudeScore', label: '态度得分', children: current?.attitudeScore },
-        { key: 'abilityScore', label: '能力得分', children: current?.abilityScore },
-        { key: 'overallScore', label: '综合得分', children: current?.overallScore },
-        { key: 'rankLevel', label: '等级', children: current?.rankLevel },
-        { key: 'status', label: '状态', children: statusText(current?.status) },
-        { key: 'comment', label: '评语', children: current?.comment, span: 2 }
-      ]" />
+      <Descriptions v-else :column="2" bordered>
+        <Descriptions.Item label="员工ID">{{ current?.empId ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="考核周期">{{ current?.periodCode || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="自评分数">{{ current?.selfScore ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="领导评分">{{ current?.leaderScore ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="最终得分">{{ current?.finalScore ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="绩效等级">{{ current?.performanceLevel || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="状态">{{ statusText(current?.status) }}</Descriptions.Item>
+        <Descriptions.Item label="流程实例ID">{{ current?.flowInstanceId ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="KPI指标" :span="2">{{ current?.kpiJson || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="AI评语" :span="2">{{ current?.aiComment || '-' }}</Descriptions.Item>
+      </Descriptions>
       <template #footer v-if="mode !== 'view'">
         <Space>
           <Button @click="visible = false">取消</Button>

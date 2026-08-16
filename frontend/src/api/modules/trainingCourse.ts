@@ -1,15 +1,15 @@
-﻿﻿import { createCrudApi } from '../request'
+import { createCrudApi } from '../request'
 
 export interface TrainingCourse {
   id?: number
   courseName?: string
+  courseCode?: string
   courseType?: string
-  trainer?: string
-  startDate?: string
-  endDate?: string
-  duration?: number
+  courseDesc?: string
+  courseTarget?: string
+  durationMin?: number
+  tagIds?: string
   status?: number
-  description?: string
   createTime?: string
   updateTime?: string
 }

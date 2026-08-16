@@ -1,10 +1,11 @@
-﻿﻿import { createCrudApi } from '../request'
+﻿import { createCrudApi } from '../request'
 
 export interface AbilityTag {
   id?: number
+  tagCode?: string
   tagName?: string
   tagCategory?: string
-  tagDesc?: string
+  sort?: number
   status?: number
   createTime?: string
   updateTime?: string

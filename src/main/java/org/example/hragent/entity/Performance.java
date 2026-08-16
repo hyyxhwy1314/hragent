@@ -1,10 +1,16 @@
 package org.example.hragent.entity;
+
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @TableName("t_performance")
 public class Performance extends BaseEntity {
 
@@ -15,7 +21,7 @@ public class Performance extends BaseEntity {
     private Long empId;
 
     /**
-     * 绩效周期 2026Q3 / 2026‑08
+     * 绩效周期 2026Q3 / 2026-08
      */
     @TableField("period_code")
     private String periodCode;

@@ -1,13 +1,18 @@
 package org.example.hragent.dto;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class FlowInstanceSaveDto {
 
     /**
-     * 流程类型，如leave‑apply、recruit‑approve
+     * 流程类型，如leave-apply、recruit-approve
      */
     @NotBlank(message = "流程类型不能为空")
     private String flowType;

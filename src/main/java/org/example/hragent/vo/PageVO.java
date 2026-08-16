@@ -1,5 +1,9 @@
 package org.example.hragent.vo;
+
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
 /**
@@ -7,6 +11,8 @@ import java.util.List;
  * @param <T> 分页数据项类型
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class PageVO<T> {
 
     /**

@@ -2,20 +2,20 @@ spring:
   # MySQL‑douban‑mysql 13306
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:13306/hr_agent_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:3306/hr_agent_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
     username: root
-    password: Admin@888888
+    password: 123456
 
   # Redis douban‑redis 宿主机16379
   # RabbitMQ douban‑rabbitmqAdmin@888888
-  rabbitmq:
-    host: 127.0.0.1
-    port: 15672
-    username: guest
-    password: guest
+#  rabbitmq:
+#    host: 127.0.0.1
+#    port: 15672
+#    username: guest
+#    password: guest
   data:
     redis:
-      port: 16379
+      port: 6379
       password:
       host: 127.0.0.1
       database: 0
@@ -46,6 +46,6 @@ logging:
     org.apache.ibatis: WARN
 
 # Elasticsearch7.17.9
-elasticsearch:
-  address: 127.0.0.1
-  port: 9200
+#elasticsearch:
+#  address: 127.0.0.1
+#  port: 9200

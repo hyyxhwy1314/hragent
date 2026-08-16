@@ -1,10 +1,16 @@
 package org.example.hragent.dto;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class PerformanceSaveDto {
 
     /**
@@ -55,7 +61,7 @@ public class PerformanceSaveDto {
     private Long flowInstanceId;
 
     /**
-     * 绩效状态：0‑草稿、1‑待审核、2‑已完成、3‑驳回
+     * 绩效状态：0-草稿、1-待审核、2-已完成、3-驳回
      */
     private Integer status;
 }

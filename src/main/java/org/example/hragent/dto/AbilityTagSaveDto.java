@@ -1,34 +1,27 @@
 package org.example.hragent.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.jetbrains.annotations.NotNull;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class AbilityTagSaveDto {
 
-    /**
-     * 标签名称
-     */
-    @NotNull
-    private String tagName;
-
-    /**
-     * 标签编码，唯一标识
-     */
-    @NotNull
+    @NotBlank(message = "标签编码不能为空")
     private String tagCode;
 
-    /**
-     * 标签类别（如：技能、性格、综合素质）
-     */
+    @NotBlank(message = "标签名称不能为空")
+    private String tagName;
+
     private String tagCategory;
 
-    /**
-     * 排序序号
-     */
     private Integer sort;
 
     /**
-     * 标签状态：0‑禁用 1‑启用
+     * 0禁用 1启用
      */
     private Integer status;
 }

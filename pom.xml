@@ -136,7 +136,7 @@
                             <version>${mapstruct.version}</version>
                         </path>
                     </annotationProcessorPaths>
-                    <annotationProcessorImplementationModule>javax.annotation:javax.annotation-api</annotationProcessorImplementationModule>
+<!--                    <annotationProcessorImplementationModule>javax.annotation:javax.annotation-api</annotationProcessorImplementationModule>-->
                 </configuration>
             </plugin>
             <plugin>

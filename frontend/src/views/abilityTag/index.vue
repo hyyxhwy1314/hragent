@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, h, reactive } from 'vue'
 import {
-  Table, Button, Space, Input, Select, Form, Modal, Tag, message, App as AntApp, Descriptions
+  Table, Button, Space, Input, InputNumber, Select, Form, Modal, Tag, message, App as AntApp, Descriptions
 } from 'ant-design-vue'
 import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { abilityTagApi, type AbilityTag } from '@/api/modules/abilityTag'
@@ -15,6 +15,10 @@ const queryForm = ref<Record<string, any>>({})
 const mode = ref<'view' | 'edit' | 'create'>('create')
 const visible = ref(false)
 const current = ref<AbilityTag | null>(null)
+const formState = reactive<Partial<AbilityTag>>({})
+function resetFormState() {
+  Object.keys(formState).forEach((k) => { delete (formState as any)[k] })
+}
 
 const statusOpts = [
   { label: '启用', value: 1 },
@@ -46,14 +50,14 @@ const pagination = computed(() => ({
 
 function onSearch() { crud.reload({ ...queryForm.value }) }
 function onReset() { queryForm.value = {}; crud.reload() }
-function onCreate() { mode.value = 'create'; current.value = null; visible.value = true }
+function onCreate() { resetFormState(); mode.value = 'create'; current.value = null; visible.value = true }
 function onView(r: AbilityTag) { mode.value = 'view'; current.value = r; visible.value = true }
-function onEdit(r: AbilityTag) { mode.value = 'edit'; current.value = { ...r }; visible.value = true }
+function onEdit(r: AbilityTag) { resetFormState(); Object.assign(formState, r); mode.value = 'edit'; current.value = { ...r }; visible.value = true }
 async function onSubmit() {
   try {
-    const vals = await formRef.value.validate()
-    if (mode.value === 'create') { await crud.save(vals); message.success('新增成功') }
-    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, vals); message.success('更新成功') }
+    await formRef.value.validate()
+    if (mode.value === 'create') { await crud.save({ ...formState }); message.success('新增成功') }
+    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, { ...formState }); message.success('更新成功') }
     visible.value = false
   } catch { /* validation */ }
 }
@@ -66,9 +70,10 @@ function onDelete(r: AbilityTag) {
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 
 const columns = [
+  { title: '标签编码', dataIndex: 'tagCode', width: 140 },
   { title: '标签名称', dataIndex: 'tagName', width: 160 },
   { title: '分类', dataIndex: 'tagCategory', width: 130 },
-  { title: '描述', dataIndex: 'tagDesc', ellipsis: true },
+  { title: '排序', dataIndex: 'sort', width: 80 },
   {
     title: '状态', dataIndex: 'status', width: 90,
     customRender: ({ record }: any) => h(Tag, { color: statusColor[record.status] || 'default' }, () => statusText(record.status))
@@ -130,26 +135,32 @@ const columns = [
     <Modal v-model:open="visible"
       :title="mode === 'create' ? '新增标签' : mode === 'edit' ? '编辑标签' : '标签详情'"
       :footer="mode === 'view' ? null : undefined" width="640px" destroy-on-close>
-      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :initial-values="mode === 'edit' ? current : {}">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px">
-          <Form.Item label="标签名称" name="tagName" :rules="[{ required: true, message: '请输入标签名称' }]">
-            <Input placeholder="如 Vue.js" />
-          </Form.Item>
-          <Form.Item label="分类" name="tagCategory" :rules="[{ required: true, message: '请选择分类' }]">
-            <Select :options="categoryOpts" placeholder="请选择" />
-          </Form.Item>
-          <Form.Item label="状态" name="status"><Select :options="statusOpts" placeholder="请选择" /></Form.Item>
-          <Form.Item label="描述" name="tagDesc" :span="2">
-            <Input.TextArea :rows="3" placeholder="请输入标签描述" />
-          </Form.Item>
-        </div>
+      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :model="formState">
+        <a-row :gutter="16">
+          <a-col :span="12"><Form.Item label="标签编码" name="tagCode" :rules="[{ required: true, message: '请输入标签编码' }]">
+            <Input v-model:value="formState.tagCode" placeholder="如 TAG-001" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="标签名称" name="tagName" :rules="[{ required: true, message: '请输入标签名称' }]">
+            <Input v-model:value="formState.tagName" placeholder="如 Vue.js" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="分类" name="tagCategory" :rules="[{ required: true, message: '请选择分类' }]">
+            <Select v-model:value="formState.tagCategory" :options="categoryOpts" placeholder="请选择" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="排序" name="sort">
+            <InputNumber v-model:value="formState.sort" :min="0" style="width: 100%" placeholder="数字越小越靠前" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="状态" name="status">
+            <Select v-model:value="formState.status" :options="statusOpts" placeholder="请选择" />
+          </Form.Item></a-col>
+        </a-row>
       </Form>
-      <Descriptions v-else :column="2" bordered :items="[
-        { key: 'tagName', label: '标签名称', children: current?.tagName },
-        { key: 'tagCategory', label: '分类', children: current?.tagCategory },
-        { key: 'status', label: '状态', children: statusText(current?.status) },
-        { key: 'tagDesc', label: '描述', children: current?.tagDesc, span: 2 }
-      ]" />
+      <Descriptions v-else :column="2" bordered>
+        <Descriptions.Item label="标签编码">{{ current?.tagCode || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="标签名称">{{ current?.tagName || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="分类">{{ current?.tagCategory || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="排序">{{ current?.sort ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="状态">{{ statusText(current?.status) }}</Descriptions.Item>
+      </Descriptions>
       <template #footer v-if="mode !== 'view'">
         <Space>
           <Button @click="visible = false">取消</Button>

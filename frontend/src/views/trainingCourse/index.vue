@@ -15,14 +15,16 @@ const queryForm = ref<Record<string, any>>({})
 const mode = ref<'view' | 'edit' | 'create'>('create')
 const visible = ref(false)
 const current = ref<TrainingCourse | null>(null)
+const formState = reactive<Partial<TrainingCourse>>({})
+function resetFormState() {
+  Object.keys(formState).forEach((k) => { delete (formState as any)[k] })
+}
 
 const statusOpts = [
-  { label: '未开始', value: 0 },
-  { label: '进行中', value: 1 },
-  { label: '已结束', value: 2 },
-  { label: '已取消', value: 3 }
+  { label: '禁用', value: 0 },
+  { label: '启用', value: 1 }
 ]
-const statusColor: Record<number, string> = { 0: 'default', 1: 'blue', 2: 'green', 3: 'red' }
+const statusColor: Record<number, string> = { 0: 'default', 1: 'green' }
 
 const crud = reactive(useCrud<TrainingCourse>(trainingCourseApi))
 crud.fetch()
@@ -42,32 +44,35 @@ const pagination = computed(() => ({
 
 function onSearch() { crud.reload({ ...queryForm.value }) }
 function onReset() { queryForm.value = {}; crud.reload() }
-function onCreate() { mode.value = 'create'; current.value = null; visible.value = true }
+function onCreate() { resetFormState(); mode.value = 'create'; current.value = null; visible.value = true }
 function onView(r: TrainingCourse) { mode.value = 'view'; current.value = r; visible.value = true }
-function onEdit(r: TrainingCourse) { mode.value = 'edit'; current.value = { ...r }; visible.value = true }
+function onEdit(r: TrainingCourse) { resetFormState(); Object.assign(formState, r); mode.value = 'edit'; current.value = { ...r }; visible.value = true }
+
 async function onSubmit() {
   try {
-    const vals = await formRef.value.validate()
-    if (mode.value === 'create') { await crud.save(vals); message.success('新增成功') }
-    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, vals); message.success('更新成功') }
+    await formRef.value.validate()
+    const payload: any = { ...formState }
+    if (mode.value === 'create') { await crud.save(payload); message.success('新增成功') }
+    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, payload); message.success('更新成功') }
     visible.value = false
   } catch { /* validation */ }
 }
 function onDelete(r: TrainingCourse) {
   if (!r.id) return
-  modal.confirm({ title: '确认删除', content: `确定删除课程「${r.courseName}」吗？`,
+  modal.confirm({
+    title: '确认删除', content: `确定删除课程「${r.courseName}」吗？`,
     okText: '删除', okType: 'danger', cancelText: '取消',
-    onOk: async () => { await crud.remove(r.id!); message.success('删除成功') } })
+    onOk: async () => { await crud.remove(r.id!); message.success('删除成功') }
+  })
 }
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 
 const columns = [
+  { title: '课程编码', dataIndex: 'courseCode', width: 140 },
   { title: '课程名称', dataIndex: 'courseName', width: 180 },
   { title: '课程类型', dataIndex: 'courseType', width: 120 },
-  { title: '讲师', dataIndex: 'trainer', width: 110 },
-  { title: '开始日期', dataIndex: 'startDate', width: 120 },
-  { title: '结束日期', dataIndex: 'endDate', width: 120 },
-  { title: '时长(小时)', dataIndex: 'duration', width: 100 },
+  { title: '时长(分钟)', dataIndex: 'durationMin', width: 110 },
+  { title: '关联标签ID', dataIndex: 'tagIds', width: 160, ellipsis: true },
   {
     title: '状态', dataIndex: 'status', width: 100,
     customRender: ({ record }: any) => h(Tag, { color: statusColor[record.status] || 'default' }, () => statusText(record.status))
@@ -87,11 +92,14 @@ const columns = [
   <div class="page-container">
     <div class="page-header">
       <h2 class="page-title">培训课程</h2>
-      <p class="page-subtitle">管理企业培训课程体系与排期</p>
+      <p class="page-subtitle">管理企业培训课程体系</p>
     </div>
 
     <div class="search-card">
       <Form layout="inline" :model="queryForm" :label-col="{ style: { width: 72 } }">
+        <Form.Item label="课程编码">
+          <Input v-model:value="queryForm.courseCode" placeholder="请输入" allow-clear style="width: 160px" />
+        </Form.Item>
         <Form.Item label="课程名称">
           <Input v-model:value="queryForm.courseName" placeholder="请输入" allow-clear style="width: 180px" />
         </Form.Item>
@@ -126,34 +134,44 @@ const columns = [
     <Modal v-model:open="visible"
       :title="mode === 'create' ? '新增课程' : mode === 'edit' ? '编辑课程' : '课程详情'"
       :footer="mode === 'view' ? null : undefined" width="640px" destroy-on-close>
-      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :initial-values="mode === 'edit' ? current : {}">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px">
-          <Form.Item label="课程名称" name="courseName" :rules="[{ required: true, message: '请输入课程名称' }]">
-            <Input placeholder="如 Vue3 实战" />
-          </Form.Item>
-          <Form.Item label="课程类型" name="courseType">
-            <Input placeholder="如 技术培训/软技能" />
-          </Form.Item>
-          <Form.Item label="讲师" name="trainer"><Input placeholder="请输入讲师" /></Form.Item>
-          <Form.Item label="时长(小时)" name="duration"><InputNumber :min="0" style="width: 100%" /></Form.Item>
-          <Form.Item label="开始日期" name="startDate"><Input placeholder="YYYY-MM-DD" /></Form.Item>
-          <Form.Item label="结束日期" name="endDate"><Input placeholder="YYYY-MM-DD" /></Form.Item>
-          <Form.Item label="状态" name="status"><Select :options="statusOpts" placeholder="请选择" /></Form.Item>
-          <Form.Item label="课程描述" name="description" :span="2">
-            <Input.TextArea :rows="3" placeholder="请输入课程描述" />
-          </Form.Item>
-        </div>
+      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :model="formState">
+        <a-row :gutter="16">
+          <a-col :span="12"><Form.Item label="课程编码" name="courseCode" :rules="[{ required: true, message: '请输入课程编码' }]">
+            <Input v-model:value="formState.courseCode" placeholder="如 TC-001" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="课程名称" name="courseName" :rules="[{ required: true, message: '请输入课程名称' }]">
+            <Input v-model:value="formState.courseName" placeholder="如 Vue3 实战" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="课程类型" name="courseType">
+            <Input v-model:value="formState.courseType" placeholder="如 线上/线下" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="课程时长(分钟)" name="durationMin">
+            <InputNumber v-model:value="formState.durationMin" :min="0" style="width: 100%" placeholder="如 120" />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="关联能力标签ID" name="tagIds">
+            <Input v-model:value="formState.tagIds" placeholder="多个ID用逗号分隔，如 1,2,3" />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="课程状态" name="status">
+            <Select v-model:value="formState.status" :options="statusOpts" placeholder="请选择" allow-clear />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="课程详细描述" name="courseDesc">
+            <Input.TextArea v-model:value="formState.courseDesc" :rows="3" placeholder="请输入课程描述" />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="课程学习目标" name="courseTarget">
+            <Input.TextArea v-model:value="formState.courseTarget" :rows="3" placeholder="请输入学习目标" />
+          </Form.Item></a-col>
+        </a-row>
       </Form>
-      <Descriptions v-else :column="2" bordered :items="[
-        { key: 'courseName', label: '课程名称', children: current?.courseName },
-        { key: 'courseType', label: '课程类型', children: current?.courseType },
-        { key: 'trainer', label: '讲师', children: current?.trainer },
-        { key: 'duration', label: '时长', children: current?.duration },
-        { key: 'startDate', label: '开始日期', children: current?.startDate },
-        { key: 'endDate', label: '结束日期', children: current?.endDate },
-        { key: 'status', label: '状态', children: statusText(current?.status) },
-        { key: 'description', label: '课程描述', children: current?.description, span: 2 }
-      ]" />
+      <Descriptions v-else :column="2" bordered>
+        <Descriptions.Item label="课程编码">{{ current?.courseCode || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="课程名称">{{ current?.courseName || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="课程类型">{{ current?.courseType || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="时长(分钟)">{{ current?.durationMin ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="关联标签ID" :span="2">{{ current?.tagIds || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="状态">{{ statusText(current?.status) }}</Descriptions.Item>
+        <Descriptions.Item label="课程描述" :span="2">{{ current?.courseDesc || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="学习目标" :span="2">{{ current?.courseTarget || '-' }}</Descriptions.Item>
+      </Descriptions>
       <template #footer v-if="mode !== 'view'">
         <Space>
           <Button @click="visible = false">取消</Button>

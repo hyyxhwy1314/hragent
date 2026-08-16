@@ -1,8 +1,13 @@
 package org.example.hragent.dto;
+
 import jakarta.validation.constraints.NotBlank;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class TrainingCourseSaveDto {
 
     /**
@@ -43,7 +48,7 @@ public class TrainingCourseSaveDto {
     private String tagIds;
 
     /**
-     * 课程状态：0‑禁用 1‑启用
+     * 课程状态：0-禁用 1-启用
      */
     private Integer status;
 }

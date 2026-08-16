@@ -15,6 +15,10 @@ const queryForm = ref<Record<string, any>>({})
 const mode = ref<'view' | 'edit' | 'create'>('create')
 const visible = ref(false)
 const current = ref<Resume | null>(null)
+const formState = reactive<Partial<Resume>>({})
+function resetFormState() {
+  Object.keys(formState).forEach((k) => { delete (formState as any)[k] })
+}
 
 const statusOpts = [
   { label: '待筛选', value: 0 },
@@ -42,14 +46,14 @@ const pagination = computed(() => ({
 
 function onSearch() { crud.reload({ ...queryForm.value }) }
 function onReset() { queryForm.value = {}; crud.reload() }
-function onCreate() { mode.value = 'create'; current.value = null; visible.value = true }
+function onCreate() { resetFormState(); mode.value = 'create'; current.value = null; visible.value = true }
 function onView(r: Resume) { mode.value = 'view'; current.value = r; visible.value = true }
-function onEdit(r: Resume) { mode.value = 'edit'; current.value = { ...r }; visible.value = true }
+function onEdit(r: Resume) { resetFormState(); Object.assign(formState, r); mode.value = 'edit'; current.value = { ...r }; visible.value = true }
 async function onSubmit() {
   try {
-    const vals = await formRef.value.validate()
-    if (mode.value === 'create') { await crud.save(vals); message.success('新增成功') }
-    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, vals); message.success('更新成功') }
+    await formRef.value.validate()
+    if (mode.value === 'create') { await crud.save({ ...formState }); message.success('新增成功') }
+    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, { ...formState }); message.success('更新成功') }
     visible.value = false
   } catch { /* validation */ }
 }
@@ -138,36 +142,56 @@ const columns = [
     <Modal v-model:open="visible"
       :title="mode === 'create' ? '新增简历' : mode === 'edit' ? '编辑简历' : '简历详情'"
       :footer="mode === 'view' ? null : undefined" width="640px" destroy-on-close>
-      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :initial-values="mode === 'edit' ? current : {}">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px">
-          <Form.Item label="简历名称" name="resumeName" :rules="[{ required: true, message: '请输入简历名称' }]">
-            <Input placeholder="如 张三-前端工程师" />
-          </Form.Item>
-          <Form.Item label="目标岗位ID" name="targetJobId">
-            <InputNumber :min="0" style="width: 100%" />
-          </Form.Item>
-          <Form.Item label="匹配分数" name="matchScore">
-            <InputNumber :min="0" :max="100" style="width: 100%" />
-          </Form.Item>
-          <Form.Item label="状态" name="resumeStatus">
-            <Select :options="statusOpts" placeholder="请选择" />
-          </Form.Item>
-          <Form.Item label="原始内容" name="rawContent" :span="2">
-            <Input.TextArea :rows="4" placeholder="简历原始文本内容" />
-          </Form.Item>
-          <Form.Item label="解析结果" name="parseResult" :span="2">
-            <Input.TextArea :rows="4" placeholder="AI 解析结果（JSON）" />
-          </Form.Item>
-        </div>
+      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :model="formState">
+        <a-row :gutter="16">
+          <a-col :span="12"><Form.Item label="简历名称" name="resumeName" :rules="[{ required: true, message: '请输入简历名称' }]">
+            <Input v-model:value="formState.resumeName" placeholder="如 张三-前端工程师" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="意向岗位" name="expectPosition">
+            <Input v-model:value="formState.expectPosition" placeholder="如 前端工程师" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="手机号" name="phone">
+            <Input v-model:value="formState.phone" placeholder="请输入手机号" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="邮箱" name="email">
+            <Input v-model:value="formState.email" placeholder="请输入邮箱" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="工作年限" name="workYears">
+            <InputNumber v-model:value="formState.workYears" :min="0" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="毕业学校" name="school">
+            <Input v-model:value="formState.school" placeholder="请输入毕业学校" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="目标岗位ID" name="targetJobId">
+            <InputNumber v-model:value="formState.targetJobId" :min="0" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="匹配分数" name="matchScore">
+            <InputNumber v-model:value="formState.matchScore" :min="0" :max="100" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="状态" name="resumeStatus">
+            <Select v-model:value="formState.resumeStatus" :options="statusOpts" placeholder="请选择" />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="简历原始内容" name="resumeContent">
+            <Input.TextArea v-model:value="formState.resumeContent" :rows="4" placeholder="简历原始文本内容" />
+          </Form.Item></a-col>
+          <a-col :span="24"><Form.Item label="AI解析结果(JSON)" name="resumeStructJson">
+            <Input.TextArea v-model:value="formState.resumeStructJson" :rows="4" placeholder="AI 解析结果（JSON）" />
+          </Form.Item></a-col>
+        </a-row>
       </Form>
-      <Descriptions v-else :column="2" bordered :items="[
-        { key: 'resumeName', label: '简历名称', children: current?.resumeName },
-        { key: 'targetJobId', label: '目标岗位', children: current?.targetJobId },
-        { key: 'matchScore', label: '匹配分数', children: current?.matchScore },
-        { key: 'resumeStatus', label: '状态', children: statusText(current?.resumeStatus) },
-        { key: 'rawContent', label: '原始内容', children: current?.rawContent, span: 2 },
-        { key: 'parseResult', label: '解析结果', children: current?.parseResult, span: 2 }
-      ]" />
+      <Descriptions v-else :column="2" bordered>
+        <Descriptions.Item label="简历名称">{{ current?.resumeName || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="意向岗位">{{ current?.expectPosition || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="手机号">{{ current?.phone || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="邮箱">{{ current?.email || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="工作年限">{{ current?.workYears ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="毕业学校">{{ current?.school || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="目标岗位ID">{{ current?.targetJobId ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="匹配分数">{{ current?.matchScore ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="状态">{{ statusText(current?.resumeStatus) }}</Descriptions.Item>
+        <Descriptions.Item label="简历原始内容" :span="2">{{ current?.resumeContent || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="AI解析结果" :span="2">{{ current?.resumeStructJson || '-' }}</Descriptions.Item>
+      </Descriptions>
       <template #footer v-if="mode !== 'view'">
         <Space>
           <Button @click="visible = false">取消</Button>

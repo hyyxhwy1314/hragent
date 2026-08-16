@@ -15,6 +15,10 @@ const queryForm = ref<Record<string, any>>({})
 const mode = ref<'view' | 'edit' | 'create'>('create')
 const visible = ref(false)
 const current = ref<ResumeAbilityRel | null>(null)
+const formState = reactive<Partial<ResumeAbilityRel>>({})
+function resetFormState() {
+  Object.keys(formState).forEach((k) => { delete (formState as any)[k] })
+}
 
 const sourceOpts = [
   { label: 'AI 提取', value: 'AI' },
@@ -40,14 +44,14 @@ const pagination = computed(() => ({
 
 function onSearch() { crud.reload({ ...queryForm.value }) }
 function onReset() { queryForm.value = {}; crud.reload() }
-function onCreate() { mode.value = 'create'; current.value = null; visible.value = true }
+function onCreate() { resetFormState(); mode.value = 'create'; current.value = null; visible.value = true }
 function onView(r: ResumeAbilityRel) { mode.value = 'view'; current.value = r; visible.value = true }
-function onEdit(r: ResumeAbilityRel) { mode.value = 'edit'; current.value = { ...r }; visible.value = true }
+function onEdit(r: ResumeAbilityRel) { resetFormState(); Object.assign(formState, r); mode.value = 'edit'; current.value = { ...r }; visible.value = true }
 async function onSubmit() {
   try {
-    const vals = await formRef.value.validate()
-    if (mode.value === 'create') { await crud.save(vals); message.success('新增成功') }
-    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, vals); message.success('更新成功') }
+    await formRef.value.validate()
+    if (mode.value === 'create') { await crud.save({ ...formState }); message.success('新增成功') }
+    else if (mode.value === 'edit' && current.value?.id) { await crud.update(current.value.id, { ...formState }); message.success('更新成功') }
     visible.value = false
   } catch { /* validation */ }
 }
@@ -141,28 +145,28 @@ const columns = [
     <Modal v-model:open="visible"
       :title="mode === 'create' ? '新增关联' : mode === 'edit' ? '编辑关联' : '关联详情'"
       :footer="mode === 'view' ? null : undefined" width="520px" destroy-on-close>
-      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :initial-values="mode === 'edit' ? current : {}">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px">
-          <Form.Item label="简历ID" name="resumeId" :rules="[{ required: true, message: '请输入简历ID' }]">
-            <InputNumber :min="1" style="width: 100%" />
-          </Form.Item>
-          <Form.Item label="标签ID" name="abilityTagId" :rules="[{ required: true, message: '请输入标签ID' }]">
-            <InputNumber :min="1" style="width: 100%" />
-          </Form.Item>
-          <Form.Item label="置信度" name="confidence">
-            <InputNumber :min="0" :max="1" :step="0.05" style="width: 100%" placeholder="0-1" />
-          </Form.Item>
-          <Form.Item label="来源" name="source">
-            <Select :options="sourceOpts" placeholder="请选择" />
-          </Form.Item>
-        </div>
+      <Form v-if="mode !== 'view'" ref="formRef" layout="vertical" :model="formState">
+        <a-row :gutter="16">
+          <a-col :span="12"><Form.Item label="简历ID" name="resumeId" :rules="[{ required: true, message: '请输入简历ID' }]">
+            <InputNumber v-model:value="formState.resumeId" :min="1" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="标签ID" name="abilityTagId" :rules="[{ required: true, message: '请输入标签ID' }]">
+            <InputNumber v-model:value="formState.abilityTagId" :min="1" style="width: 100%" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="置信度" name="confidence">
+            <InputNumber v-model:value="formState.confidence" :min="0" :max="1" :step="0.05" style="width: 100%" placeholder="0-1" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="来源" name="source">
+            <Select v-model:value="formState.source" :options="sourceOpts" placeholder="请选择" />
+          </Form.Item></a-col>
+        </a-row>
       </Form>
-      <Descriptions v-else :column="2" bordered :items="[
-        { key: 'resumeId', label: '简历ID', children: current?.resumeId },
-        { key: 'abilityTagId', label: '标签ID', children: current?.abilityTagId },
-        { key: 'confidence', label: '置信度', children: current?.confidence },
-        { key: 'source', label: '来源', children: sourceOpts.find(o => o.value === current?.source)?.label || current?.source }
-      ]" />
+      <Descriptions v-else :column="2" bordered>
+        <Descriptions.Item label="简历ID">{{ current?.resumeId ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="标签ID">{{ current?.abilityTagId ?? '-' }}</Descriptions.Item>
+        <Descriptions.Item label="置信度">{{ current?.confidence != null ? (current.confidence * 100).toFixed(0) + '%' : '-' }}</Descriptions.Item>
+        <Descriptions.Item label="来源">{{ sourceOpts.find(o => o.value === current?.source)?.label || current?.source || '-' }}</Descriptions.Item>
+      </Descriptions>
       <template #footer v-if="mode !== 'view'">
         <Space>
           <Button @click="visible = false">取消</Button>

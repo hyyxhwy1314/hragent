@@ -1,40 +1,22 @@
 package org.example.hragent.vo;
+
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 
-/**
- * 简历‑能力标签关联返回视图对象
- */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class ResumeAbilityRelVO {
 
-    /**
-     * 主键ID
-     */
     private Long id;
-
-    /**
-     * 简历ID
-     */
     private Long resumeId;
-
-    /**
-     * 能力标签ID
-     */
+    private String resumeName;
     private Long abilityTagId;
-
-    /**
-     * 能力标签名称
-     */
-    private String tagName;
-
-    /**
-     * 置信度分数
-     */
+    private String abilityTagName;
+    private String abilityTagCode;
     private BigDecimal confidence;
-
-    /**
-     * 标签来源
-     */
     private String source;
 }

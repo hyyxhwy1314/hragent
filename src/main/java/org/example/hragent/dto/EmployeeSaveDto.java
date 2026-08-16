@@ -1,9 +1,14 @@
 package org.example.hragent.dto;
+
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class EmployeeSaveDto {
 
     /**
@@ -17,7 +22,7 @@ public class EmployeeSaveDto {
     private String empName;
 
     /**
-     * 性别：0‑未知，1‑男，2‑女
+     * 性别：0-未知，1-男，2-女
      */
     private Integer gender;
 
@@ -67,7 +72,7 @@ public class EmployeeSaveDto {
     private LocalDate leaveDate;
 
     /**
-     * 员工状态：字典项，如0‑离职、1‑在职、2‑试用
+     * 员工状态：字典项，如0-离职、1-在职、2-试用
      */
     private Integer empStatus;
 
@@ -85,10 +90,4 @@ public class EmployeeSaveDto {
      * 备注信息
      */
     private String remark;
-
-    /**
-     * 无参构造
-     */
-    public EmployeeSaveDto() {
-    }
 }
