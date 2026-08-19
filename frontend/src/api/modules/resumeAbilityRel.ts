@@ -1,4 +1,4 @@
-﻿﻿import { createCrudApi } from '../request'
+﻿﻿﻿﻿import { createCrudApi } from '../request'
 
 export interface ResumeAbilityRel {
   id?: number

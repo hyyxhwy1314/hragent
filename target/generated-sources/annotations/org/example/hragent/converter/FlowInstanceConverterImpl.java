@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-16T14:12:53+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.8 (Oracle Corporation)"
+    date = "2026-08-19T16:58:49+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class FlowInstanceConverterImpl implements FlowInstanceConverter {
@@ -40,9 +40,11 @@ public class FlowInstanceConverterImpl implements FlowInstanceConverter {
         FlowInstanceVO flowInstanceVO = new FlowInstanceVO();
 
         flowInstanceVO.setId( entity.getId() );
+        flowInstanceVO.setFlowNo( entity.getFlowNo() );
         flowInstanceVO.setFlowType( entity.getFlowType() );
         flowInstanceVO.setBizId( entity.getBizId() );
         flowInstanceVO.setApplyEmpId( entity.getApplyEmpId() );
+        flowInstanceVO.setFlowStatus( entity.getFlowStatus() );
         flowInstanceVO.setFlowableProcInstId( entity.getFlowableProcInstId() );
         flowInstanceVO.setBizJson( entity.getBizJson() );
 

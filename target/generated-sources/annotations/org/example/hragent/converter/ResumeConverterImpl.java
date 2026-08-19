@@ -9,8 +9,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-16T14:12:53+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.8 (Oracle Corporation)"
+    date = "2026-08-19T16:58:49+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class ResumeConverterImpl implements ResumeConverter {
@@ -98,6 +98,7 @@ public class ResumeConverterImpl implements ResumeConverter {
         resumeVO.setBirthDate( entity.getBirthDate() );
         resumeVO.setPhone( entity.getPhone() );
         resumeVO.setEmail( entity.getEmail() );
+        resumeVO.setIdCard( entity.getIdCard() );
         resumeVO.setExpectPosition( entity.getExpectPosition() );
         resumeVO.setExpectSalaryMin( entity.getExpectSalaryMin() );
         resumeVO.setExpectSalaryMax( entity.getExpectSalaryMax() );
@@ -107,6 +108,7 @@ public class ResumeConverterImpl implements ResumeConverter {
         resumeVO.setSchool( entity.getSchool() );
         resumeVO.setMajor( entity.getMajor() );
         resumeVO.setResumeContent( entity.getResumeContent() );
+        resumeVO.setResumeStructJson( entity.getResumeStructJson() );
         resumeVO.setResumeFileId( entity.getResumeFileId() );
         resumeVO.setResumeStatus( entity.getResumeStatus() );
         resumeVO.setDeliverySource( entity.getDeliverySource() );

@@ -1,5 +1,6 @@
 package org.example.hragent.converter;
 
+import java.time.format.DateTimeFormatter;
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.EmployeeSaveDto;
 import org.example.hragent.dto.EmployeeUpdateDto;
@@ -9,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-16T14:12:53+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.8 (Oracle Corporation)"
+    date = "2026-08-19T16:58:49+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class EmployeeConverterImpl implements EmployeeConverter {
@@ -83,14 +84,22 @@ public class EmployeeConverterImpl implements EmployeeConverter {
         employeeVO.setBirthDate( entity.getBirthDate() );
         employeeVO.setPhone( entity.getPhone() );
         employeeVO.setEmail( entity.getEmail() );
+        employeeVO.setIdCard( entity.getIdCard() );
         employeeVO.setDeptName( entity.getDeptName() );
         employeeVO.setPositionName( entity.getPositionName() );
         employeeVO.setEntryDate( entity.getEntryDate() );
         employeeVO.setRegularDate( entity.getRegularDate() );
         employeeVO.setLeaveDate( entity.getLeaveDate() );
         employeeVO.setEmpStatus( entity.getEmpStatus() );
+        employeeVO.setBaseSalary( entity.getBaseSalary() );
         employeeVO.setWorkCity( entity.getWorkCity() );
         employeeVO.setRemark( entity.getRemark() );
+        if ( entity.getCreateTime() != null ) {
+            employeeVO.setCreateTime( DateTimeFormatter.ISO_LOCAL_DATE_TIME.format( entity.getCreateTime() ) );
+        }
+        if ( entity.getUpdateTime() != null ) {
+            employeeVO.setUpdateTime( DateTimeFormatter.ISO_LOCAL_DATE_TIME.format( entity.getUpdateTime() ) );
+        }
 
         return employeeVO;
     }

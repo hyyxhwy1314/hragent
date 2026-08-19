@@ -1,5 +1,6 @@
 package org.example.hragent.converter;
 
+import java.time.format.DateTimeFormatter;
 import javax.annotation.processing.Generated;
 import org.example.hragent.dto.AbilityTagSaveDto;
 import org.example.hragent.dto.AbilityTagUpdateDto;
@@ -9,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-16T14:12:53+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.8 (Oracle Corporation)"
+    date = "2026-08-19T16:58:49+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
 )
 @Component
 public class AbilityTagConverterImpl implements AbilityTagConverter {
@@ -55,11 +56,17 @@ public class AbilityTagConverterImpl implements AbilityTagConverter {
         AbilityTagVO abilityTagVO = new AbilityTagVO();
 
         abilityTagVO.setId( entity.getId() );
-        abilityTagVO.setTagName( entity.getTagName() );
         abilityTagVO.setTagCode( entity.getTagCode() );
+        abilityTagVO.setTagName( entity.getTagName() );
         abilityTagVO.setTagCategory( entity.getTagCategory() );
         abilityTagVO.setSort( entity.getSort() );
         abilityTagVO.setStatus( entity.getStatus() );
+        if ( entity.getCreateTime() != null ) {
+            abilityTagVO.setCreateTime( DateTimeFormatter.ISO_LOCAL_DATE_TIME.format( entity.getCreateTime() ) );
+        }
+        if ( entity.getUpdateTime() != null ) {
+            abilityTagVO.setUpdateTime( DateTimeFormatter.ISO_LOCAL_DATE_TIME.format( entity.getUpdateTime() ) );
+        }
 
         return abilityTagVO;
     }
