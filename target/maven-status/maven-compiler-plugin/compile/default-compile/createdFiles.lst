@@ -33,6 +33,7 @@ org\example\hragent\controller\ResumeController.class
 org\example\hragent\converter\PerformanceConverter.class
 org\example\hragent\service\ResumeService.class
 org\example\hragent\converter\ResumeAbilityRelConverter.class
+org\example\hragent\aspect\RateLimitAspect$1.class
 org\example\hragent\mapper\ResumeMapper.class
 org\example\hragent\vo\EmployeeVO.class
 org\example\hragent\service\EmployeeService.class
@@ -52,6 +53,7 @@ org\example\hragent\controller\PerformanceController.class
 org\example\hragent\dto\TrainingCourseUpdateDto.class
 org\example\hragent\exception\ErrorCode.class
 org\example\hragent\entity\FlowInstance.class
+org\example\hragent\service\impl\DictionaryServiceImpl.class
 org\example\hragent\vo\R.class
 org\example\hragent\controller\TrainingCourseController.class
 org\example\hragent\dto\TrainingCourseQueryDto.class
@@ -71,6 +73,7 @@ org\example\hragent\service\ResumeAbilityRelService.class
 org\example\hragent\controller\JobPostController.class
 org\example\hragent\converter\EmployeeConverter.class
 org\example\hragent\dto\ResumeSaveDto.class
+org\example\hragent\aspect\RepeatSubmitAspect$1.class
 org\example\hragent\dto\PerformanceQueryDto.class
 org\example\hragent\vo\ResumeVO.class
 org\example\hragent\dto\ResumeAbilityRelSaveDto.class
