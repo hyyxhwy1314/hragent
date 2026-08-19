@@ -1,10 +1,14 @@
 package org.example.hragent.annotation;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 接口限流注解
- * 基于 Redisson RRateLimiter 实现，用于公开接口防刷
+ * 基于 Redis 计数器实现，用于公开接口防刷
  *
  * 使用场景：验证码发送、登录、简历投递、对外 API 等
  *
@@ -16,6 +20,8 @@ import java.util.concurrent.TimeUnit;
  * public R&lt;Void&gt; sendVerifyCode(String phone) { ... }
  * </pre>
  */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface RateLimit {
 
     /**

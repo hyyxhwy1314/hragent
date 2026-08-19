@@ -1,5 +1,9 @@
 package org.example.hragent.annotation;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -14,6 +18,8 @@ import java.util.concurrent.TimeUnit;
  *
  * key 支持 SpEL：#{#参数名} #{#user.id} #{T(String).valueOf(#req.userId)}
  */
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface DistributedLock {
 
     /**

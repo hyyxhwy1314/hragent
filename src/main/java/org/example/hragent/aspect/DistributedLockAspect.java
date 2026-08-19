@@ -21,11 +21,7 @@ import java.lang.reflect.Method;
 /**
  * 分布式锁切面
  * 拦截 @DistributedLock 注解，自动加锁/释放锁
- *
- * 关键点：
- * 1. 用 try-finally 保证锁一定释放
- * 2. waitTime 超时抛业务异常，避免长时间阻塞
- * 3. leaseTime = -1 时 Redisson 自动看门狗续期
+ * 注意：切点使用全限定名 @annotation，不依赖参数绑定
  */
 @Slf4j
 @Aspect
@@ -38,68 +34,55 @@ public class DistributedLockAspect {
 
     public DistributedLockAspect(RedissonClient redissonClient) {
         this.redissonClient = redissonClient;
+        log.info("✅ DistributedLockAspect 已实例化，RedissonClient={}", redissonClient.getClass().getSimpleName());
     }
 
-    @Around("@annotation(distributedLock)")
-    public Object around(ProceedingJoinPoint joinPoint, DistributedLock distributedLock) throws Throwable {
-        // 1. 解析 SpEL 得到最终 key
-        String lockKey = buildLockKey(joinPoint, distributedLock);
+    @Around("@annotation(org.example.hragent.annotation.DistributedLock)")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        DistributedLock distributedLock = method.getAnnotation(DistributedLock.class);
+        if (distributedLock == null) {
+            return joinPoint.proceed();
+        }
 
-        // 2. 获取 Redisson 锁
+        String lockKey = buildLockKey(joinPoint, distributedLock, method);
         RLock lock = redissonClient.getLock(lockKey);
-
         boolean locked = false;
         try {
-            // 3. 尝试加锁
             locked = lock.tryLock(
                     distributedLock.waitTime(),
                     distributedLock.leaseTime(),
                     distributedLock.unit()
             );
-
             if (!locked) {
-                log.warn("分布式锁获取失败 key={} waitTime={}s", lockKey, distributedLock.waitTime());
+                log.warn("🔒 分布式锁获取失败 key={} waitTime={}s method={}",
+                        lockKey, distributedLock.waitTime(), method.getName());
                 throw new DistributedLockTimeoutException(distributedLock.message());
             }
-
-            log.debug("分布式锁获取成功 key={}", lockKey);
-
-            // 4. 执行业务方法
+            log.debug("🔒 分布式锁获取成功 key={}", lockKey);
             return joinPoint.proceed();
         } finally {
-            // 5. 释放锁（仅当前线程持有锁时才释放）
             if (locked && lock.isHeldByCurrentThread()) {
                 lock.unlock();
-                log.debug("分布式锁已释放 key={}", lockKey);
+                log.debug("🔓 分布式锁已释放 key={}", lockKey);
             }
         }
     }
 
-    /**
-     * 解析 SpEL 表达式生成锁 key
-     */
-    private String buildLockKey(ProceedingJoinPoint joinPoint, DistributedLock distributedLock) {
+    private String buildLockKey(ProceedingJoinPoint joinPoint, DistributedLock distributedLock, Method method) {
         String keyExpr = distributedLock.key();
         String prefix = distributedLock.prefix();
-
-        // 如果不含 SpEL 占位符，直接用字面量
         if (!keyExpr.contains("#")) {
             return prefix + ":" + keyExpr;
         }
-
-        // 含 SpEL，解析参数
-        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
         Object[] args = joinPoint.getArgs();
         String[] paramNames = nameDiscoverer.getParameterNames(method);
-
         EvaluationContext context = new StandardEvaluationContext();
         if (paramNames != null) {
             for (int i = 0; i < paramNames.length && i < args.length; i++) {
                 context.setVariable(paramNames[i], args[i]);
             }
         }
-
         Expression expression = parser.parseExpression(keyExpr);
         String evaluated = expression.getValue(context, String.class);
         return prefix + ":" + evaluated;

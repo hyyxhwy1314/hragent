@@ -13,8 +13,11 @@ import org.example.hragent.service.ResumeService;
 import org.example.hragent.vo.R;
 import org.example.hragent.vo.ResumeVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -32,6 +35,33 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
 
     @Autowired
     private ResumeConverter resumeConverter;
+
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    /**
+     * AOP 诊断：判断当前 Controller 是否被 CGLIB 代理
+     * （被代理则类名含 $$EnhancerBySpringCGLIB$$）
+     */
+    @GetMapping("/debug/aop")
+    public R<Map<String, Object>> debugAop() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("thisClass", this.getClass().getName());
+        result.put("thisIsProxy", this.getClass().getName().contains("$"));
+        Object bean = applicationContext.getBean("resumeController");
+        result.put("beanClass", bean.getClass().getName());
+        result.put("beanIsProxy", bean.getClass().getName().contains("$"));
+        // 判断 aspect bean 是否存在
+        boolean hasRL = applicationContext.containsBean("rateLimitAspect");
+        boolean hasDL = applicationContext.containsBean("distributedLockAspect");
+        boolean hasRS = applicationContext.containsBean("repeatSubmitAspect");
+        Map<String, Object> aspects = new HashMap<>();
+        aspects.put("rateLimitAspect", hasRL ? applicationContext.getBean("rateLimitAspect").getClass().getName() : "NOT FOUND");
+        aspects.put("distributedLockAspect", hasDL ? applicationContext.getBean("distributedLockAspect").getClass().getName() : "NOT FOUND");
+        aspects.put("repeatSubmitAspect", hasRS ? applicationContext.getBean("repeatSubmitAspect").getClass().getName() : "NOT FOUND");
+        result.put("aspectBeans", aspects);
+        return R.ok(result);
+    }
 
     @Override
     protected ResumeService baseService() {

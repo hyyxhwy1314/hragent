@@ -1,9 +1,11 @@
 package org.example.hragent.aspect;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.example.hragent.annotation.RepeatSubmit;
 import org.example.hragent.exception.BusinessException;
 import org.example.hragent.exception.ErrorCode;
@@ -12,18 +14,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.lang.reflect.Method;
 import java.security.MessageDigest;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 防重复提交切面
  * 拦截 @RepeatSubmit 注解，使用 Redis SETNX 实现
- *
- * 原理：
- * 1. 请求进入时，按 keyType 生成唯一 key
- * 2. SETNX 写入 Redis，TTL = interval
- * 3. 写入成功 → 放行；写入失败（key 已存在）→ 重复提交，拒绝
+ * 注意：切点使用全限定名 @annotation，不依赖参数绑定
  */
+@Slf4j
 @Aspect
 @Component
 public class RepeatSubmitAspect {
@@ -33,42 +32,35 @@ public class RepeatSubmitAspect {
 
     public RepeatSubmitAspect(RedisUtils redisUtils) {
         this.redisUtils = redisUtils;
+        log.info("✅ RepeatSubmitAspect 已实例化，RedisUtils={}", redisUtils.getClass().getSimpleName());
     }
 
-    @Around("@annotation(repeatSubmit)")
-    public Object around(ProceedingJoinPoint joinPoint, RepeatSubmit repeatSubmit) throws Throwable {
-        // 1. 生成防重 key
-        String key = buildKey(joinPoint, repeatSubmit);
-
-        // 2. SETNX 写入，TTL = interval
-        boolean acquired = redisUtils.setIfAbsent(
-                key,
-                "1",
-                repeatSubmit.interval(),
-                repeatSubmit.unit()
-        );
-
-        if (!acquired) {
-            // 3. key 已存在 → 重复提交
-            throw new BusinessException(ErrorCode.REPEAT_SUBMIT, repeatSubmit.message());
+    @Around("@annotation(org.example.hragent.annotation.RepeatSubmit)")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        RepeatSubmit repeatSubmit = method.getAnnotation(RepeatSubmit.class);
+        if (repeatSubmit == null) {
+            return joinPoint.proceed();
         }
 
-        // 4. 放行
+        String key = buildKey(joinPoint, repeatSubmit);
+        boolean acquired = redisUtils.setIfAbsent(key, "1", repeatSubmit.interval(), repeatSubmit.unit());
+        if (!acquired) {
+            log.warn("⏱ 防重复提交触发 key={} method={}", key, method.getName());
+            throw new BusinessException(ErrorCode.REPEAT_SUBMIT, repeatSubmit.message());
+        }
+        log.debug("⏱ 防重复提交首次通过 key={}", key);
         return joinPoint.proceed();
     }
 
     private String buildKey(ProceedingJoinPoint joinPoint, RepeatSubmit repeatSubmit) {
-        // 自定义 key 优先
         if (!repeatSubmit.key().isBlank()) {
             return KEY_PREFIX + repeatSubmit.key();
         }
-
         HttpServletRequest request = currentRequest();
         if (request == null) {
-            // 非 Web 请求降级为方法签名
             return KEY_PREFIX + joinPoint.getSignature().toShortString();
         }
-
         String uri = request.getRequestURI();
         switch (repeatSubmit.keyType()) {
             case TOKEN:
@@ -80,7 +72,6 @@ public class RepeatSubmitAspect {
                 return KEY_PREFIX + "ip:" + clientIp(request) + ":" + uri;
             case PARAMS:
             default:
-                // 默认 PARAMS：Token + URI + 请求体哈希
                 String t = request.getHeader("Authorization");
                 if (t == null || t.isBlank()) t = request.getHeader("token");
                 if (t == null || t.isBlank()) t = clientIp(request);
@@ -102,7 +93,6 @@ public class RepeatSubmitAspect {
         if (ip == null || ip.isBlank() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
-        // 多级代理取第一个
         if (ip != null && ip.contains(",")) {
             ip = ip.split(",")[0].trim();
         }

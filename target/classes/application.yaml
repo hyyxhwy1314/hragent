@@ -1,4 +1,7 @@
 spring:
+  aop:
+    proxy-target-class: true
+    auto: true
   # MySQL‑douban‑mysql 13306
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

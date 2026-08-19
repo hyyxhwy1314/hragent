@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.example.hragent.annotation.RateLimit;
 import org.example.hragent.exception.RateLimitException;
 import org.example.hragent.utils.RedisUtils;
@@ -12,21 +13,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 接口限流切面
- *
- * 实现方式：Redis 固定窗口计数器
- * 原理：
- * 1. 每个请求进来，对 key 做 INCR
- * 2. 第一次请求时设置 TTL = rateInterval
- * 3. 如果计数 > rate，拒绝
- *
- * 相比 Redisson RRateLimiter 的优势：
- * - 不存在配置残留问题（trySetRate 只首次生效）
- * - 逻辑简单可靠，易于调试
- * - 每个 key 独立计数窗口
+ * 实现方式：Redis 固定窗口计数器（INCR + TTL）
+ * 注意：切点使用全限定名 @annotation，不依赖参数绑定，避免 Spring AOP 解析歧义
  */
 @Slf4j
 @Aspect
@@ -38,34 +31,30 @@ public class RateLimitAspect {
 
     public RateLimitAspect(RedisUtils redisUtils) {
         this.redisUtils = redisUtils;
-        log.info("✅ RateLimitAspect 已加载，RedisUtils={}", redisUtils.getClass().getName());
+        log.info("✅ RateLimitAspect 已实例化，RedisUtils={}", redisUtils.getClass().getSimpleName());
     }
 
-    /**
-     * 切点：org.example.hragent 包下任意带 @RateLimit 注解的方法
-     * 使用 @within 与 @annotation 双重匹配，确保代理生效
-     */
-    @Around("execution(* org.example.hragent..*(..)) && @annotation(rateLimit)")
-    public Object around(ProceedingJoinPoint joinPoint, RateLimit rateLimit) throws Throwable {
-        log.info("🚦 RateLimitAspect 拦截到方法: {}", joinPoint.getSignature().toShortString());
-        // 1. 生成限流 key
+    @Around("@annotation(org.example.hragent.annotation.RateLimit)")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+        Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
+        RateLimit rateLimit = method.getAnnotation(RateLimit.class);
+        if (rateLimit == null) {
+            return joinPoint.proceed();
+        }
+
         String key = buildKey(joinPoint, rateLimit);
-
-        // 2. INCR 计数
         long count = redisUtils.increment(key);
-
-        // 3. 第一次请求时设置 TTL（窗口）
         if (count == 1) {
             redisUtils.expire(key, rateLimit.rateInterval(), rateLimit.rateIntervalUnit());
         }
 
-        // 4. 超过限流阈值 → 拒绝
         if (count > rateLimit.rate()) {
-            log.warn("接口限流 key={} count={}/{}", key, count, rateLimit.rate());
+            log.warn("🚦 接口限流触发 key={} count={}/{} method={}",
+                    key, count, rateLimit.rate(), method.getName());
             throw new RateLimitException(rateLimit.message());
         }
 
-        log.debug("限流放行 key={} count={}/{}", key, count, rateLimit.rate());
+        log.debug("🚦 限流放行 key={} count={}/{}", key, count, rateLimit.rate());
         return joinPoint.proceed();
     }
 
@@ -73,12 +62,10 @@ public class RateLimitAspect {
         if (!rateLimit.key().isBlank()) {
             return KEY_PREFIX + rateLimit.key();
         }
-
         HttpServletRequest request = currentRequest();
         if (request == null) {
             return KEY_PREFIX + joinPoint.getSignature().toShortString();
         }
-
         String uri = request.getRequestURI();
         String ip = clientIp(request);
         return KEY_PREFIX + uri + ":" + ip;
