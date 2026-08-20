@@ -1,4 +1,12 @@
 spring:
+  aop:
+    proxy-target-class: true
+    auto: true
+  # 文件上传大小限制
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   # MySQL‑douban‑mysql 13306
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -13,12 +21,20 @@ spring:
 #    port: 15672
 #    username: guest
 #    password: guest
+  # Redis douban‑redis 宿主机16379
   data:
     redis:
-      port: 6379
-      password:
       host: 127.0.0.1
+      port: 6379
+#      password: 123
       database: 0
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 4
+          min-idle: 1
+          max-wait: 2000ms
 
 flowable:
   database-schema-update: true
@@ -49,3 +65,5 @@ logging:
 #elasticsearch:
 #  address: 127.0.0.1
 #  port: 9200
+
+# 对象存储（COS）配置

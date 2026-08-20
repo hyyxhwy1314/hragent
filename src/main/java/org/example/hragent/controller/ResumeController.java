@@ -1,17 +1,38 @@
 package org.example.hragent.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.example.hragent.annotation.RateLimit;
+import org.example.hragent.annotation.RepeatSubmit;
 import org.example.hragent.converter.ResumeConverter;
 import org.example.hragent.dto.ResumeQueryDto;
 import org.example.hragent.dto.ResumeSaveDto;
 import org.example.hragent.dto.ResumeUpdateDto;
 import org.example.hragent.entity.Resume;
 import org.example.hragent.service.ResumeService;
+import org.example.hragent.vo.R;
+import org.example.hragent.vo.ResumeUploadVO;
 import org.example.hragent.vo.ResumeVO;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.context.ApplicationContext;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 简历 Controller
+ * 投递接口属于公开接口，需要：
+ * 1. @RateLimit  防止恶意刷接口
+ * 2. @RepeatSubmit 防止用户重复点击多次提交
+ */
 @RestController
 @RequestMapping("/resumes")
 public class ResumeController extends BaseCrudController<Resume, ResumeVO, ResumeQueryDto, ResumeSaveDto, ResumeUpdateDto> {
@@ -21,6 +42,33 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
 
     @Autowired
     private ResumeConverter resumeConverter;
+
+    @Autowired
+    private ApplicationContext applicationContext;
+
+    /**
+     * AOP 诊断：判断当前 Controller 是否被 CGLIB 代理
+     * （被代理则类名含 $$EnhancerBySpringCGLIB$$）
+     */
+    @GetMapping("/debug/aop")
+    public R<Map<String, Object>> debugAop() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("thisClass", this.getClass().getName());
+        result.put("thisIsProxy", this.getClass().getName().contains("$"));
+        Object bean = applicationContext.getBean("resumeController");
+        result.put("beanClass", bean.getClass().getName());
+        result.put("beanIsProxy", bean.getClass().getName().contains("$"));
+        // 判断 aspect bean 是否存在
+        boolean hasRL = applicationContext.containsBean("rateLimitAspect");
+        boolean hasDL = applicationContext.containsBean("distributedLockAspect");
+        boolean hasRS = applicationContext.containsBean("repeatSubmitAspect");
+        Map<String, Object> aspects = new HashMap<>();
+        aspects.put("rateLimitAspect", hasRL ? applicationContext.getBean("rateLimitAspect").getClass().getName() : "NOT FOUND");
+        aspects.put("distributedLockAspect", hasDL ? applicationContext.getBean("distributedLockAspect").getClass().getName() : "NOT FOUND");
+        aspects.put("repeatSubmitAspect", hasRS ? applicationContext.getBean("repeatSubmitAspect").getClass().getName() : "NOT FOUND");
+        result.put("aspectBeans", aspects);
+        return R.ok(result);
+    }
 
     @Override
     protected ResumeService baseService() {
@@ -46,5 +94,60 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
          .eq(queryDto.getOwnerEmpId() != null, Resume::getOwnerEmpId, queryDto.getOwnerEmpId())
          .ge(queryDto.getMinMatchScore() != null, Resume::getMatchScore, queryDto.getMinMatchScore());
         return w;
+    }
+
+    /**
+     * 简历投递接口
+     * - @RateLimit: 每 3 秒允许 5 个请求（按 IP 维度）
+     * - @RepeatSubmit: 5 秒内相同参数视为重复提交
+     */
+    @Override
+    @PostMapping
+    @RateLimit(rate = 5, rateIntervalMs = 3000L, message = "投递过于频繁，请稍后再试")
+    @RepeatSubmit(intervalMs = 5000L, message = "简历已提交，请勿重复投递")
+    public R<ResumeVO> save(@Valid @RequestBody ResumeSaveDto saveDto) {
+        return super.save(saveDto);
+    }
+
+    /**
+     * 简历附件上传
+     * 返回文件ID(resumeFileId)、预览URL与解析出的简历字段，前端据此回填表单
+     */
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public R<ResumeUploadVO> upload(@RequestParam("file") MultipartFile file) {
+        return R.ok(resumeService.uploadResumeFile(file));
+    }
+
+    /**
+     * 简历附件预览（返回预签名URL，前端直接打开）
+     */
+    @GetMapping("/{id}/file/preview")
+    public R<Map<String, String>> previewFile(@PathVariable Long id) {
+        Map<String, String> result = new HashMap<>();
+        result.put("previewUrl", resumeService.getFilePreviewUrl(id));
+        return R.ok(result);
+    }
+
+    /**
+     * 简历附件下载（直接输出文件流）
+     * 业务异常（简历不存在/未上传附件）会向上抛出，由全局异常处理器返回 JSON
+     */
+    @GetMapping("/{id}/file/download")
+    public void downloadFile(@PathVariable Long id, HttpServletResponse response) throws java.io.IOException {
+        OutputStream out = response.getOutputStream();
+        String fileName = resumeService.downloadResumeFile(id, out);
+        String encoded = URLEncoder.encode(fileName == null ? "resume" : fileName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + encoded + "\"");
+        out.flush();
+    }
+
+    /**
+     * 简历归档
+     */
+    @PutMapping("/{id}/archive")
+    public R<Boolean> archive(@PathVariable Long id) {
+        return R.ok(resumeService.archive(id));
     }
 }

@@ -36,4 +36,13 @@ public class BusinessException extends RuntimeException {
             throw new BusinessException(errorCode);
         }
     }
+
+    /**
+     * 快速断言抛出（自定义提示信息）
+     */
+    public static void throwIf(boolean condition, ErrorCode errorCode, String customMsg) {
+        if (condition) {
+            throw new BusinessException(errorCode, customMsg);
+        }
+    }
 }

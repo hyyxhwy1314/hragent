@@ -12,6 +12,10 @@ public enum ErrorCode {
     DATA_NOT_FOUND(1002, "数据不存在"),
     DATA_EXIST(1003, "数据已存在"),
     NO_PERMISSION(1004, "权限不足"),
+    OPERATION_FAILED(1005, "操作失败"),
+    REPEAT_SUBMIT(1006, "请勿重复提交"),
+    RATE_LIMITED(1007, "请求过于频繁"),
+    LOCK_TIMEOUT(1008, "分布式锁获取超时"),
 
     //登录鉴权 2xxx
     TOKEN_INVALID(2001, "token无效或已过期"),

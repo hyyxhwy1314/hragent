@@ -91,7 +91,7 @@ function onDelete(r: Employee) {
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 function genderText(g?: number) { return genderOpts.find(o => o.value === g)?.label ?? '-' }
 
-const columns = [
+const columns: any[] = [
   { title: '工号', dataIndex: 'empNo', width: 110 },
   { title: '姓名', dataIndex: 'empName', width: 110 },
   {

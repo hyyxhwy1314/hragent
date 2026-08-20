@@ -44,6 +44,16 @@ const cards = [
   { title: '简历池', value: 'resumes', icon: FileTextOutlined, trend: '-1.2%', up: false, color: '#FA8C16' },
   { title: '绩效记录', value: 'performances', icon: TrophyOutlined, trend: '+8.7%', up: true, color: '#722ED1' }
 ]
+
+const hoverBg = ref<Record<string, string | undefined>>({})
+function onShortcutEnter(path: string, color: string, e: MouseEvent) {
+  hoverBg.value = { ...hoverBg.value, [path]: color + '15' }
+  void e
+}
+function onShortcutLeave(path: string, e: MouseEvent) {
+  hoverBg.value = { ...hoverBg.value, [path]: undefined }
+  void e
+}
 </script>
 
 <template>
@@ -91,14 +101,19 @@ const cards = [
               { path: '/performances', label: '绩效管理', color: '#722ED1' },
               { path: '/training-courses', label: '培训课程', color: '#EB2F96' },
               { path: '/ability-tags', label: '能力标签', color: '#52C41A' }
-            ]" :key="item.path" :to="item.path"
-              style="flex: 1 1 30%; min-width: 140px; padding: 16px; border-radius: 8px;
-                     background: #fafafa; text-decoration: none; color: inherit;
-                     transition: all 0.2s"
-              onMouseenter="(e) => { e.currentTarget.style.background = item.color + '15' }"
-              onMouseleave="(e) => { e.currentTarget.style.background = '#fafafa' }">
-              <div style="font-weight: 500">{{ item.label }}</div>
-              <div style="font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 4px">进入模块 →</div>
+            ]" :key="item.path" :to="item.path" custom
+              v-slot="{ navigate }">
+              <a @click="navigate"
+                :style="{
+                  flex: '1 1 30%', minWidth: '140px', padding: '16px', borderRadius: '8px',
+                  background: hoverBg?.[item.path] || '#fafafa', textDecoration: 'none', color: 'inherit',
+                  transition: 'all 0.2s'
+                }"
+                @mouseenter="(e: MouseEvent) => onShortcutEnter(item.path, item.color, e)"
+                @mouseleave="(e: MouseEvent) => onShortcutLeave(item.path, e)">
+                <div style="font-weight: 500">{{ item.label }}</div>
+                <div style="font-size: 12px; color: rgba(0,0,0,0.45); margin-top: 4px">进入模块 →</div>
+              </a>
             </router-link>
           </div>
         </Card>

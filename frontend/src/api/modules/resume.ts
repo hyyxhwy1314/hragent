@@ -1,4 +1,4 @@
-import { createCrudApi } from '../request'
+import { createCrudApi, httpGet, httpPut, httpUpload, httpDownload } from '../request'
 
 export interface Resume {
   id?: number
@@ -30,4 +30,56 @@ export interface Resume {
   updateTime?: string
 }
 
-export const resumeApi = createCrudApi<Resume>('/resumes')
+/** 上传文件返回VO */
+export interface FileVO {
+  id: number
+  objectKey: string
+  originalName: string
+  fileType: string
+  fileSize: number
+  storageType: string
+  previewUrl: string
+}
+
+/** 简历解析出的结构化字段 */
+export interface ResumeParsedData {
+  resumeName?: string
+  phone?: string
+  email?: string
+  school?: string
+  major?: string
+  expectPosition?: string
+  expectCity?: string
+  workYears?: number
+  education?: number
+  rawText?: string
+}
+
+/** 简历上传结果：文件信息 + 解析字段 */
+export interface ResumeUploadVO {
+  fileId: number
+  objectKey: string
+  originalName: string
+  previewUrl: string
+  parsed?: ResumeParsedData
+}
+
+export const resumeApi = {
+  ...createCrudApi<Resume>('/resumes'),
+  /** 上传简历附件，返回文件ID、预览URL与解析字段 */
+  upload(file: File | Blob): Promise<ResumeUploadVO> {
+    return httpUpload<ResumeUploadVO>('/resumes/upload', file)
+  },
+  /** 归档简历 */
+  archive(id: number): Promise<boolean> {
+    return httpPut<boolean>(`/resumes/${id}/archive`)
+  },
+  /** 获取附件预览URL */
+  previewFile(id: number): Promise<{ previewUrl: string }> {
+    return httpGet(`/resumes/${id}/file/preview`)
+  },
+  /** 下载简历附件 */
+  downloadFile(id: number): Promise<void> {
+    return httpDownload(`/resumes/${id}/file/download`, `resume-${id}`)
+  }
+}

@@ -70,7 +70,7 @@ function onDelete(r: Performance) {
 }
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 
-const columns = [
+const columns: any[] = [
   { title: '员工ID', dataIndex: 'empId', width: 100 },
   { title: '考核周期', dataIndex: 'periodCode', width: 130 },
   { title: '自评分数', dataIndex: 'selfScore', width: 110 },

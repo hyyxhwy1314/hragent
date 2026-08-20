@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -84,6 +85,50 @@ public class GlobalExceptionHandler {
     public R<?> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
         log.warn("请求方法不支持: {} - {}", e.getMethod(), e.getMessage());
         return R.fail(405, "请求方法不支持: " + e.getMethod());
+    }
+
+    /**
+     * 请求体 JSON 解析失败（如格式错误、引号问题）
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public R<?> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
+        log.warn("请求体解析失败: {}", e.getMessage());
+        return R.fail(ErrorCode.PARAM_ERROR.getCode(), "请求体格式错误，请检查 JSON 格式");
+    }
+
+    /**
+     * 分布式锁获取超时
+     */
+    @ExceptionHandler(DistributedLockTimeoutException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public R<?> handleLockTimeout(DistributedLockTimeoutException e) {
+        log.warn("分布式锁超时: {}", e.getMessage());
+        return R.fail(ErrorCode.LOCK_TIMEOUT.getCode(), e.getMessage());
+    }
+
+    /**
+     * 接口限流
+     */
+    @ExceptionHandler(RateLimitException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public R<?> handleRateLimit(RateLimitException e) {
+        String msg = (e.getMessage() == null || e.getMessage().isEmpty())
+                ? ErrorCode.RATE_LIMITED.getMsg() : e.getMessage();
+        log.warn("接口限流: {}", msg);
+        return R.fail(ErrorCode.RATE_LIMITED.getCode(), msg);
+    }
+
+    /**
+     * 防重复提交
+     */
+    @ExceptionHandler(org.example.hragent.aspect.RepeatSubmitAspect.RepeatSubmitRejectedException.class)
+    @ResponseStatus(HttpStatus.OK)
+    public R<?> handleRepeatSubmit(org.example.hragent.aspect.RepeatSubmitAspect.RepeatSubmitRejectedException e) {
+        String msg = (e.getMessage() == null || e.getMessage().isEmpty())
+                ? ErrorCode.REPEAT_SUBMIT.getMsg() : e.getMessage();
+        log.warn("重复提交拦截: {}", msg);
+        return R.fail(ErrorCode.REPEAT_SUBMIT.getCode(), msg);
     }
 
     /**

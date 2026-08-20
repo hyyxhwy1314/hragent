@@ -28,7 +28,8 @@ const menuItems = [
 const selectedKeys = computed(() => [route.path])
 const title = computed(() => (route.meta.title as string) || '')
 
-function handleMenuClick({ key }: { key: string }) {
+function handleMenuClick(info: any) {
+  const key = String(info.key)
   if (key !== route.path) router.push(key)
 }
 </script>
