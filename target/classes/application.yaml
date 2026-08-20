@@ -2,6 +2,11 @@ spring:
   aop:
     proxy-target-class: true
     auto: true
+  # 文件上传大小限制
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
   # MySQL‑douban‑mysql 13306
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -60,3 +65,5 @@ logging:
 #elasticsearch:
 #  address: 127.0.0.1
 #  port: 9200
+
+# 对象存储（COS）配置

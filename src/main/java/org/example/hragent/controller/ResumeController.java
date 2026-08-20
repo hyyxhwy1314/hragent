@@ -1,6 +1,7 @@
 package org.example.hragent.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.example.hragent.annotation.RateLimit;
 import org.example.hragent.annotation.RepeatSubmit;
@@ -11,11 +12,17 @@ import org.example.hragent.dto.ResumeUpdateDto;
 import org.example.hragent.entity.Resume;
 import org.example.hragent.service.ResumeService;
 import org.example.hragent.vo.R;
+import org.example.hragent.vo.ResumeUploadVO;
 import org.example.hragent.vo.ResumeVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.OutputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -100,5 +107,47 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
     @RepeatSubmit(interval = 5, unit = TimeUnit.SECONDS, message = "简历已提交，请勿重复投递")
     public R<ResumeVO> save(@Valid @RequestBody ResumeSaveDto saveDto) {
         return super.save(saveDto);
+    }
+
+    /**
+     * 简历附件上传
+     * 返回文件ID(resumeFileId)、预览URL与解析出的简历字段，前端据此回填表单
+     */
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public R<ResumeUploadVO> upload(@RequestParam("file") MultipartFile file) {
+        return R.ok(resumeService.uploadResumeFile(file));
+    }
+
+    /**
+     * 简历附件预览（返回预签名URL，前端直接打开）
+     */
+    @GetMapping("/{id}/file/preview")
+    public R<Map<String, String>> previewFile(@PathVariable Long id) {
+        Map<String, String> result = new HashMap<>();
+        result.put("previewUrl", resumeService.getFilePreviewUrl(id));
+        return R.ok(result);
+    }
+
+    /**
+     * 简历附件下载（直接输出文件流）
+     * 业务异常（简历不存在/未上传附件）会向上抛出，由全局异常处理器返回 JSON
+     */
+    @GetMapping("/{id}/file/download")
+    public void downloadFile(@PathVariable Long id, HttpServletResponse response) throws java.io.IOException {
+        OutputStream out = response.getOutputStream();
+        String fileName = resumeService.downloadResumeFile(id, out);
+        String encoded = URLEncoder.encode(fileName == null ? "resume" : fileName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + encoded + "\"");
+        out.flush();
+    }
+
+    /**
+     * 简历归档
+     */
+    @PutMapping("/{id}/archive")
+    public R<Boolean> archive(@PathVariable Long id) {
+        return R.ok(resumeService.archive(id));
     }
 }

@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-19T16:58:49+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.11 (Oracle Corporation)"
+    date = "2026-08-20T20:27:41+0800",
+    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (JetBrains s.r.o.)"
 )
 @Component
 public class AbilityTagConverterImpl implements AbilityTagConverter {
