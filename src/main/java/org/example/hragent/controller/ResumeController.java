@@ -14,6 +14,7 @@ import org.example.hragent.service.ResumeService;
 import org.example.hragent.vo.R;
 import org.example.hragent.vo.ResumeUploadVO;
 import org.example.hragent.vo.ResumeVO;
+import org.example.hragent.utils.RedisUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
@@ -45,6 +46,24 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
 
     @Autowired
     private ApplicationContext applicationContext;
+
+    @Autowired
+    private RedisUtils redisUtils;
+
+    /**
+     * 清掉本地调试期间遗留在 Redis 的「限流 / 防重」键，避免改注解间隔后旧 TTL（5000 秒之类）
+     * 还在生效导致测试永远提示"重复提交"。仅开发环境点一下。
+     */
+    @DeleteMapping("/debug/cache-keys")
+    public R<Long> clearRateAndRepeatKeys() {
+        java.util.Set<String> s1 = redisUtils.keys("repeat_submit:*");
+        java.util.Set<String> s2 = redisUtils.keys("rate_limit:*");
+        java.util.Set<String> all = new java.util.HashSet<>();
+        if (s1 != null) all.addAll(s1);
+        if (s2 != null) all.addAll(s2);
+        long n = all.isEmpty() ? 0 : redisUtils.delete(all);
+        return R.ok(n);
+    }
 
     /**
      * AOP 诊断：判断当前 Controller 是否被 CGLIB 代理
@@ -103,8 +122,8 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
      */
     @Override
     @PostMapping
-    @RateLimit(rate = 5, rateIntervalMs = 3000L, message = "投递过于频繁，请稍后再试")
-    @RepeatSubmit(intervalMs = 5000L, message = "简历已提交，请勿重复投递")
+    @RateLimit(rate = 5, rateInterval = 3, rateIntervalUnit = TimeUnit.SECONDS, message = "投递过于频繁，请稍后再试")
+    @RepeatSubmit(interval = 5, unit = TimeUnit.SECONDS, message = "简历已提交，请勿重复投递")
     public R<ResumeVO> save(@Valid @RequestBody ResumeSaveDto saveDto) {
         return super.save(saveDto);
     }

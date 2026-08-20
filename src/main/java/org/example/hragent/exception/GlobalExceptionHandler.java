@@ -120,18 +120,6 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 防重复提交
-     */
-    @ExceptionHandler(org.example.hragent.aspect.RepeatSubmitAspect.RepeatSubmitRejectedException.class)
-    @ResponseStatus(HttpStatus.OK)
-    public R<?> handleRepeatSubmit(org.example.hragent.aspect.RepeatSubmitAspect.RepeatSubmitRejectedException e) {
-        String msg = (e.getMessage() == null || e.getMessage().isEmpty())
-                ? ErrorCode.REPEAT_SUBMIT.getMsg() : e.getMessage();
-        log.warn("重复提交拦截: {}", msg);
-        return R.fail(ErrorCode.REPEAT_SUBMIT.getCode(), msg);
-    }
-
-    /**
      * 兜底捕获所有未知异常
      */
     @ExceptionHandler(Exception.class)

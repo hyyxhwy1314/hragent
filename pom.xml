@@ -21,8 +21,14 @@
         <maven.compiler.forceJavacCompilerUse>true</maven.compiler.forceJavacCompilerUse>
     </properties>
 
-    <!-- 关键：直接指定maven中央仓库，绕开阿里云缺失问题 -->
+    <!-- 阿里云 OCR SDK 在中央仓库发布较新、但中央仓库缓存偶发 miss；同时保留官方阿里云源作为补充 -->
     <repositories>
+        <repository>
+            <id>aliyun-public</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
         <repository>
             <id>maven-central</id>
             <url>https://repo1.maven.org/maven2</url>
@@ -169,6 +175,24 @@
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>3.0.3</version>
+        </dependency>
+        <!-- 阿里云 OCR（简历识别 RecognizeResume + 通用印刷体 RecognizeGeneral）：
+             支持图片与 PDF 扫描件识别；未配置 AK/SK 时自动降级，不影响启动。
+             版本参考：https://next.api.aliyun.com/api-tools/sdk/ocr?version=2019-12-30&language=java-tea -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>ocr20191230</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>tea-openapi</artifactId>
+            <version>0.2.8</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>tea-util</artifactId>
+            <version>0.2.25</version>
         </dependency>
     </dependencies>
 

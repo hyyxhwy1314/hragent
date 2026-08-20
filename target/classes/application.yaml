@@ -61,6 +61,7 @@ logging:
     org.flowable: WARN
     org.apache.ibatis: WARN
 
+
 # Elasticsearch7.17.9
 #elasticsearch:
 #  address: 127.0.0.1

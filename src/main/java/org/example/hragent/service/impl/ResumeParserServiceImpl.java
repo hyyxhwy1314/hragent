@@ -4,8 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.example.hragent.service.AliyunOcrService;
 import org.example.hragent.service.ResumeParserService;
 import org.example.hragent.vo.ResumeParsedData;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.regex.Matcher;
@@ -13,7 +16,14 @@ import java.util.regex.Pattern;
 
 /**
  * 简历解析服务实现
- * 使用 PDFBox 提取 PDF 文本，配合正则识别常见字段
+ * <p>
+ * 链路分层（统一输出 {@link ResumeParsedData}，保证 text 型简历与扫描件简历字段完全对齐）：
+ * <ol>
+ *   <li>优先尝试阿里云 RecognizeResume 结构化识别（准确率高，≥85% 验收依赖它）</li>
+ *   <li>结构化未命中 → 走 PDFBox 抽取纯文本（文本型 PDF 很快、免费）</li>
+ *   <li>PDFBox 抽不出（扫描件/图片） → 再 fallback 到 OCR RecognizeGeneral + 本地正则</li>
+ *   <li>最后再结合文件名兜底姓名（即便前几层都失败，至少不会完全空白）</li>
+ * </ol>
  */
 @Slf4j
 @Service
@@ -29,6 +39,10 @@ public class ResumeParserServiceImpl implements ResumeParserService {
     private static final Pattern WORK_YEARS_LABEL = Pattern.compile("工作年限[\\s:：]*(\\d+)");
     private static final Pattern SCHOOL = Pattern.compile("([\\u4e00-\\u9fa5A-Za-z()（）]{2,30}(?:大学|学院|UNIVERSITY|University))");
 
+    @Autowired
+    @Lazy
+    private AliyunOcrService aliyunOcrService;
+
     @Override
     public ResumeParsedData parse(byte[] data, String fileName, String contentType) {
         ResumeParsedData result = new ResumeParsedData();
@@ -36,37 +50,64 @@ public class ResumeParserServiceImpl implements ResumeParserService {
             log.warn("简历解析入参为空 fileName={}", fileName);
             return result;
         }
-        String text = extractText(data, fileName, contentType);
-        if (text == null || text.isBlank()) {
-            // 文本提取失败（如扫描件 PDF），仍尝试从文件名提取姓名
-            String nameFromName = guessNameFromFileName(fileName);
-            result.setResumeName(nameFromName);
-            log.info("简历文本提取为空，仅从文件名识别姓名 fileName={}, name={}", fileName, nameFromName);
-            return result;
+
+        // Layer 1: 结构化 OCR（阿里云 RecognizeResume）—— 扫描件 / 图片 / 文本型 PDF 都能吃，
+        // 命中的话字段质量通常比本地正则高。
+        ResumeParsedData structured = tryOcrStructured(data, fileName, contentType);
+        if (structured != null) {
+            mergeInto(result, structured);
         }
-        result.setRawText(text);
-        result.setPhone(first(PHONE, text));
-        result.setEmail(first(EMAIL, text));
-        result.setResumeName(orDefault(first(NAME_LABEL, text), guessNameFromFileName(fileName)));
-        result.setMajor(first(MAJOR_LABEL, text));
-        result.setExpectPosition(first(EXPECT_POSITION, text));
-        result.setExpectCity(first(EXPECT_CITY, text));
-        result.setWorkYears(parseInt(first(WORK_YEARS, text), first(WORK_YEARS_LABEL, text)));
-        result.setEducation(guessEducation(text));
-        if (result.getSchool() == null) {
-            result.setSchool(first(SCHOOL, text));
+
+        // Layer 2: PDFBox 文本提取（文本型 PDF 不需要消耗 OCR 额度）
+        String pdfText = extractPdfBoxText(data, fileName, contentType);
+        if (pdfText != null && !pdfText.isBlank()) {
+            ResumeParsedData regexed = parseFromText(pdfText);
+            mergeInto(result, regexed);
+            // 保证 rawText 里最终保留 PDF 原文（OCR 原文可能断行不连贯）
+            if (result.getRawText() == null || pdfText.length() > result.getRawText().length()) {
+                result.setRawText(pdfText);
+            }
         }
+
+        // Layer 3: PDFBox 提取空（典型扫描件 PDF）或图片文件 → OCR 通用识别 + 正则
+        if (structured == null && (pdfText == null || pdfText.isBlank())) {
+            String ocrText = (aliyunOcrService == null) ? null
+                    : aliyunOcrService.recognizeRawText(data, fileName, contentType);
+            if (ocrText != null && !ocrText.isBlank()) {
+                ResumeParsedData regexed = parseFromText(ocrText);
+                mergeInto(result, regexed);
+                if (result.getRawText() == null) result.setRawText(ocrText);
+                log.info("扫描件简历 OCR 填充字段 fileName={}, name={}, phone={}",
+                        fileName, result.getResumeName(), result.getPhone());
+            }
+        }
+
+        // Layer 4: 即便所有解析都失败，仍用文件名做一次最小兜底，前端至少能显示个姓名占位
+        if (result.getResumeName() == null || result.getResumeName().isBlank()) {
+            result.setResumeName(guessNameFromFileName(fileName));
+        }
+
         log.info("简历解析完成 fileName={}, name={}, phone={}, email={}, school={}",
                 fileName, result.getResumeName(), result.getPhone(), result.getEmail(), result.getSchool());
         return result;
     }
 
-    /** 提取文件文本，仅支持 PDF；其他类型返回 null */
-    private String extractText(byte[] data, String fileName, String contentType) {
+    // ============== 分层辅助 ==============
+
+    private ResumeParsedData tryOcrStructured(byte[] data, String fileName, String contentType) {
+        if (aliyunOcrService == null) return null;
+        try {
+            return aliyunOcrService.recognizeResumeStructured(data, fileName, contentType);
+        } catch (Exception e) {
+            log.warn("结构化 OCR 失败，继续走本地解析 file={}, err={}", fileName, e.getMessage());
+            return null;
+        }
+    }
+
+    private String extractPdfBoxText(byte[] data, String fileName, String contentType) {
         boolean isPdf = (fileName != null && fileName.toLowerCase().endsWith(".pdf"))
                 || (contentType != null && contentType.toLowerCase().contains("pdf"));
         if (!isPdf) {
-            log.info("非 PDF 文件，跳过文本提取: {}", fileName);
             return null;
         }
         try (PDDocument doc = Loader.loadPDF(data)) {
@@ -77,12 +118,44 @@ public class ResumeParserServiceImpl implements ResumeParserService {
             stripper.setSortByPosition(true);
             return stripper.getText(doc);
         } catch (Exception e) {
-            log.warn("PDF 文本提取失败 file={}, err={}", fileName, e.getMessage());
+            log.warn("PDFBox 文本提取失败 file={}, err={}", fileName, e.getMessage());
             return null;
         }
     }
 
-    /** 返回首个正则匹配：有捕获组取组1，否则取整体匹配；无匹配返回 null */
+    private ResumeParsedData parseFromText(String text) {
+        ResumeParsedData r = new ResumeParsedData();
+        if (text == null || text.isBlank()) return r;
+        r.setRawText(text);
+        r.setPhone(first(PHONE, text));
+        r.setEmail(first(EMAIL, text));
+        r.setResumeName(first(NAME_LABEL, text));
+        r.setMajor(first(MAJOR_LABEL, text));
+        r.setExpectPosition(first(EXPECT_POSITION, text));
+        r.setExpectCity(first(EXPECT_CITY, text));
+        r.setWorkYears(parseInt(first(WORK_YEARS, text), first(WORK_YEARS_LABEL, text)));
+        r.setEducation(guessEducation(text));
+        if (r.getSchool() == null) r.setSchool(first(SCHOOL, text));
+        return r;
+    }
+
+    /** src 里非空字段覆盖/合并到 dst（空字段不覆盖，允许 OCR 与 PDFBox 互补） */
+    private static void mergeInto(ResumeParsedData dst, ResumeParsedData src) {
+        if (src == null) return;
+        if (dst.getResumeName() == null || dst.getResumeName().isBlank()) dst.setResumeName(src.getResumeName());
+        if (dst.getPhone() == null || dst.getPhone().isBlank()) dst.setPhone(src.getPhone());
+        if (dst.getEmail() == null || dst.getEmail().isBlank()) dst.setEmail(src.getEmail());
+        if (dst.getSchool() == null || dst.getSchool().isBlank()) dst.setSchool(src.getSchool());
+        if (dst.getMajor() == null || dst.getMajor().isBlank()) dst.setMajor(src.getMajor());
+        if (dst.getExpectPosition() == null || dst.getExpectPosition().isBlank()) dst.setExpectPosition(src.getExpectPosition());
+        if (dst.getExpectCity() == null || dst.getExpectCity().isBlank()) dst.setExpectCity(src.getExpectCity());
+        if (dst.getWorkYears() == null) dst.setWorkYears(src.getWorkYears());
+        if (dst.getEducation() == null) dst.setEducation(src.getEducation());
+        if (dst.getRawText() == null) dst.setRawText(src.getRawText());
+    }
+
+    // ============== 原有正则/兜底工具 ==============
+
     private String first(Pattern p, String text) {
         Matcher m = p.matcher(text);
         if (!m.find()) {
@@ -90,10 +163,6 @@ public class ResumeParserServiceImpl implements ResumeParserService {
         }
         String g = m.groupCount() >= 1 ? m.group(1) : m.group(0);
         return g == null ? null : g.trim();
-    }
-
-    private String orDefault(String v, String def) {
-        return (v == null || v.isBlank()) ? def : v;
     }
 
     private Integer parseInt(String... values) {
@@ -108,7 +177,6 @@ public class ResumeParserServiceImpl implements ResumeParserService {
         return null;
     }
 
-    /** 学历识别：取文中最高的学历 */
     private Integer guessEducation(String text) {
         if (text.contains("博士")) return 4;
         if (text.contains("硕士") || text.contains("研究生")) return 3;
@@ -117,7 +185,6 @@ public class ResumeParserServiceImpl implements ResumeParserService {
         return null;
     }
 
-    /** 文件名 "姓名-岗位.pdf" 启发式提取姓名 */
     private String guessNameFromFileName(String fileName) {
         if (fileName == null || fileName.isBlank()) {
             return null;
@@ -130,7 +197,6 @@ public class ResumeParserServiceImpl implements ResumeParserService {
         String[] parts = base.split("[-_—\\s]+");
         if (parts.length > 0) {
             String first = parts[0].trim();
-            // 去除常见前缀如"简历"
             if (first.length() >= 2 && first.length() <= 4
                     && first.matches("[\\u4e00-\\u9fa5]+") && !first.contains("简历")) {
                 return first;
@@ -139,3 +205,4 @@ public class ResumeParserServiceImpl implements ResumeParserService {
         return null;
     }
 }
+
