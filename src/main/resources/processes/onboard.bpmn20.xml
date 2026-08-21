@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL http://www.omg.org/spec/BPMN/2.0/20100501/BPMN20.xsd"
+             id="Definitions_onboard"
+             targetNamespace="http://flowable.org/bpmn">
+
+    <!-- 入职流程：HR 审核（bizId=简历ID）→ 用人部门确认 → 通过则自动创建员工记录 -->
+    <process id="onboard-process" name="入职流程" isExecutable="true">
+
+        <!-- 开始 -->
+        <startEvent id="onboard_start" name="HR 发起入职"/>
+        <sequenceFlow id="flow_1" sourceRef="onboard_start" targetRef="onboard_1_hr_audit"/>
+
+        <!-- 节点1：HR 审核 -->
+        <userTask id="onboard_1_hr_audit" name="HR 审核"
+                  flowable:assignee="${approver_hr}"
+                  flowable:candidateGroups="HR"/>
+        <sequenceFlow id="flow_2" sourceRef="onboard_1_hr_audit" targetRef="onboard_gw_hr"/>
+
+        <!-- 网关1：HR 审核结果 -->
+        <exclusiveGateway id="onboard_gw_hr" name="HR审核结果"/>
+        <sequenceFlow id="flow_3" sourceRef="onboard_gw_hr" targetRef="onboard_2_dept_confirm">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_4" sourceRef="onboard_gw_hr" targetRef="onboard_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!-- 节点2：用人部门确认（审批人由 HR 发起时通过 bizJson 指定为 targetLeaderId） -->
+        <userTask id="onboard_2_dept_confirm" name="用人部门确认"
+                  flowable:assignee="${targetLeaderId}"/>
+        <sequenceFlow id="flow_5" sourceRef="onboard_2_dept_confirm" targetRef="onboard_gw_dept"/>
+
+        <!-- 网关2：部门确认结果 -->
+        <exclusiveGateway id="onboard_gw_dept" name="部门确认结果"/>
+        <!-- 通过：调用 JavaDelegate 自动创建员工记录 -->
+        <sequenceFlow id="flow_6" sourceRef="onboard_gw_dept" targetRef="onboard_3_create_emp">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_7" sourceRef="onboard_gw_dept" targetRef="onboard_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!-- 自动节点：创建员工记录（同步执行，JavaDelegate 从简历读取候选人信息写入 t_employee） -->
+        <serviceTask id="onboard_3_create_emp" name="创建员工记录"
+                     flowable:delegateExpression="${onboardApprovedDelegate}"/>
+        <sequenceFlow id="flow_8" sourceRef="onboard_3_create_emp" targetRef="onboard_end"/>
+
+        <!-- 结束：通过 -->
+        <endEvent id="onboard_end" name="入职完成"/>
+        <!-- 结束：拒绝 -->
+        <endEvent id="onboard_end_rejected" name="入职驳回"/>
+    </process>
+</definitions>
