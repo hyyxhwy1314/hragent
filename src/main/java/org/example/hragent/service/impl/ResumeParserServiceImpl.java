@@ -71,14 +71,18 @@ public class ResumeParserServiceImpl implements ResumeParserService {
 
         // Layer 3: PDFBox 提取空（典型扫描件 PDF）或图片文件 → OCR 通用识别 + 正则
         if (structured == null && (pdfText == null || pdfText.isBlank())) {
-            String ocrText = (aliyunOcrService == null) ? null
-                    : aliyunOcrService.recognizeRawText(data, fileName, contentType);
-            if (ocrText != null && !ocrText.isBlank()) {
-                ResumeParsedData regexed = parseFromText(ocrText);
-                mergeInto(result, regexed);
-                if (result.getRawText() == null) result.setRawText(ocrText);
-                log.info("扫描件简历 OCR 填充字段 fileName={}, name={}, phone={}",
-                        fileName, result.getResumeName(), result.getPhone());
+            try {
+                String ocrText = (aliyunOcrService == null) ? null
+                        : aliyunOcrService.recognizeRawText(data, fileName, contentType);
+                if (ocrText != null && !ocrText.isBlank()) {
+                    ResumeParsedData regexed = parseFromText(ocrText);
+                    mergeInto(result, regexed);
+                    if (result.getRawText() == null) result.setRawText(ocrText);
+                    log.info("扫描件简历 OCR 填充字段 fileName={}, name={}, phone={}",
+                            fileName, result.getResumeName(), result.getPhone());
+                }
+            } catch (Exception e) {
+                log.warn("OCR 识别异常 file={}, err={}", fileName, e.getMessage());
             }
         }
 

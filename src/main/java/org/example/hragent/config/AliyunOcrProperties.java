@@ -19,8 +19,8 @@ public class AliyunOcrProperties {
     /** AccessKey Secret */
     private String accessKeySecret = "";
 
-    /** 接入点，默认走上海通用识别域 */
-    private String endpoint = "ocr.cn-shanghai.aliyuncs.com";
+    /** 接入点，默认走杭州 ocr-api 统一识别域（ocr-api 服务仅在杭州 region 提供） */
+    private String endpoint = "ocr-api.cn-hangzhou.aliyuncs.com";
 
     /** 区域 ID */
     private String regionId = "cn-shanghai";
@@ -28,8 +28,12 @@ public class AliyunOcrProperties {
     /** 扫描件 PDF 渲染最大页数（防止超大 PDF 把内存打爆） */
     private int pdfMaxPages = 5;
 
-    /** PDF 渲染 DPI（OCR 精度） */
+    /** 渲染 DPI（OCR 精度） */
     private int renderDpi = 240;
+
+    /** RecognizeAllText 的图片类型；默认 Advanced=通用文字识别高精版（支持图片+PDF，准确率最高）。
+     *  其他可选值见 https://next.api.aliyun.com/api/ocr-api/2021-07-07/RecognizeAllText 的 Type 枚举 */
+    private String type = "Advanced";
 
     /** 是否已配置有效凭据 */
     public boolean isEnabled() {

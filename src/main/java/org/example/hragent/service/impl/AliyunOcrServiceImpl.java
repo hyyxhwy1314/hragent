@@ -1,11 +1,10 @@
 package org.example.hragent.service.impl;
 
-import com.aliyun.ocr20191230.Client;
-import com.aliyun.ocr20191230.models.RecognizeCharacterAdvanceRequest;
-import com.aliyun.ocr20191230.models.RecognizeCharacterResponseBody;
-import com.aliyun.ocr20191230.models.RecognizePdfAdvanceRequest;
-import com.aliyun.ocr20191230.models.RecognizePdfResponseBody;
+import com.aliyun.ocr_api20210707.Client;
+import com.aliyun.ocr_api20210707.models.RecognizeAllTextRequest;
+import com.aliyun.ocr_api20210707.models.RecognizeAllTextResponseBody;
 import com.aliyun.teaopenapi.models.Config;
+import com.aliyun.teautil.models.RuntimeOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.rendering.ImageType;
@@ -19,24 +18,24 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 阿里云 OCR 实现（ocr20191230 SDK v2.0.3）
+ * 阿里云 OCR 实现（ocr_api20210707 SDK，对应控制台「OCR统一识别」服务，API 版本 2021-07-07）。
  *
- * <p>说明：v2.0.3 客户端中 {@code RecognizeResume} 结构化接口不在 SDK 内（属于 VIAPI
- * 独立简历解析服务，通常用另外的 SDK / 异步任务完成）。因此本实现：</p>
+ * <p>统一走 {@code RecognizeAllText} 接口，通过 {@code Type} 参数切换能力（默认 Advanced=通用文字识别高精版）：
  * <ol>
- *   <li>先用 {@code recognizePdfAdvance} 直接识别扫描件 PDF（阿里云原生 PDF OCR）。</li>
- *   <li>图片走 {@code recognizeCharacterAdvance}（流式上传字节，不需要先传到 OSS）。</li>
- *   <li>识别结果拿到全文后，复用与 PDFBox 文本解析完全一致的本地正则链路回填
- *       {@link ResumeParsedData}，保证「文本简历」与「扫描件简历」输出格式严格对齐。</li>
- *   <li>未配置 AK/SK 时返回 {@code null} 并打 WARN，不阻断上传流程。</li>
+ *   <li>图片（PNG/JPG/JPEG/BMP/GIF/TIFF/WebP）→ 直接传字节流识别，返回 data.content 全文。</li>
+ *   <li>扫描件 PDF → 官方统一识别对 PDF「仅识别第一页」，为保证多页简历字段覆盖，
+ *       先用 PDFBox 按页渲染为 PNG，再逐页调用 RecognizeAllText，最后拼接全文。</li>
  * </ol>
+ * 识别出全文后复用与 {@link org.example.hragent.service.impl.ResumeParserServiceImpl} 一致的正则链路回填
+ * {@link ResumeParsedData}，保证「文本型简历」与「扫描件简历」输出格式严格对齐。
+ *
+ * <p>未配置 AK/SK 时返回 {@code null} 并打 WARN，不阻断上传流程。
+ * {@code RuntimeOptions} 开启自动重试并放大超时（覆盖「解析失败重试」诉求）；
+ * 识别失败/异常时以 ERROR 级别记录 code/message/requestId（覆盖「异常告警」诉求）。
  */
 @Slf4j
 @Service
@@ -68,26 +67,22 @@ public class AliyunOcrServiceImpl implements AliyunOcrService {
             log.warn("阿里云 OCR 未配置 ak/sk，跳过文本识别 fileName={}", fileName);
             return null;
         }
-        try {
-            String fn = fileName == null ? "" : fileName.toLowerCase();
-            boolean isPdf = fn.endsWith(".pdf")
-                    || (contentType != null && contentType.toLowerCase().contains("pdf"));
-            if (isPdf) {
-                String text = callRecognizePdf(data);
-                if (text != null && !text.isBlank()) return text;
-                // 降级：PDFBox 渲染 PNG → RecognizeCharacter
-                return renderPdfAndRecognize(data);
-            }
-            if (fn.endsWith(".png") || fn.endsWith(".jpg") || fn.endsWith(".jpeg")
-                    || fn.endsWith(".bmp") || fn.endsWith(".webp")
-                    || (contentType != null && contentType.startsWith("image/"))) {
-                return callRecognizeCharacter(data);
-            }
-            return null;
-        } catch (Exception e) {
-            log.warn("阿里云 OCR 通用识别失败 file={}, err={}", fileName, e.getMessage());
-            return null;
+        if (data == null || data.length == 0) return null;
+
+        String fn = fileName == null ? "" : fileName.toLowerCase();
+        boolean isPdf = fn.endsWith(".pdf")
+                || (contentType != null && contentType.toLowerCase().contains("pdf"));
+        if (isPdf) {
+            // 统一识别对 PDF 仅识别第一页，扫描件多页 PDF 走「逐页渲染 + OCR」保证字段覆盖
+            return renderPdfAndRecognize(data);
         }
+        if (fn.endsWith(".png") || fn.endsWith(".jpg") || fn.endsWith(".jpeg")
+                || fn.endsWith(".bmp") || fn.endsWith(".gif") || fn.endsWith(".tif")
+                || fn.endsWith(".tiff") || fn.endsWith(".webp")
+                || (contentType != null && contentType.startsWith("image/"))) {
+            return callRecognizeAllText(data);
+        }
+        return null;
     }
 
     @Override
@@ -97,6 +92,58 @@ public class AliyunOcrServiceImpl implements AliyunOcrService {
         ResumeParsedData r = parseFromText(text);
         if (allNull(r)) return null;
         return r;
+    }
+
+    /**
+     * 调试用：直接调用 RecognizeAllText，把阿里云返回的完整字段（code/message/requestId/
+     * subCode/content/是否报错）原样塞进 Map 返回，方便定位"识别成功但 content 为空"的根因。
+     */
+    @Override
+    public java.util.Map<String, Object> recognizeAllTextDebug(byte[] fileBytes) {
+        java.util.Map<String, Object> diag = new java.util.LinkedHashMap<>();
+        diag.put("ocrEnabled", props.isEnabled());
+        diag.put("type", props.getType());
+        diag.put("endpoint", props.getEndpoint());
+        if (!props.isEnabled() || fileBytes == null || fileBytes.length == 0) {
+            diag.put("skipped", true);
+            return diag;
+        }
+        Client c = getClient();
+        diag.put("clientReady", c != null);
+        if (c == null) return diag;
+        try (ByteArrayInputStream in = new ByteArrayInputStream(fileBytes)) {
+            RecognizeAllTextRequest req = new RecognizeAllTextRequest()
+                    .setBody(in)
+                    .setType(props.getType());
+            RuntimeOptions ro = new RuntimeOptions()
+                    .setAutoretry(true)
+                    .setReadTimeout(30000)
+                    .setConnectTimeout(10000);
+            RecognizeAllTextResponseBody body = c.recognizeAllTextWithOptions(req, ro).getBody();
+            diag.put("bodyNull", body == null);
+            if (body == null) return diag;
+            diag.put("code", body.getCode());
+            diag.put("message", body.getMessage());
+            diag.put("requestId", body.getRequestId());
+            diag.put("dataNull", body.getData() == null);
+            if (body.getData() != null) {
+                String content = body.getData().getContent();
+                diag.put("contentLength", content == null ? 0 : content.length());
+                diag.put("contentPreview", content == null ? null
+                        : content.substring(0, Math.min(500, content.length())));
+            }
+            // 把 data 对象的 subCode 等常见失败字段也尝试带出来
+            try {
+                java.lang.reflect.Method m = body.getData() == null ? null
+                        : body.getData().getClass().getMethod("getSubCode");
+                if (m != null) diag.put("subCode", m.invoke(body.getData()));
+            } catch (Exception ignored) {
+                // 不同 SDK 版本字段不同，忽略
+            }
+        } catch (Exception e) {
+            diag.put("exception", e.getClass().getName() + ": " + e.getMessage());
+        }
+        return diag;
     }
 
     // ========================= SDK 调用 =========================
@@ -121,66 +168,40 @@ public class AliyunOcrServiceImpl implements AliyunOcrService {
         }
     }
 
-    private String callRecognizeCharacter(byte[] imageBytes) throws Exception {
+    /**
+     * 调用 RecognizeAllText（通用文字识别高精版），开启自动重试 + 放大超时。
+     * 识别成功返回 data.content 全文；失败返回 null 并记录告警日志。
+     */
+    private String callRecognizeAllText(byte[] fileBytes) {
         Client c = getClient();
         if (c == null) return null;
-        try (InputStream in = new ByteArrayInputStream(imageBytes)) {
-            RecognizeCharacterAdvanceRequest req = new RecognizeCharacterAdvanceRequest()
-                    .setImageURLObject(in);
-            RecognizeCharacterResponseBody body = c.recognizeCharacterAdvance(req, null).getBody();
-            return collectCharacterLines(body);
-        }
-    }
-
-    private static String collectCharacterLines(RecognizeCharacterResponseBody body) throws Exception {
-        if (body == null) return null;
-        Object data = body.getData();
-        if (data == null) return null;
-        Object results = invokeGetter(data, "getResults");
-        if (!(results instanceof List<?> list)) return null;
-        StringBuilder sb = new StringBuilder();
-        for (Object r : list) {
-            Object t = invokeGetter(r, "getText");
-            if (t instanceof String s && !s.isBlank()) {
-                if (sb.length() > 0) sb.append("\n");
-                sb.append(s);
+        try (ByteArrayInputStream in = new ByteArrayInputStream(fileBytes)) {
+            RecognizeAllTextRequest req = new RecognizeAllTextRequest()
+                    .setBody(in)
+                    .setType(props.getType());
+            // autoretry 覆盖瞬时错误（限流/网络抖动）；readTimeout 放大到 30s 兜住大图/高 DPI 渲染页
+            RuntimeOptions ro = new RuntimeOptions()
+                    .setAutoretry(true)
+                    .setReadTimeout(30000)
+                    .setConnectTimeout(10000);
+            RecognizeAllTextResponseBody body = c.recognizeAllTextWithOptions(req, ro).getBody();
+            if (body == null) return null;
+            // 统一识别成功时不返回 code；失败时 code 非空（错误码字符串）
+            String code = body.getCode();
+            if (code != null && !code.isBlank() && !"0".equals(code)) {
+                log.error("阿里云 OCR 识别失败 code={}, message={}, requestId={}, 字节数={}",
+                        code, body.getMessage(), body.getRequestId(), fileBytes.length);
+                return null;
             }
-        }
-        return sb.isEmpty() ? null : sb.toString();
-    }
-
-    private String callRecognizePdf(byte[] pdfBytes) {
-        Client c = getClient();
-        if (c == null) return null;
-        try (InputStream in = new ByteArrayInputStream(pdfBytes)) {
-            RecognizePdfAdvanceRequest req = new RecognizePdfAdvanceRequest()
-                    .setFileURLObject(in);
-            RecognizePdfResponseBody body = c.recognizePdfAdvance(req, null).getBody();
-            return collectPdfLines(body);
+            String content = (body.getData() == null) ? null : body.getData().getContent();
+            return (content == null || content.isBlank()) ? null : content;
         } catch (Exception e) {
-            log.debug("阿里云 RecognizePdf 失败，降级本地 PDF 渲染: {}", e.getMessage());
+            log.error("阿里云 RecognizeAllText 调用异常: {}", e.getMessage());
             return null;
         }
     }
 
-    private static String collectPdfLines(RecognizePdfResponseBody body) throws Exception {
-        if (body == null) return null;
-        Object data = body.getData();
-        if (data == null) return null;
-        Object words = invokeGetter(data, "getWordsInfo");
-        if (!(words instanceof List<?> list)) return null;
-        StringBuilder sb = new StringBuilder();
-        for (Object w : list) {
-            Object s = invokeGetter(w, "getWord");
-            if (s instanceof String word && !word.isBlank()) {
-                if (sb.length() > 0) sb.append(" ");
-                sb.append(word);
-            }
-        }
-        return sb.isEmpty() ? null : sb.toString();
-    }
-
-    // ========================= 扫描件 PDF 兜底渲染 =========================
+    // ========================= 扫描件 PDF 逐页渲染 =========================
 
     private String renderPdfAndRecognize(byte[] pdfBytes) {
         try (var doc = Loader.loadPDF(pdfBytes)) {
@@ -191,7 +212,7 @@ public class AliyunOcrServiceImpl implements AliyunOcrService {
                 BufferedImage img = renderer.renderImageWithDPI(i, props.getRenderDpi(), ImageType.RGB);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 256);
                 ImageIO.write(img, "png", baos);
-                String page = callRecognizeCharacter(baos.toByteArray());
+                String page = callRecognizeAllText(baos.toByteArray());
                 if (page != null && !page.isBlank()) {
                     if (sb.length() > 0) sb.append("\n");
                     sb.append(page);
@@ -227,20 +248,6 @@ public class AliyunOcrServiceImpl implements AliyunOcrService {
                 && r.getSchool() == null && r.getMajor() == null
                 && r.getExpectPosition() == null && r.getExpectCity() == null
                 && r.getWorkYears() == null && r.getEducation() == null;
-    }
-
-    private static Object invokeGetter(Object obj, String method) throws ReflectiveOperationException {
-        Method m = findMethod(obj.getClass(), method);
-        if (m == null) return null;
-        m.setAccessible(true);
-        return m.invoke(obj);
-    }
-
-    private static Method findMethod(Class<?> c, String name) {
-        for (Method m : c.getMethods()) {
-            if (m.getName().equals(name) && m.getParameterCount() == 0) return m;
-        }
-        return null;
     }
 
     private static String first(Pattern p, String text) {

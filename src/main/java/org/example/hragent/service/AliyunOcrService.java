@@ -2,6 +2,8 @@ package org.example.hragent.service;
 
 import org.example.hragent.vo.ResumeParsedData;
 
+import java.util.Map;
+
 /**
  * 阿里云 OCR 服务：负责把图片/PDF扫描件的原始字节转为"可解析文本"或"结构化简历字段"。
  *
@@ -36,4 +38,14 @@ public interface AliyunOcrService {
      * @return 结构化结果（未配置 OCR 或识别失败返回 null，调用方会回退 PDFBox+正则）
      */
     ResumeParsedData recognizeResumeStructured(byte[] data, String fileName, String contentType);
+
+    /**
+     * 调试用：直接调用 RecognizeAllText 并返回阿里云原始响应的完整诊断信息
+     * （code/message/requestId/content/contentLength/subCode 等），用于定位识别失败原因。
+     * 仅供调试接口使用，业务链路不要调用。
+     *
+     * @param fileBytes 图片字节
+     * @return 诊断信息 Map
+     */
+    Map<String, Object> recognizeAllTextDebug(byte[] fileBytes);
 }
