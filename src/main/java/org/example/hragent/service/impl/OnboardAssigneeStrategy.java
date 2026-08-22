@@ -37,6 +37,13 @@ public class OnboardAssigneeStrategy implements AssigneeStrategy {
         return "onboard-process";
     }
 
+    /**
+     * 解析审批人
+     *
+     * @param bizId     业务ID，即简历ID
+     * @param applyEmpId 申请者ID
+     * @return 审批人ID集合，key：审批人节点名称，value：审批人ID
+     */
     @Override
     public Map<String, String> resolve(Long bizId, Long applyEmpId) {
         Map<String, String> result = new HashMap<>();

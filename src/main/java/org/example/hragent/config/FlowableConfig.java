@@ -14,16 +14,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
  *   <li>复用 Spring 事务管理器（Flowable 自动加入 Spring 事务，业务表与流程表同库同事务）</li>
  *   <li>开启异步执行器：自动节点（ServiceTask）异步触发，否则流程卡在自动节点不动</li>
  *   <li>历史归档保留时长在 application.yaml 中配置 flowable.history-time-to-live</li>
- *   <li>关闭引擎自带鉴权，统一走应用层 AOP（@DistributedLock / @RateLimit / @RepeatSubmit）</li>
  * </ul>
  */
 @Configuration
 public class FlowableConfig {
 
+    /**
+     * 引擎配置：开启异步执行器
+     */
     @Bean
     public EngineConfigurationConfigurer<SpringProcessEngineConfiguration> flowableConfigurer() {
         return configuration -> {
-            // 异步执行器：自动节点（ServiceTask）异步触发，原 application.yaml 中为 false
+            // 异步执行器：自动节点（ServiceTask）异步触发
             configuration.setAsyncExecutorActivate(true);
         };
     }
