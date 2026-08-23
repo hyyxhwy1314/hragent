@@ -6,6 +6,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/*
+ * 流程实例
+
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

@@ -3,6 +3,7 @@ package org.example.hragent.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.example.hragent.constant.FlowConstants;
+import org.example.hragent.converter.FlowInstanceConverter;
 import org.example.hragent.dto.FlowStartDto;
 import org.example.hragent.dto.TaskCompleteDto;
 import org.example.hragent.entity.Employee;
@@ -68,6 +69,7 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
     @Autowired private FlowApprovalMapper flowApprovalMapper;
     @Autowired private EmployeeMapper employeeMapper;
     @Autowired private ObjectMapper objectMapper;
+    @Autowired private FlowInstanceConverter flowInstanceConverter;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -122,8 +124,7 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
 
         log.info("流程发起成功 processKey={}, flowInstanceId={}, procInstId={}",
                 dto.getProcessKey(), flowInstance.getId(), procInst.getId());
-
-        return toVO(flowInstance);
+        return flowInstanceConverter.entityToVo(flowInstance);
     }
 
     @Override
@@ -156,13 +157,31 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
             approval.setAction(dto.getApproved() ? 1 : 2);
             approval.setComment(dto.getComment());
             flowApprovalMapper.insert(approval);
+
+            // 同步业务表状态：查 Flowable 实例是否还活着
+            // 死了=流程结束，按本次 approved 判断 APPROVED/REJECTED
+            // 活着=流转到下一节点，保持 RUNNING 不动
+            ProcessInstance stillRunning = runtimeService.createProcessInstanceQuery()
+                    .processInstanceId(task.getProcessInstanceId())
+                    .singleResult();
+            if (stillRunning == null) {
+                int newStatus = dto.getApproved()
+                        ? FlowConstants.STATUS_APPROVED
+                        : FlowConstants.STATUS_REJECTED;
+                flowInst.setFlowStatus(newStatus);
+                flowInstanceMapper.updateById(flowInst);
+                log.info("流程已结束 procInstId={}, approved={}, 最终状态={}",
+                        task.getProcessInstanceId(), dto.getApproved(), newStatus);
+            }
         }
 
-        // 同步业务流程实例状态
-        syncFlowStatus(task.getProcessInstanceId(), dto.getApproved());
+        // 流程状态同步已在上面处理（查实例是否销毁 + 按 approved 判断）
         return true;
     }
 
+    /**
+     * 任务转办
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean delegateTask(String taskId, TaskCompleteDto dto) {
@@ -172,13 +191,16 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
         BusinessException.throwIf(dto.getDelegateToEmpId() == null, ErrorCode.PARAM_ERROR, "转办目标员工不能为空");
 
         Employee target = employeeMapper.selectById(dto.getDelegateToEmpId());
-        BusinessException.throwIf(target == null, ErrorCode.EMP_NOT_EXIST);
-
+        BusinessException.throwIf(target == null, ErrorCode.EMP_NOT_EXIST , "转办目标员工不存在");
+        // 转办
         taskService.setAssignee(taskId, String.valueOf(dto.getDelegateToEmpId()));
         log.info("任务转办 taskId={}, from={}, to={}", taskId, approverEmpId, dto.getDelegateToEmpId());
         return true;
     }
 
+    /**
+     * 列出待办任务
+     */
     @Override
     public List<TaskVO> listTodoTasks(Long assigneeEmpId) {
         List<Task> tasks = taskService.createTaskQuery()
@@ -251,8 +273,15 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
         BusinessException.throwIf(flowInstance.getFlowStatus() != FlowConstants.STATUS_RUNNING,
                 ErrorCode.FLOW_ALREADY_FINISHED);
 
-        runtimeService.deleteProcessInstance(flowInstance.getFlowableProcInstId(),
-                "用户撤回 operator=" + operatorEmpId);
+        String procInstId = flowInstance.getFlowableProcInstId();
+        // 先查 Flowable 实例是否还活着（可能已结束但业务表状态未更新）
+        ProcessInstance stillRunning = runtimeService.createProcessInstanceQuery()
+                .processInstanceId(procInstId)
+                .singleResult();
+        if (stillRunning != null) {
+            runtimeService.deleteProcessInstance(procInstId, "用户撤回 operator=" + operatorEmpId);
+        }
+        // 手动更新业务表状态为已撤回
         flowInstance.setFlowStatus(FlowConstants.STATUS_CANCELED);
         flowInstanceMapper.updateById(flowInstance);
         log.info("流程撤回 flowInstanceId={}, operator={}", flowInstanceId, operatorEmpId);
@@ -270,35 +299,11 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
         return task;
     }
 
-    /** 同步业务流程实例状态：拒绝→REJECTED；通过且流程已结束→APPROVED */
-    private void syncFlowStatus(String procInstId, boolean approved) {
-        if (!approved) {
-            updateFlowStatusByProcInstId(procInstId, FlowConstants.STATUS_REJECTED);
-            return;
-        }
-        // 通过时检查流程是否已结束（最后一个节点 complete 后，运行时实例会被删除）
-        ProcessInstance stillRunning = runtimeService.createProcessInstanceQuery()
-                .processInstanceId(procInstId)
-                .singleResult();
-        if (stillRunning == null) {
-            updateFlowStatusByProcInstId(procInstId, FlowConstants.STATUS_APPROVED);
-            log.info("流程已结束（全部通过）procInstId={}", procInstId);
-        }
-    }
-
     /** 按 Flowable 流程实例ID 查业务流程实例 */
     private FlowInstance findFlowInstanceByProcInstId(String procInstId) {
         if (procInstId == null) return null;
         return flowInstanceMapper.selectOne(new LambdaQueryWrapper<FlowInstance>()
                 .eq(FlowInstance::getFlowableProcInstId, procInstId));
-    }
-
-    private void updateFlowStatusByProcInstId(String procInstId, int status) {
-        FlowInstance flowInstance = findFlowInstanceByProcInstId(procInstId);
-        if (flowInstance != null) {
-            flowInstance.setFlowStatus(status);
-            flowInstanceMapper.updateById(flowInstance);
-        }
     }
 
     /** 按员工ID字符串解析姓名 */
@@ -312,18 +317,7 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
         }
     }
 
-    private FlowInstanceVO toVO(FlowInstance entity) {
-        FlowInstanceVO vo = new FlowInstanceVO();
-        vo.setId(entity.getId());
-        vo.setFlowNo(entity.getFlowNo());
-        vo.setFlowType(entity.getFlowType());
-        vo.setBizId(entity.getBizId());
-        vo.setApplyEmpId(entity.getApplyEmpId());
-        vo.setFlowStatus(entity.getFlowStatus());
-        vo.setFlowableProcInstId(entity.getFlowableProcInstId());
-        vo.setBizJson(entity.getBizJson());
-        return vo;
-    }
+
 
     /**
      * 统一的任务视图转换：Task（待办）与 HistoricTaskInstance（已办）均实现 TaskInfo，

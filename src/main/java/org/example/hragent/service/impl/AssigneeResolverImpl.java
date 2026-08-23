@@ -31,6 +31,9 @@ public class AssigneeResolverImpl implements AssigneeResolver {
         log.info("审批人策略加载完成 strategies={}", strategyMap.keySet());
     }
 
+    /**
+     * 根据流程类型，调用对应的策略实现
+     */
     @Override
     public Map<String, String> resolve(String processKey, Long bizId, Long applyEmpId) {
         AssigneeStrategy strategy = strategyMap.get(processKey);
