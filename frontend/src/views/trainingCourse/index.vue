@@ -67,7 +67,7 @@ function onDelete(r: TrainingCourse) {
 }
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 
-const columns = [
+const columns: any[] = [
   { title: '课程编码', dataIndex: 'courseCode', width: 140 },
   { title: '课程名称', dataIndex: 'courseName', width: 180 },
   { title: '课程类型', dataIndex: 'courseType', width: 120 },

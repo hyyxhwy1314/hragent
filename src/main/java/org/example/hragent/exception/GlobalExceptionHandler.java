@@ -113,8 +113,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RateLimitException.class)
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     public R<?> handleRateLimit(RateLimitException e) {
-        log.warn("接口限流: {}", e.getMessage());
-        return R.fail(ErrorCode.RATE_LIMITED.getCode(), e.getMessage());
+        String msg = (e.getMessage() == null || e.getMessage().isEmpty())
+                ? ErrorCode.RATE_LIMITED.getMsg() : e.getMessage();
+        log.warn("接口限流: {}", msg);
+        return R.fail(ErrorCode.RATE_LIMITED.getCode(), msg);
     }
 
     /**

@@ -26,6 +26,8 @@ public class EmployeeVO {
     private Integer empStatus;
     private String baseSalary;
     private String workCity;
+    private String role;
+    private Long leaderId;
     private String remark;
     private String createTime;
     private String updateTime;

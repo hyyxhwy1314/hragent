@@ -12,8 +12,13 @@ import org.example.hragent.dto.ResumeUpdateDto;
 import org.example.hragent.entity.Resume;
 import org.example.hragent.service.ResumeService;
 import org.example.hragent.vo.R;
+import org.example.hragent.vo.ResumeParsedData;
 import org.example.hragent.vo.ResumeUploadVO;
 import org.example.hragent.vo.ResumeVO;
+import org.example.hragent.utils.RedisUtils;
+import org.example.hragent.service.ResumeParserService;
+import org.example.hragent.service.AliyunOcrService;
+import org.example.hragent.config.AliyunOcrProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.http.MediaType;
@@ -45,6 +50,33 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
 
     @Autowired
     private ApplicationContext applicationContext;
+
+    @Autowired
+    private RedisUtils redisUtils;
+
+    @Autowired
+    private ResumeParserService resumeParserService;
+
+    @Autowired
+    private AliyunOcrService aliyunOcrService;
+
+    @Autowired
+    private AliyunOcrProperties aliyunOcrProperties;
+
+    /**
+     * 清掉本地调试期间遗留在 Redis 的「限流 / 防重」键，避免改注解间隔后旧 TTL（5000 秒之类）
+     * 还在生效导致测试永远提示"重复提交"。仅开发环境点一下。
+     */
+    @DeleteMapping("/debug/cache-keys")
+    public R<Long> clearRateAndRepeatKeys() {
+        java.util.Set<String> s1 = redisUtils.keys("repeat_submit:*");
+        java.util.Set<String> s2 = redisUtils.keys("rate_limit:*");
+        java.util.Set<String> all = new java.util.HashSet<>();
+        if (s1 != null) all.addAll(s1);
+        if (s2 != null) all.addAll(s2);
+        long n = all.isEmpty() ? 0 : redisUtils.delete(all);
+        return R.ok(n);
+    }
 
     /**
      * AOP 诊断：判断当前 Controller 是否被 CGLIB 代理
@@ -116,6 +148,52 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public R<ResumeUploadVO> upload(@RequestParam("file") MultipartFile file) {
         return R.ok(resumeService.uploadResumeFile(file));
+    }
+
+    /**
+     * 调试接口：仅解析文件，不上传 COS，方便定位 OCR/PDFBox 解析结果
+     */
+    @PostMapping(value = "/debug/parse", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public R<ResumeParsedData> debugParse(@RequestParam("file") MultipartFile file) {
+        byte[] data = new byte[0];
+        try { data = file.getBytes(); } catch (Exception e) { /* ignore */ }
+        ResumeParsedData parsed = resumeParserService.parse(data, file.getOriginalFilename(), file.getContentType());
+        return R.ok(parsed);
+    }
+
+    /**
+     * 调试接口：查看 OCR 配置状态 + 直接调用 OCR 识别并返回原始错误信息
+     */
+    @PostMapping(value = "/debug/ocr-raw", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public R<Map<String, Object>> debugOcrRaw(@RequestParam("file") MultipartFile file) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("ocrEnabled", aliyunOcrProperties.isEnabled());
+        result.put("endpoint", aliyunOcrProperties.getEndpoint());
+        result.put("regionId", aliyunOcrProperties.getRegionId());
+        result.put("akPrefix", aliyunOcrProperties.getAccessKeyId() == null ? "null" :
+                aliyunOcrProperties.getAccessKeyId().substring(0, Math.min(8, aliyunOcrProperties.getAccessKeyId().length())) + "***");
+
+        byte[] data = new byte[0];
+        try { data = file.getBytes(); } catch (Exception e) { result.put("readError", e.getMessage()); }
+
+        try {
+            String ocrText = aliyunOcrService.recognizeRawText(data, file.getOriginalFilename(), file.getContentType());
+            result.put("ocrRawText", ocrText);
+            result.put("ocrTextLength", ocrText == null ? 0 : ocrText.length());
+        } catch (Exception e) {
+            result.put("ocrError", e.getClass().getName() + ": " + e.getMessage());
+            // Print full stack trace elements
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            result.put("ocrStackTrace", sw.toString().substring(0, Math.min(2000, sw.toString().length())));
+        }
+        // 调试增强：直接暴露阿里云 RecognizeAllText 的完整响应字段，定位 content 为空的根因
+        try {
+            result.put("ocrDebug", aliyunOcrService.recognizeAllTextDebug(data));
+        } catch (Exception e) {
+            result.put("ocrDebugError", e.getClass().getName() + ": " + e.getMessage());
+        }
+        return R.ok(result);
     }
 
     /**

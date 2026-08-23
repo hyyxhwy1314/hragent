@@ -96,7 +96,7 @@ function onDelete(r: JobPost) {
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 function pubText(v?: number) { return v === 1 ? '公开' : '不公开' }
 
-const columns = [
+const columns: any[] = [
   { title: '岗位编码', dataIndex: 'jobCode', width: 120 },
   { title: '岗位名称', dataIndex: 'jobName', width: 180 },
   { title: '所属部门', dataIndex: 'deptName', width: 120 },

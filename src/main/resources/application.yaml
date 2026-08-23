@@ -10,9 +10,9 @@ spring:
   # MySQL‑douban‑mysql 13306
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:13306/hr_agent_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://127.0.0.1:3306/hr_agent_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
     username: root
-    password: Admin@888888
+    password: 123456
 
   # Redis douban‑redis 宿主机16379
   # RabbitMQ douban‑rabbitmqAdmin@888888
@@ -25,8 +25,8 @@ spring:
   data:
     redis:
       host: 127.0.0.1
-      port: 16379
-      password: 123
+      port: 6379
+#      password: 123
       database: 0
       timeout: 3000ms
       lettuce:

@@ -53,7 +53,8 @@ export function useCrud<T, S = Partial<T>, U = Partial<T>>(api: CrudApi<T, S, U>
   }
 
   async function update(id: number, data: U) {
-    await api.update(id, data)
+    // 部分后端 DTO 要求 body 带 id，这里统一补上避免校验失败
+    await api.update(id, { ...data, id } as U)
     await fetch()
   }
 

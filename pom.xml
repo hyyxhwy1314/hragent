@@ -21,8 +21,14 @@
         <maven.compiler.forceJavacCompilerUse>true</maven.compiler.forceJavacCompilerUse>
     </properties>
 
-    <!-- 关键：直接指定maven中央仓库，绕开阿里云缺失问题 -->
+    <!-- 阿里云 OCR SDK 在中央仓库发布较新、但中央仓库缓存偶发 miss；同时保留官方阿里云源作为补充 -->
     <repositories>
+        <repository>
+            <id>aliyun-public</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
         <repository>
             <id>maven-central</id>
             <url>https://repo1.maven.org/maven2</url>
@@ -123,6 +129,29 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
+        <!-- JWT 生成与验证 -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- 密码哈希 BCrypt -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -169,6 +198,25 @@
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>3.0.3</version>
+        </dependency>
+        <!-- 阿里云 OCR 统一识别（对应控制台「OCR统一识别」服务，API 版本 2021-07-07）：
+             所有识别走 RecognizeAllText (Type 参数切换能力，通用印刷体=GenericAdvance)；
+             endpoint 配 ocr-api.<region>.aliyuncs.com。
+             版本参考：https://next.api.aliyun.com/api-tools/sdk/ocr-api?version=2021-07-07&language=java-tea -->
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>ocr_api20210707</artifactId>
+            <version>3.1.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>tea-openapi</artifactId>
+            <version>0.3.10</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aliyun</groupId>
+            <artifactId>tea-util</artifactId>
+            <version>0.2.25</version>
         </dependency>
     </dependencies>
 

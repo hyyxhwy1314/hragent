@@ -20,9 +20,33 @@ export interface PageParams {
   [key: string]: any
 }
 
+const TOKEN_KEY = 'hragent_token'
+
+/** 读取 token（登录后写入 localStorage） */
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY)
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem(TOKEN_KEY, token)
+}
+
+export function clearToken(): void {
+  localStorage.removeItem(TOKEN_KEY)
+}
+
 const instance: AxiosInstance = axios.create({
   baseURL: '/api',
   timeout: 15000
+})
+
+// 请求拦截器：自动带 Authorization 头
+instance.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
 })
 
 instance.interceptors.response.use(
@@ -33,6 +57,7 @@ instance.interceptors.response.use(
     }
     const body = res.data as R
     if (body.code === 200) {
+      // 直接返回业务数据 R.data，供业务层使用
       return body.data
     }
     message.error(body.msg || `请求失败 (code=${body.code})`)
@@ -40,6 +65,16 @@ instance.interceptors.response.use(
   },
   (err) => {
     const status = err?.response?.status
+    // 401：token 缺失/过期，清 token 跳登录页
+    if (status === 401) {
+      clearToken()
+      // 用 hash 路由，跳登录页
+      if (location.hash !== '#/login') {
+        location.hash = '#/login'
+      }
+      message.warning('登录已过期，请重新登录')
+      return Promise.reject(err)
+    }
     if (status === 404) message.error('接口不存在 (404)')
     else if (status === 500) message.error('服务器错误 (500)')
     else message.error(err?.message || '网络异常')

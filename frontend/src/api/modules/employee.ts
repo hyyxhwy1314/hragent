@@ -1,9 +1,10 @@
-﻿import { createCrudApi } from '../request'
+import { createCrudApi } from '../request'
 
 export interface Employee {
   id?: number
   empNo?: string
   empName?: string
+  password?: string
   gender?: number
   birthDate?: string
   phone?: string
@@ -15,6 +16,9 @@ export interface Employee {
   leaveDate?: string
   empStatus?: number
   workCity?: string
+  role?: string
+  leaderId?: number
+  leaderName?: string
   remark?: string
   createTime?: string
   updateTime?: string

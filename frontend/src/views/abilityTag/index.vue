@@ -69,7 +69,7 @@ function onDelete(r: AbilityTag) {
 }
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 
-const columns = [
+const columns: any[] = [
   { title: '标签编码', dataIndex: 'tagCode', width: 140 },
   { title: '标签名称', dataIndex: 'tagName', width: 160 },
   { title: '分类', dataIndex: 'tagCategory', width: 130 },

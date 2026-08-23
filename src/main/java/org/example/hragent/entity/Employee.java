@@ -22,6 +22,12 @@ public class Employee extends BaseEntity {
     @TableField("emp_name")
     private String empName;
 
+    /**
+     * 登录密码（BCrypt 哈希），新增员工时默认 123456 的哈希
+     */
+    @TableField("password")
+    private String password;
+
     @TableField("gender")
     private Integer gender;
 
@@ -60,6 +66,19 @@ public class Employee extends BaseEntity {
 
     @TableField("work_city")
     private String workCity;
+
+    /**
+     * 角色：EMPLOYEE/DEPT_LEADER/HR/HRBP/ADMIN
+     * 用于工作流审批人解析与接口权限校验
+     */
+    @TableField("role")
+    private String role;
+
+    /**
+     * 直属上级ID（t_employee.id），用于审批人解析
+     */
+    @TableField("leader_id")
+    private Long leaderId;
 
     @TableField("remark")
     private String remark;

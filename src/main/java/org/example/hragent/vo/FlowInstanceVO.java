@@ -38,11 +38,6 @@ public class FlowInstanceVO {
     private Long applyEmpId;
 
     /**
-     * 申请人员工姓名
-     */
-    private String applyEmpName;
-
-    /**
      * 流程状态
      */
     private Integer flowStatus;

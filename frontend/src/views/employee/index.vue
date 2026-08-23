@@ -31,6 +31,36 @@ const genderOpts = [
   { label: '男', value: 1 },
   { label: '女', value: 0 }
 ]
+const roleOpts = [
+  { label: '普通员工', value: 'EMPLOYEE' },
+  { label: '部门主管', value: 'DEPT_LEADER' },
+  { label: '人事', value: 'HR' },
+  { label: 'HRBP', value: 'HRBP' },
+  { label: '管理员', value: 'ADMIN' }
+]
+const roleColor: Record<string, string> = {
+  EMPLOYEE: 'default', DEPT_LEADER: 'blue', HR: 'green', HRBP: 'purple', ADMIN: 'red'
+}
+const roleText = (r?: string) => roleOpts.find(o => o.value === r)?.label ?? '-'
+
+// 直属上级候选：拉取员工列表用于下拉选择
+const leaderOptions = ref<{ label: string; value: number }[]>([])
+async function loadLeaders() {
+  try {
+    const list = await employeeApi.list()
+    leaderOptions.value = (list || [])
+      .filter((e: Employee) => e.id && e.empName)
+      .map((e: Employee) => ({ label: `${e.empName}（${e.empNo || '-'}）`, value: e.id! }))
+  } catch {}
+}
+loadLeaders()
+
+// 根据 leaderId 查姓名（列表展示用）
+const leaderNameMap = computed(() => {
+  const m: Record<number, string> = {}
+  leaderOptions.value.forEach(o => { m[o.value] = o.label })
+  return m
+})
 
 const crud = reactive(useCrud<Employee>(employeeApi))
 crud.fetch()
@@ -91,7 +121,7 @@ function onDelete(r: Employee) {
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 function genderText(g?: number) { return genderOpts.find(o => o.value === g)?.label ?? '-' }
 
-const columns = [
+const columns: any[] = [
   { title: '工号', dataIndex: 'empNo', width: 110 },
   { title: '姓名', dataIndex: 'empName', width: 110 },
   {
@@ -100,6 +130,14 @@ const columns = [
   },
   { title: '部门', dataIndex: 'deptName', width: 140 },
   { title: '职位', dataIndex: 'positionName', width: 140 },
+  {
+    title: '角色', dataIndex: 'role', width: 100,
+    customRender: ({ record }: any) => h(Tag, { color: roleColor[record.role] || 'default' }, () => roleText(record.role))
+  },
+  {
+    title: '直属上级', dataIndex: 'leaderId', width: 130,
+    customRender: ({ record }: any) => leaderNameMap.value[record.leaderId]?.split('（')[0] || '-'
+  },
   { title: '手机号', dataIndex: 'phone', width: 130 },
   { title: '入职日期', dataIndex: 'entryDate', width: 120 },
   {
@@ -205,6 +243,12 @@ const columns = [
           <a-col :span="12"><Form.Item label="工作城市" name="workCity">
             <Input v-model:value="formState.workCity" placeholder="请输入工作城市" />
           </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="角色" name="role">
+            <Select v-model:value="formState.role" :options="roleOpts" placeholder="请选择角色" />
+          </Form.Item></a-col>
+          <a-col :span="12"><Form.Item label="直属上级" name="leaderId">
+            <Select v-model:value="formState.leaderId" :options="leaderOptions" placeholder="请选择直属上级" allow-clear show-search option-filter-prop="label" />
+          </Form.Item></a-col>
           <a-col :span="24"><Form.Item label="备注" name="remark">
             <Input.TextArea v-model:value="formState.remark" :rows="3" placeholder="请输入备注" />
           </Form.Item></a-col>
@@ -224,6 +268,8 @@ const columns = [
         <Descriptions.Item label="离职日期">{{ current?.leaveDate || '-' }}</Descriptions.Item>
         <Descriptions.Item label="状态">{{ statusText(current?.empStatus) }}</Descriptions.Item>
         <Descriptions.Item label="工作城市">{{ current?.workCity || '-' }}</Descriptions.Item>
+        <Descriptions.Item label="角色">{{ roleText(current?.role) }}</Descriptions.Item>
+        <Descriptions.Item label="直属上级">{{ leaderNameMap[current?.leaderId ?? 0]?.split('（')[0] || '-' }}</Descriptions.Item>
         <Descriptions.Item label="备注" :span="2">{{ current?.remark || '-' }}</Descriptions.Item>
       </Descriptions>
       <template #footer v-if="mode !== 'view'">

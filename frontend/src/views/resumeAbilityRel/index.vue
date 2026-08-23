@@ -69,7 +69,7 @@ function confidenceColor(v?: number) {
   return 'red'
 }
 
-const columns = [
+const columns: any[] = [
   { title: '简历ID', dataIndex: 'resumeId', width: 110 },
   { title: '标签ID', dataIndex: 'abilityTagId', width: 110 },
   {
