@@ -109,4 +109,24 @@ public class CosFileStorageServiceImpl implements FileStorageService {
             log.error("文件删除异常 key={}", objectKey, e);
         }
     }
+
+    @Override
+    public byte[] downloadBytes(String objectKey) {
+        try {
+            GetObjectRequest getRequest = new GetObjectRequest(props.getBucket(), objectKey);
+            COSObject cosObject = cosClient.getObject(getRequest);
+            if (cosObject == null) {
+                return null;
+            }
+            try (COSObjectInputStream in = cosObject.getObjectContent()) {
+                return IOUtils.toByteArray(in);
+            }
+        } catch (CosServiceException e) {
+            log.warn("文件下载失败 key={}, msg={}", objectKey, e.getErrorMessage());
+            return null;
+        } catch (Exception e) {
+            log.error("文件下载异常 key={}", objectKey, e);
+            throw new BusinessException(ErrorCode.OPERATION_FAILED, "文件下载失败");
+        }
+    }
 }

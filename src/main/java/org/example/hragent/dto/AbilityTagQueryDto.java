@@ -12,4 +12,6 @@ public class AbilityTagQueryDto extends BaseQueryDto {
     private String tagCategory;
 
     private Integer status;
+
+
 }

@@ -63,29 +63,15 @@ public class ResumeServiceImpl extends BaseServiceImpl<ResumeMapper, Resume> imp
 
     @Override
     public ResumeUploadVO uploadResumeFile(MultipartFile file) {
-        // 1. 先预读文件字节，供解析器使用，避免 COS 上传消费流后二次读取失败
-        byte[] data = new byte[0];
-        try {
-            data = file.getBytes();
-        } catch (Exception e) {
-            log.warn("预读上传文件字节失败 file={}", file.getOriginalFilename(), e);
-        }
-        // 2. 上传文件并落库元信息
+        // 1. 上传文件并落库元信息
         FileVO fileVO = fileService.upload(file, "resume/");
-        // 3. 解析简历字段（失败不影响上传）
-        ResumeParsedData parsed = new ResumeParsedData();
-        try {
-            parsed = resumeParserService.parse(data, file.getOriginalFilename(), file.getContentType());
-        } catch (Exception e) {
-            log.warn("简历解析异常 file={}", file.getOriginalFilename(), e);
-        }
-        // 4. 组装返回
+        // 2. 组装返回（不再自动解析简历内容）
         ResumeUploadVO vo = new ResumeUploadVO();
         vo.setFileId(fileVO.getId());
         vo.setObjectKey(fileVO.getObjectKey());
         vo.setOriginalName(fileVO.getOriginalName());
         vo.setPreviewUrl(fileVO.getPreviewUrl());
-        vo.setParsed(parsed);
+        vo.setParsed(null); // 不返回解析结果
         return vo;
     }
 

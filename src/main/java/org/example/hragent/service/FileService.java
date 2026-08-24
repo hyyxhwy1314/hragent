@@ -34,4 +34,9 @@ public interface FileService {
      * 删除文件（对象存储 + 元信息）
      */
     void remove(Long id);
+
+    /**
+     * 根据文件ID下载文件内容为字节数组
+     */
+    byte[] downloadBytes(Long id);
 }

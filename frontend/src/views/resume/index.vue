@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, h, reactive } from 'vue'
 import {
-  Table, Button, Space, Input, Select, Form, Tag, Upload, message, App as AntApp
+  Table, Button, Space, Input, Select, Form, Tag, Upload, message, App as AntApp, Modal
 } from 'ant-design-vue'
 import {
-  SearchOutlined, ReloadOutlined, FileTextOutlined, UploadOutlined
+  SearchOutlined, ReloadOutlined, FileTextOutlined, UploadOutlined, RobotOutlined
 } from '@ant-design/icons-vue'
-import { resumeApi, type Resume } from '@/api/modules/resume'
+import { resumeApi, type Resume, type ResumeAiAnalysisVO } from '@/api/modules/resume'
 import { useCrud } from '@/composables/useCrud'
 
 defineOptions({ name: 'ResumePage' })
@@ -14,6 +14,12 @@ const { modal } = AntApp.useApp()
 
 const queryForm = ref<Record<string, any>>({})
 const uploading = ref(false)
+const aiAnalyzing = ref(false)
+const analyzingId = ref<number | null>(null)
+const aiAnalysisResult = ref<ResumeAiAnalysisVO | null>(null)
+const showAiModal = ref(false)
+// 存储每个简历的AI分析结果，用简历ID作为key
+const aiResultsMap = ref<Map<number, ResumeAiAnalysisVO>>(new Map())
 
 const statusOpts = [
   { label: '待筛选', value: 0 },
@@ -43,7 +49,7 @@ const pagination = computed(() => ({
 function onSearch() { crud.reload({ ...queryForm.value }) }
 function onReset() { queryForm.value = {}; crud.reload() }
 
-// 上传简历：选文件后自动上传文件 + 创建简历记录（OCR 原文随记录落库，供后续 AI 分析）
+// 上传简历：选文件后自动上传文件 + 创建简历记录
 async function onUploadFile(options: any) {
   const { file, onSuccess, onError } = options
   uploading.value = true
@@ -53,7 +59,7 @@ async function onUploadFile(options: any) {
     await crud.save({
       resumeName: baseName,
       resumeFileId: vo.fileId,
-      resumeContent: vo.parsed?.rawText || '',
+      resumeContent: '', // 不再自动填充简历内容
       resumeStatus: 0
     })
     message.success('简历上传成功')
@@ -103,6 +109,60 @@ function formatTime(s?: string) {
   return s.substring(0, 19).replace('T', ' ')
 }
 
+// AI分析简历
+async function onAiAnalyze(r: Resume) {
+  console.log('AI分析按钮被点击', r)
+  if (!r.id || !r.resumeFileId) { 
+    message.warning('该简历未上传附件')
+    console.log('简历未上传附件', { id: r.id, resumeFileId: r.resumeFileId })
+    return 
+  }
+  aiAnalyzing.value = true
+  analyzingId.value = r.id
+  try {
+    console.log('开始调用AI分析API', r.id)
+    // 调用AI分析
+    const result = await resumeApi.aiAnalyze(r.id)
+    console.log('AI分析API返回结果', result)
+    
+    // 存储到map中
+    if (r.id) {
+      aiResultsMap.value.set(r.id, result)
+    }
+    
+    aiAnalysisResult.value = result
+    showAiModal.value = true
+    if (result.success) {
+      message.success('AI分析完成')
+    } else {
+      message.warning('AI分析失败: ' + result.evaluation)
+    }
+  } catch (e) {
+    console.error('AI分析异常', e)
+    message.error('AI分析异常')
+  } finally {
+    aiAnalyzing.value = false
+    analyzingId.value = null
+  }
+}
+
+// 查看AI分析结果
+function onViewAiResult(r: Resume) {
+  if (!r.id) { 
+    message.warning('简历ID无效')
+    return 
+  }
+  
+  // 从map中获取该简历的AI分析结果
+  const result = aiResultsMap.value.get(r.id)
+  if (result) {
+    aiAnalysisResult.value = result
+    showAiModal.value = true
+  } else {
+    message.info('该简历还未进行AI分析，请先点击"AI分析"按钮')
+  }
+}
+
 const columns: any[] = [
   { title: '简历名称', dataIndex: 'resumeName', width: 220, ellipsis: true },
   {
@@ -131,10 +191,24 @@ const columns: any[] = [
     customRender: ({ record }: any) => formatTime(record.createTime)
   },
   {
-    title: '操作', key: 'action', width: 220, fixed: 'right',
+    title: '操作', key: 'action', width: 320, fixed: 'right',
     customRender: ({ record }: any) => h(Space, { size: 0, wrap: true }, () => [
       h(Button, { size: 'small', type: 'link', disabled: !record.resumeFileId, onClick: () => onPreview(record) }, () => '预览'),
       h(Button, { size: 'small', type: 'link', disabled: !record.resumeFileId, onClick: () => onDownload(record) }, () => '下载'),
+      h(Button, { 
+        size: 'small', 
+        type: 'link', 
+        icon: h(RobotOutlined), 
+        disabled: !record.resumeFileId, 
+        loading: aiAnalyzing.value && analyzingId.value === record.id,
+        onClick: () => onAiAnalyze(record)
+      }, () => 'AI分析'),
+      h(Button, { 
+        size: 'small', 
+        type: 'link', 
+        disabled: !record.resumeFileId, 
+        onClick: () => onViewAiResult(record) 
+      }, () => '查看结果'),
       h(Button, { size: 'small', type: 'link', danger: true, onClick: () => onArchive(record) }, () => '归档'),
       h(Button, { size: 'small', type: 'link', danger: true, onClick: () => onDelete(record) }, () => '删除')
     ])
@@ -189,5 +263,37 @@ const columns: any[] = [
         :pagination="pagination"
         :scroll="{ x: 900 }" row-key="id" @change="crud.handleTableChange" />
     </div>
+
+    <!-- AI分析结果弹窗 -->
+    <Modal
+      v-model:open="showAiModal"
+      title="AI简历分析结果"
+      :footer="null"
+      width="800px"
+    >
+      <div v-if="aiAnalysisResult">
+        <div style="margin-bottom: 16px">
+          <strong>文件名：</strong> {{ aiAnalysisResult.filename || '-' }}
+        </div>
+        <div style="margin-bottom: 16px">
+          <strong>分析状态：</strong>
+          <Tag :color="aiAnalysisResult.success ? 'green' : 'red'">
+            {{ aiAnalysisResult.success ? '成功' : '失败' }}
+          </Tag>
+        </div>
+        <div v-if="aiAnalysisResult.success" style="margin-bottom: 16px">
+          <strong>简历文本预览：</strong>
+          <div style="max-height: 200px; overflow-y: auto; background: #f5f5f5; padding: 12px; margin-top: 8px; border-radius: 4px; font-size: 12px;">
+            {{ aiAnalysisResult.resumeText?.substring(0, 500) }}{{ aiAnalysisResult.resumeText && aiAnalysisResult.resumeText.length > 500 ? '...' : '' }}
+          </div>
+        </div>
+        <div>
+          <strong>AI评价：</strong>
+          <div style="white-space: pre-wrap; line-height: 1.6; margin-top: 8px; background: #f0f7ff; padding: 16px; border-radius: 4px;">
+            {{ aiAnalysisResult.evaluation || '暂无评价' }}
+          </div>
+        </div>
+      </div>
+    </Modal>
   </div>
 </template>

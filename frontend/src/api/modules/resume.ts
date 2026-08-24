@@ -1,4 +1,4 @@
-import { createCrudApi, httpGet, httpPut, httpUpload, httpDownload } from '../request'
+import { createCrudApi, httpGet, httpPut, httpUpload, httpDownload, httpPost } from '../request'
 
 export interface Resume {
   id?: number
@@ -64,6 +64,14 @@ export interface ResumeUploadVO {
   parsed?: ResumeParsedData
 }
 
+/** 简历AI分析结果 */
+export interface ResumeAiAnalysisVO {
+  success: boolean
+  filename?: string
+  resumeText?: string
+  evaluation?: string
+}
+
 export const resumeApi = {
   ...createCrudApi<Resume>('/resumes'),
   /** 上传简历附件，返回文件ID、预览URL与解析字段 */
@@ -81,5 +89,9 @@ export const resumeApi = {
   /** 下载简历附件 */
   downloadFile(id: number): Promise<void> {
     return httpDownload(`/resumes/${id}/file/download`, `resume-${id}`)
+  },
+  /** AI分析简历 */
+  aiAnalyze(id: number): Promise<ResumeAiAnalysisVO> {
+    return httpPost<ResumeAiAnalysisVO>(`/resumes/${id}/ai-analyze`)
   }
 }
