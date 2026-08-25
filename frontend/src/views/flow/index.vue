@@ -110,6 +110,8 @@ const startForm = ref<{
 
 // 是否入职流程（bizId 选简历 + 需指定部门主管）
 const isOnboard = computed(() => startForm.value.processKey === 'onboard-process')
+// 是否离职流程（bizId 选员工）
+const isLeave = computed(() => startForm.value.processKey === 'leave-process')
 
 // 候选简历列表（入职流程）
 const resumeOptions = computed(() =>
@@ -131,6 +133,16 @@ const leaderOptions = computed(() =>
     }))
 )
 
+// 在职员工列表（离职流程选员工）
+const empOptions = computed(() =>
+  employees.value
+    .filter(e => e.id && e.empStatus !== 0)
+    .map(e => ({
+      label: `${e.empName || '未命名'}（${e.empNo || '-'}）`,
+      value: e.id!
+    }))
+)
+
 function openStart() {
   startForm.value = {
     processKey: 'onboard-process',
@@ -142,9 +154,20 @@ function openStart() {
   startVisible.value = true
 }
 
+function openLeaveStart() {
+  startForm.value = {
+    processKey: 'leave-process',
+    bizId: null,
+    targetLeaderId: null,
+    targetDeptName: '',
+    targetPosition: ''
+  }
+  startVisible.value = true
+}
+
 async function handleStart() {
   if (!startForm.value.bizId) {
-    message.warning(isOnboard.value ? '请选择候选人简历' : '请选择业务对象')
+    message.warning(isOnboard.value ? '请选择候选人简历' : isLeave.value ? '请选择员工' : '请选择业务对象')
     return
   }
   if (isOnboard.value && !startForm.value.targetLeaderId) {
@@ -282,7 +305,10 @@ function traceStatusColor(status: string) {
           <span style="color: rgba(0,0,0,0.45); font-size: 13px">共 {{ dataSource.length }} 条</span>
         </div>
         <div class="table-toolbar-right">
-          <Button type="primary" :icon="h(PlusOutlined)" @click="openStart">发起流程</Button>
+          <Space>
+            <Button type="primary" :icon="h(PlusOutlined)" @click="openStart">发起入职流程</Button>
+            <Button :icon="h(PlusOutlined)" @click="openLeaveStart">发起离职流程</Button>
+          </Space>
         </div>
       </div>
 
@@ -296,7 +322,8 @@ function traceStatusColor(status: string) {
       <a-form layout="vertical">
         <a-form-item label="流程类型">
           <Select v-model:value="startForm.processKey" :options="[
-            { label: '入职流程', value: 'onboard-process' }
+            { label: '入职流程', value: 'onboard-process' },
+            { label: '离职流程', value: 'leave-process' }
           ]" />
         </a-form-item>
 
@@ -318,11 +345,13 @@ function traceStatusColor(status: string) {
           </a-form-item>
         </template>
 
-        <!-- 其他流程：选员工（预留，当前只有入职流程） -->
-        <a-form-item v-else label="选择员工（业务对象）">
-          <Select v-model:value="startForm.bizId"
-            placeholder="请选择员工" show-search option-filter-prop="label" />
-        </a-form-item>
+        <!-- 离职流程：选员工 -->
+        <template v-if="isLeave">
+          <a-form-item label="选择员工" required>
+            <Select v-model:value="startForm.bizId" :options="empOptions"
+              placeholder="请选择在职员工" show-search option-filter-prop="label" />
+          </a-form-item>
+        </template>
       </a-form>
     </Modal>
 
