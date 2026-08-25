@@ -37,7 +37,7 @@ export function clearToken(): void {
 
 const instance: AxiosInstance = axios.create({
   baseURL: '/api',
-  timeout: 15000
+  timeout: 120000 // 2分钟超时，适应AI分析等耗时操作
 })
 
 // 请求拦截器：自动带 Authorization 头

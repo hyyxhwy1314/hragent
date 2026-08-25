@@ -28,6 +28,7 @@ public enum ErrorCode {
     EMP_NOT_EXIST(3001, "员工不存在"),
     JOB_POST_NOT_EXIST(3002, "岗位不存在"),
     RESUME_NOT_EXIST(3003, "简历不存在"),
+    LEADER_NOT_EXIST(3004, "领导不存在"),
 
     //工作流 4xxx
     FLOW_DEFINITION_NOT_FOUND(4001, "流程定义不存在"),
@@ -38,6 +39,7 @@ public enum ErrorCode {
     FLOW_APPROVER_NOT_FOUND(4006, "审批人未找到"),
     FLOW_START_FAILED(4007, "流程发起失败"),
     FLOW_DEPLOY_FAILED(4009, "流程部署失败");
+
 
     private final Integer code;
     private final String msg;

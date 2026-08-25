@@ -42,4 +42,12 @@ public interface FileStorageService {
      * @param objectKey 存储对象 key
      */
     void delete(String objectKey);
+
+    /**
+     * 下载文件为字节数组
+     *
+     * @param objectKey 存储对象 key
+     * @return 文件内容字节数组
+     */
+    byte[] downloadBytes(String objectKey);
 }

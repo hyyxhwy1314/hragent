@@ -74,4 +74,10 @@ public class FileServiceImpl extends ServiceImpl<FileMapper, FileEntity> impleme
         fileStorageService.delete(entity.getObjectKey());
         this.removeById(id);
     }
+
+    @Override
+    public byte[] downloadBytes(Long id) {
+        FileEntity entity = getByIdChecked(id);
+        return fileStorageService.downloadBytes(entity.getObjectKey());
+    }
 }

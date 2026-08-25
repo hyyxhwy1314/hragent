@@ -7,6 +7,7 @@ import {
 import { PlusOutlined, SearchOutlined, ReloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { employeeApi, type Employee } from '@/api/modules/employee'
 import { useCrud } from '@/composables/useCrud'
+import { startProcess } from '@/api/modules/flow'
 
 defineOptions({ name: 'EmployeePage' })
 const { modal } = AntApp.useApp()
@@ -118,6 +119,29 @@ function onDelete(r: Employee) {
     onOk: async () => { await crud.remove(r.id!); message.success('删除成功') }
   })
 }
+
+function onApplyLeave(r: Employee) {
+  if (!r.id) return
+  if (r.empStatus === 0) {
+    message.warning('该员工已离职，无需申请')
+    return
+  }
+  modal.confirm({
+    title: '申请离职', content: `确定为员工「${r.empName}」发起离职流程吗？`,
+    okText: '确定', okType: 'primary', cancelText: '取消',
+    onOk: async () => {
+      try {
+        await startProcess({
+          processKey: 'leave-process',
+          bizId: r.id!
+        })
+        message.success('离职流程已发起')
+      } catch {
+        message.error('流程发起失败')
+      }
+    }
+  })
+}
 function statusText(s?: number) { return statusOpts.find(o => o.value === s)?.label ?? '-' }
 function genderText(g?: number) { return genderOpts.find(o => o.value === g)?.label ?? '-' }
 
@@ -145,12 +169,18 @@ const columns: any[] = [
     customRender: ({ record }: any) => h(Tag, { color: statusColor[record.empStatus] || 'default' }, () => statusText(record.empStatus))
   },
   {
-    title: '操作', key: 'action', width: 200, fixed: 'right',
-    customRender: ({ record }: any) => h(Space, {}, () => [
-      h(Button, { size: 'small', type: 'link', onClick: () => onView(record) }, () => '查看'),
-      h(Button, { size: 'small', type: 'link', onClick: () => onEdit(record) }, () => '编辑'),
-      h(Button, { size: 'small', type: 'link', danger: true, onClick: () => onDelete(record) }, () => '删除')
-    ])
+    title: '操作', key: 'action', width: 250, fixed: 'right',
+    customRender: ({ record }: any) => {
+      const buttons = [
+        h(Button, { size: 'small', type: 'link', onClick: () => onView(record) }, () => '查看'),
+        h(Button, { size: 'small', type: 'link', onClick: () => onEdit(record) }, () => '编辑')
+      ]
+      if (record.empStatus !== 0) {
+        buttons.push(h(Button, { size: 'small', type: 'link', onClick: () => onApplyLeave(record) }, () => '申请离职'))
+      }
+      buttons.push(h(Button, { size: 'small', type: 'link', danger: true, onClick: () => onDelete(record) }, () => '删除'))
+      return h(Space, {}, () => buttons)
+    }
   }
 ]
 </script>

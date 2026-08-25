@@ -11,13 +11,18 @@ import org.example.hragent.dto.ResumeSaveDto;
 import org.example.hragent.dto.ResumeUpdateDto;
 import org.example.hragent.entity.Resume;
 import org.example.hragent.service.ResumeService;
+import org.example.hragent.exception.BusinessException;
+import org.example.hragent.exception.ErrorCode;
 import org.example.hragent.vo.R;
 import org.example.hragent.vo.ResumeParsedData;
 import org.example.hragent.vo.ResumeUploadVO;
 import org.example.hragent.vo.ResumeVO;
+import org.example.hragent.vo.ResumeAiAnalysisVO;
 import org.example.hragent.utils.RedisUtils;
 import org.example.hragent.service.ResumeParserService;
 import org.example.hragent.service.AliyunOcrService;
+import org.example.hragent.service.FileService;
+import org.example.hragent.service.ResumeAiAnalysisService;
 import org.example.hragent.config.AliyunOcrProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -32,12 +37,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 简历 Controller
  * 投递接口属于公开接口，需要：
  * 1. @RateLimit  防止恶意刷接口
  * 2. @RepeatSubmit 防止用户重复点击多次提交
  */
+@Slf4j
 @RestController
 @RequestMapping("/resumes")
 public class ResumeController extends BaseCrudController<Resume, ResumeVO, ResumeQueryDto, ResumeSaveDto, ResumeUpdateDto> {
@@ -62,6 +70,12 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
 
     @Autowired
     private AliyunOcrProperties aliyunOcrProperties;
+
+    @Autowired
+    private ResumeAiAnalysisService resumeAiAnalysisService;
+
+    @Autowired
+    private FileService fileService;
 
     /**
      * 清掉本地调试期间遗留在 Redis 的「限流 / 防重」键，避免改注解间隔后旧 TTL（5000 秒之类）
@@ -227,5 +241,27 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
     @PutMapping("/{id}/archive")
     public R<Boolean> archive(@PathVariable Long id) {
         return R.ok(resumeService.archive(id));
+    }
+
+    /**
+     * 简历AI分析
+     * 调用Python服务进行简历AI分析
+     */
+    @PostMapping("/{id}/ai-analyze")
+    public R<ResumeAiAnalysisVO> aiAnalyze(@PathVariable Long id) {
+        log.info("收到AI分析请求，简历ID: {}", id);
+        Resume resume = resumeService.getByIdChecked(id);
+        BusinessException.throwIf(resume.getResumeFileId() == null, ErrorCode.PARAM_ERROR, "该简历未上传附件");
+        
+        log.info("开始下载文件，文件ID: {}", resume.getResumeFileId());
+        // 从文件服务获取文件字节
+        byte[] fileBytes = fileService.downloadBytes(resume.getResumeFileId());
+        BusinessException.throwIf(fileBytes == null || fileBytes.length == 0, ErrorCode.OPERATION_FAILED, "文件下载失败");
+        
+        log.info("文件下载成功，大小: {} bytes, 开始调用Python服务", fileBytes.length);
+        // 直接调用分析服务，传递字节数组和文件名
+        ResumeAiAnalysisVO result = resumeAiAnalysisService.analyzeResume(fileBytes, resume.getResumeName());
+        log.info("Python服务调用完成，结果: {}", result.getSuccess());
+        return R.ok(result);
     }
 }
