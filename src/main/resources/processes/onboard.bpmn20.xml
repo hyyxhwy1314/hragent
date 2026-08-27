@@ -47,7 +47,10 @@
         <serviceTask id="onboard_3_create_emp" name="创建员工记录"
                      flowable:delegateExpression="${onboardApprovedDelegate}"/>
         <sequenceFlow id="flow_8" sourceRef="onboard_3_create_emp" targetRef="onboard_end"/>
-
+        <!-- 自动节点：发送入职通知邮件（JavaDelegate 从简历读取邮箱，发送欢迎信） -->
+        <serviceTask id="onboard_4_send_email" name="发送入职通知邮件"
+                     flowable:delegateExpression="${onboardEmailDelegate}"/>
+        <sequenceFlow id="flow_9" sourceRef="onboard_4_send_email" targetRef="onboard_end"/>
         <!-- 结束：通过 -->
         <endEvent id="onboard_end" name="入职完成"/>
         <!-- 结束：拒绝 -->

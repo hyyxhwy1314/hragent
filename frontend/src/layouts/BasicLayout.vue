@@ -5,7 +5,7 @@ import {
   DashboardOutlined, UserOutlined, TeamOutlined, FileTextOutlined,
   TrophyOutlined, BookOutlined, TagOutlined, LinkOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined, DownOutlined,
-  ClockCircleOutlined, ApartmentOutlined
+  ClockCircleOutlined, ApartmentOutlined, RobotOutlined
 } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { clearToken } from '@/api/request'
@@ -22,6 +22,7 @@ const currentUser = ref(JSON.parse(localStorage.getItem('hragent_user') || '{}')
 // 全部菜单项，按 role 过滤显示
 const allMenus = [
   { key: '/dashboard', label: '工作台', icon: DashboardOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
+  { key: '/agent', label: 'AI 助手', icon: RobotOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
   { key: '/todo', label: '我的待办', icon: ClockCircleOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
   { key: '/flow', label: '流程管理', icon: ApartmentOutlined, roles: ['HR', 'ADMIN'] },
   { key: '/employees', label: '员工管理', icon: UserOutlined, roles: ['HR', 'ADMIN'] },
@@ -113,7 +114,7 @@ const roleLabels: Record<string, string> = {
           </Dropdown>
         </div>
       </Header>
-      <Content>
+      <Content style="overflow: hidden;">
         <router-view />
       </Content>
     </Layout>
