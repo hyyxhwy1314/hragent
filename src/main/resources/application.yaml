@@ -61,9 +61,16 @@ logging:
     org.flowable: WARN
     org.apache.ibatis: WARN
 
+
 # Elasticsearch7.17.9
 #elasticsearch:
 #  address: 127.0.0.1
 #  port: 9200
 
-# 对象存储（COS）配置
+
+# 邮件通知配置（入职流程）
+hragent:
+  mail:
+    # 测试期统一收件邮箱：当简历 email 为空或格式异常时，邮件发到此处
+    default-to: 2670556804@qq.com
+
