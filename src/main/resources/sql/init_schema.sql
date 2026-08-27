@@ -276,6 +276,79 @@ CREATE TABLE `t_sys_file` (
     KEY `idx_object_key` (`object_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='系统文件表';
 
+-- ============================================================
+-- 11. Agent 会话表 t_agent_session
+-- ============================================================
+DROP TABLE IF EXISTS `t_agent_session`;
+CREATE TABLE `t_agent_session` (
+    `id`            BIGINT       NOT NULL AUTO_INCREMENT,
+    `session_id`    VARCHAR(64)  NOT NULL                COMMENT '会话唯一标识(UUID)',
+    `user_id`       BIGINT       DEFAULT NULL            COMMENT '用户ID(t_employee.id)',
+    `status`        TINYINT      DEFAULT 0               COMMENT '会话状态 0进行中 1已结束 2已过期',
+    `intent`        VARCHAR(64)  DEFAULT NULL            COMMENT '当前/最后识别的意图编码',
+    `title`         VARCHAR(100) DEFAULT NULL            COMMENT '会话标题(首条用户消息摘要)',
+    `start_time`    DATETIME     DEFAULT NULL            COMMENT '会话开始时间',
+    `end_time`      DATETIME     DEFAULT NULL            COMMENT '会话结束时间',
+    `message_count` INT          DEFAULT 0               COMMENT '消息总数',
+    `remark`        VARCHAR(255) DEFAULT NULL            COMMENT '备注',
+    `create_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `update_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time`   DATETIME     DEFAULT NULL,
+    `is_deleted`    TINYINT      DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_session_id` (`session_id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Agent会话表';
+
+-- ============================================================
+-- 12. 对话历史表 t_agent_message
+-- ============================================================
+DROP TABLE IF EXISTS `t_agent_message`;
+CREATE TABLE `t_agent_message` (
+    `id`            BIGINT       NOT NULL AUTO_INCREMENT,
+    `session_id`    VARCHAR(64)  NOT NULL                COMMENT '会话ID(t_agent_session.session_id)',
+    `role`          VARCHAR(16)  NOT NULL                COMMENT '角色: user/assistant',
+    `content`       TEXT         NOT NULL                COMMENT '消息内容',
+    `message_type`  VARCHAR(32)  DEFAULT 'text'          COMMENT '消息类型: text/intent/tool_result/validation/error',
+    `metadata_json` JSON         DEFAULT NULL            COMMENT '扩展元数据JSON',
+    `create_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `update_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time`   DATETIME     DEFAULT NULL,
+    `is_deleted`    TINYINT      DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_session_id` (`session_id`),
+    KEY `idx_role` (`role`),
+    KEY `idx_message_type` (`message_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='对话历史表';
+
+-- ============================================================
+-- 13. 工具调用日志表 t_agent_tool_log
+-- ============================================================
+DROP TABLE IF EXISTS `t_agent_tool_log`;
+CREATE TABLE `t_agent_tool_log` (
+    `id`            BIGINT       NOT NULL AUTO_INCREMENT,
+    `session_id`    VARCHAR(64)  NOT NULL                COMMENT '会话ID(t_agent_session.session_id)',
+    `message_id`    BIGINT       DEFAULT NULL            COMMENT '关联消息ID(t_agent_message.id)',
+    `intent_code`   VARCHAR(64)  DEFAULT NULL            COMMENT '触发工具调用的意图编码',
+    `tool_name`     VARCHAR(128) NOT NULL                COMMENT '工具名称',
+    `input_params`  TEXT         DEFAULT NULL            COMMENT '输入参数',
+    `output_result` TEXT         DEFAULT NULL            COMMENT '输出结果',
+    `status`        VARCHAR(16)  DEFAULT 'success'       COMMENT '调用状态: success/error/timeout',
+    `duration_ms`   BIGINT       DEFAULT NULL            COMMENT '执行耗时(毫秒)',
+    `error_message` TEXT         DEFAULT NULL            COMMENT '错误信息',
+    `create_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `update_time`   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time`   DATETIME     DEFAULT NULL,
+    `is_deleted`    TINYINT      DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_session_id` (`session_id`),
+    KEY `idx_message_id` (`message_id`),
+    KEY `idx_intent_code` (`intent_code`),
+    KEY `idx_status` (`status`),
+    KEY `idx_tool_name` (`tool_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工具调用日志表';
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
