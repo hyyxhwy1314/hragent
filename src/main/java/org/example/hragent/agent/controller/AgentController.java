@@ -2,6 +2,8 @@ package org.example.hragent.agent.controller;
 
 import org.example.hragent.agent.graph.AgentScheduler;
 import org.example.hragent.agent.persistence.AgentStatePersistenceService;
+import org.example.hragent.annotation.RateLimit;
+import org.example.hragent.annotation.RepeatSubmit;
 import org.example.hragent.entity.agent.AgentMessage;
 import org.example.hragent.entity.agent.AgentSession;
 import org.example.hragent.utils.CurrentUserService;
@@ -9,6 +11,7 @@ import org.example.hragent.vo.R;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Agent 控制器
@@ -29,8 +32,11 @@ public class AgentController {
     
     /**
      * 处理单条消息
+     * AI 对话调用 LLM 成本高、耗时长，需限流 + 防重复提交
      */
     @PostMapping("/chat")
+    @RateLimit(rate = 5, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "提问太频繁，请稍后再试")
+    @RepeatSubmit(interval = 3, unit = TimeUnit.SECONDS, message = "消息正在处理，请勿重复发送")
     public R<ChatResponse> chat(@RequestBody AgentRequest request) {
         AgentScheduler.AgentResponse response = agentScheduler.processMessageWithSession(
             request.getMessage(), 
@@ -41,8 +47,11 @@ public class AgentController {
     
     /**
      * 继续已有会话
+     * AI 对话调用 LLM 成本高、耗时长，需限流 + 防重复提交
      */
     @PostMapping("/chat/{sessionId}")
+    @RateLimit(rate = 5, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "提问太频繁，请稍后再试")
+    @RepeatSubmit(interval = 3, unit = TimeUnit.SECONDS, message = "消息正在处理，请勿重复发送")
     public R<ChatResponse> continueChat(@PathVariable String sessionId, @RequestBody AgentRequest request) {
         String response = agentScheduler.continueConversation(request.getMessage(), sessionId);
         return R.ok(new ChatResponse(response, sessionId));

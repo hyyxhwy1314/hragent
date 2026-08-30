@@ -1,7 +1,7 @@
 package org.example.hragent.agent.tools;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import org.example.hragent.agent.state.AgentIntent;
+import dev.langchain4j.agent.tool.Tool;
 import org.example.hragent.constant.FlowConstants;
 import org.example.hragent.dto.FlowStartDto;
 import org.example.hragent.entity.Employee;
@@ -48,9 +48,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询员工信息
+     * 查询指定员工的详细信息
      */
-    public String queryEmployeeInfo(String query, String userId) {
+    @Tool("查询指定员工的详细信息，参数为员工姓名或员工ID")
+    public String queryEmployeeInfo(String query) {
         try {
             // 从查询语句中提取员工 ID 或姓名
             String searchTerm = extractSearchTerm(query);
@@ -86,9 +87,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询员工列表
+     * 查询系统中所有员工列表
      */
-    public String queryEmployeeList(String query, String userId) {
+    @Tool("查询系统中所有员工的列表")
+    public String queryEmployeeList() {
         try {
             List<Employee> employees = employeeService.list();
 
@@ -112,8 +114,9 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询岗位信息
+     * 查询指定岗位的详细信息
      */
+    @Tool("查询指定岗位的详细信息，参数为岗位名称或岗位ID")
     public String queryJobInfo(String query) {
         try {
             String searchTerm = extractSearchTerm(query);
@@ -148,9 +151,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询岗位列表
+     * 查询系统中所有岗位列表
      */
-    public String queryJobList(String query) {
+    @Tool("查询系统中所有岗位的列表")
+    public String queryJobList() {
         try {
             List<JobPost> jobPosts = jobPostService.list();
 
@@ -174,9 +178,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询简历信息
+     * 查询指定候选人的简历信息
      */
-    public String queryResumeInfo(String query, String userId) {
+    @Tool("查询指定候选人的简历信息，参数为候选人姓名或简历ID")
+    public String queryResumeInfo(String query) {
         try {
             String searchTerm = extractSearchTerm(query);
 
@@ -210,9 +215,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询简历匹配结果
+     * 查询简历与岗位的匹配结果
      */
-    public String queryResumeMatch(String query, String userId) {
+    @Tool("查询简历与岗位的匹配分数和结果，参数为简历ID")
+    public String queryResumeMatch(String query) {
         try {
             String searchTerm = extractSearchTerm(query);
 
@@ -247,9 +253,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 发起入职流程
+     * 为指定员工发起入职流程
      */
-    public String startOnboardingProcess(String query, String userId) {
+    @Tool("为指定员工发起入职审批流程，参数为员工姓名")
+    public String startOnboardingProcess(String query) {
         try {
             String employeeName = extractProcessEmployeeName(query);
             if (employeeName == null || employeeName.isEmpty()) {
@@ -275,9 +282,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 发起离职流程
+     * 为指定员工发起离职流程
      */
-    public String startResignationProcess(String query, String userId) {
+    @Tool("为指定员工发起离职申请流程，参数为员工姓名")
+    public String startResignationProcess(String query) {
         try {
             String employeeName = extractProcessEmployeeName(query);
             if (employeeName == null || employeeName.isEmpty()) {
@@ -305,9 +313,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 发起调岗流程
+     * 为指定员工发起调岗流程
      */
-    public String startTransferProcess(String query, String userId) {
+    @Tool("为指定员工发起调岗申请流程，参数为员工姓名")
+    public String startTransferProcess(String query) {
         try {
             String employeeName = extractProcessEmployeeName(query);
             if (employeeName == null || employeeName.isEmpty()) {
@@ -333,9 +342,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询流程状态
+     * 查询审批流程的当前状态
      */
-    public String queryProcessStatus(String query, String userId) {
+    @Tool("查询审批流程的当前状态和进度，参数为流程ID")
+    public String queryProcessStatus(String query) {
         try {
             String processId = extractSearchTerm(query);
 
@@ -352,9 +362,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询绩效结果
+     * 查询指定员工的绩效考核结果
      */
-    public String queryPerformanceResult(String query, String userId) {
+    @Tool("查询指定员工的绩效考核结果，参数为员工ID或员工姓名")
+    public String queryPerformanceResult(String query) {
         try {
             String searchTerm = extractSearchTerm(query);
 
@@ -395,9 +406,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 生成绩效报告
+     * 为指定员工生成完整绩效报告
      */
-    public String generatePerformanceReport(String query, String userId) {
+    @Tool("为指定员工生成完整绩效报告，参数为员工ID或员工姓名")
+    public String generatePerformanceReport(String query) {
         try {
             String searchTerm = extractSearchTerm(query);
 
@@ -414,9 +426,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 生成培训计划
+     * 为指定员工生成个性化培训计划
      */
-    public String generateTrainingPlan(String query, String userId) {
+    @Tool("为指定员工生成个性化培训计划，参数为员工ID或员工姓名")
+    public String generateTrainingPlan(String query) {
         try {
             String searchTerm = extractSearchTerm(query);
 
@@ -433,9 +446,10 @@ public class HrBusinessTools {
     }
 
     /**
-     * 查询培训课程
+     * 查询系统中可用的培训课程
      */
-    public String queryTrainingCourses(String query) {
+    @Tool("查询系统中所有可用的培训课程列表")
+    public String queryTrainingCourses() {
         try {
             List<TrainingCourse> courses = trainingCourseService.list();
 
@@ -460,8 +474,9 @@ public class HrBusinessTools {
     }
 
     /**
-     * HR 知识问答
+     * 回答人力资源政策相关的知识问题
      */
+    @Tool("回答人力资源政策、规章制度相关的知识问题")
     public String hrKnowledgeQA(String query) {
         try {
             // 此处将对接知识库或 RAG 系统
@@ -470,31 +485,6 @@ public class HrBusinessTools {
         } catch (Exception e) {
             return "处理人力资源知识库查询时出错: " + e.getMessage();
         }
-    }
-
-    /**
-     * 根据意图调用对应工具（编排辅助方法）
-     */
-    public String executeToolByIntent(AgentIntent intent, String query, String userId) {
-        return switch (intent) {
-            case QUERY_EMPLOYEE_INFO -> queryEmployeeInfo(query, userId);
-            case QUERY_EMPLOYEE_LIST -> queryEmployeeList(query, userId);
-            case QUERY_JOB_INFO -> queryJobInfo(query);
-            case QUERY_JOB_LIST -> queryJobList(query);
-            case QUERY_RESUME_INFO -> queryResumeInfo(query, userId);
-            case QUERY_RESUME_MATCH -> queryResumeMatch(query, userId);
-            case START_ONBOARDING_PROCESS -> startOnboardingProcess(query, userId);
-            case START_RESIGNATION_PROCESS -> startResignationProcess(query, userId);
-            case START_TRANSFER_PROCESS -> startTransferProcess(query, userId);
-            case QUERY_PROCESS_STATUS -> queryProcessStatus(query, userId);
-            case QUERY_PERFORMANCE_RESULT -> queryPerformanceResult(query, userId);
-            case GENERATE_PERFORMANCE_REPORT -> generatePerformanceReport(query, userId);
-            case GENERATE_TRAINING_PLAN -> generateTrainingPlan(query, userId);
-            case QUERY_TRAINING_COURSES -> queryTrainingCourses(query);
-            case HR_KNOWLEDGE_QA -> hrKnowledgeQA(query);
-            case GENERAL_CONVERSATION -> "普通对话: " + query;
-            case UNKNOWN -> "抱歉，我没能理解您的请求。能否请您重新描述一下？";
-        };
     }
 
     // 辅助方法

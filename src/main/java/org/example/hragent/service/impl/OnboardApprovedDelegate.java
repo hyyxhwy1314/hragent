@@ -77,6 +77,9 @@ public class OnboardApprovedDelegate implements JavaDelegate {
         // 这里设默认密码 123456 的哈希由 DataInitializer 同款逻辑处理（首次登录前会被初始化）
         employeeMapper.insert(emp);
 
+        // 把工号写入流程变量，供后续邮件通知节点使用
+        execution.setVariable("onboardEmpNo", emp.getEmpNo());
+
         log.info("员工记录创建成功 empNo={}, empName={}, resumeId={}",
                 emp.getEmpNo(), emp.getEmpName(), resumeId);
     }
