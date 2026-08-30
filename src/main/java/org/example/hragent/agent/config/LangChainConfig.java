@@ -12,6 +12,9 @@ import java.time.Duration;
  * LangChain4j 配置类
  * 为 HR Agent 配置大语言模型等 AI 能力
  * 使用阿里云 MaaS 兼容模式（OpenAI 兼容接口）
+ * <p>
+ * AiService 实例由 HrAgentAiServiceFactory 按会话动态创建，
+ * 每个会话拥有独立的 ChatMemory，此处只配置底层模型。
  */
 @Configuration
 public class LangChainConfig {
@@ -27,6 +30,7 @@ public class LangChainConfig {
 
     /**
      * 配置 AI 对话模型（阿里云 MaaS 兼容模式）
+     * 这是 LangChain4j 的核心 Bean，所有 AiService 都基于此模型
      */
     @Bean
     public ChatLanguageModel qwenChatModel() {
@@ -34,7 +38,7 @@ public class LangChainConfig {
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .modelName(modelName)
-                .timeout(Duration.ofSeconds(60))
+                .timeout(Duration.ofSeconds(120))
                 .maxRetries(2)
                 .build();
     }

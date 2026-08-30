@@ -246,8 +246,11 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
     /**
      * 简历AI分析
      * 调用Python服务进行简历AI分析
+     * AI 分析耗时长、外部服务调用成本高，需限流 + 防重复点击
      */
     @PostMapping("/{id}/ai-analyze")
+    @RateLimit(rate = 3, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "AI分析请求过于频繁，请稍后再试")
+    @RepeatSubmit(interval = 30, unit = TimeUnit.SECONDS, message = "AI分析进行中，请勿重复点击")
     public R<ResumeAiAnalysisVO> aiAnalyze(@PathVariable Long id) {
         log.info("收到AI分析请求，简历ID: {}", id);
         Resume resume = resumeService.getByIdChecked(id);

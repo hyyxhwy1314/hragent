@@ -11,35 +11,33 @@ import java.util.Map;
 /**
  * HR Agent 状态（用于 LangGraph 工作流）
  * 管理 Agent 图中各节点之间的共享状态
- * 消息存储为纯字符串，以 "[user]" 或 "[assistant]" 前缀区分角色
+ * <p>
+ * 核心改进：引入 CHAT_MEMORY_ID 关联 LangChain4j 的 ChatMemory，
+ * 对话上下文由 LangChain4j MessageWindowChatMemory 统一管理。
  */
 public class HrAgentState extends AgentState {
     
     // 状态键
     public static final String MESSAGES_KEY = "messages";
-    public static final String INTENT_KEY = "intent";
     public static final String TOOL_RESULTS_KEY = "toolResults";
-    public static final String VALIDATION_STATUS_KEY = "validationStatus";
     public static final String ERROR_MESSAGE_KEY = "errorMessage";
     public static final String SESSION_ID_KEY = "sessionId";
     public static final String USER_ID_KEY = "userId";
-    public static final String RETRY_COUNT_KEY = "retryCount";
+    public static final String CHAT_MEMORY_ID_KEY = "chatMemoryId";
     
     /** 用户消息前缀 */
     public static final String USER_PREFIX = "[user] ";
     /** 助手消息前缀 */
     public static final String ASSISTANT_PREFIX = "[assistant] ";
     
-    // 状态 schema，全部使用 appender 通道以简化处理
+    // 状态 schema，使用 appender 通道
     public static final Map<String, Channel<?>> SCHEMA = Map.of(
             MESSAGES_KEY, Channels.appender(ArrayList::new),
-            INTENT_KEY, Channels.appender(ArrayList::new),
             TOOL_RESULTS_KEY, Channels.appender(ArrayList::new),
-            VALIDATION_STATUS_KEY, Channels.appender(ArrayList::new),
             ERROR_MESSAGE_KEY, Channels.appender(ArrayList::new),
             SESSION_ID_KEY, Channels.appender(ArrayList::new),
             USER_ID_KEY, Channels.appender(ArrayList::new),
-            RETRY_COUNT_KEY, Channels.appender(ArrayList::new)
+            CHAT_MEMORY_ID_KEY, Channels.appender(ArrayList::new)
     );
     
     public HrAgentState(Map<String, Object> initData) {
@@ -52,19 +50,9 @@ public class HrAgentState extends AgentState {
                 .orElse(List.of());
     }
     
-    public String intent() {
-        List<String> intents = this.<List<String>>value(INTENT_KEY).orElse(List.of());
-        return intents.isEmpty() ? null : intents.get(intents.size() - 1);
-    }
-    
     public String toolResults() {
         List<String> results = this.<List<String>>value(TOOL_RESULTS_KEY).orElse(List.of());
         return results.isEmpty() ? "" : results.get(results.size() - 1);
-    }
-    
-    public String validationStatus() {
-        List<String> statuses = this.<List<String>>value(VALIDATION_STATUS_KEY).orElse(List.of());
-        return statuses.isEmpty() ? "pending" : statuses.get(statuses.size() - 1);
     }
     
     public String errorMessage() {
@@ -82,21 +70,21 @@ public class HrAgentState extends AgentState {
         return userIds.isEmpty() ? null : userIds.get(userIds.size() - 1);
     }
     
-    public int retryCount() {
-        List<Integer> retryCounts = this.<List<Integer>>value(RETRY_COUNT_KEY).orElse(List.of());
-        return retryCounts.isEmpty() ? 0 : retryCounts.get(retryCounts.size() - 1);
+    /**
+     * 获取 LangChain4j ChatMemory 的 ID（用于 per-session 对话记忆）
+     */
+    public Long chatMemoryId() {
+        List<String> ids = this.<List<String>>value(CHAT_MEMORY_ID_KEY).orElse(List.of());
+        if (ids.isEmpty()) return null;
+        try {
+            return Long.parseLong(ids.get(ids.size() - 1));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
     
     // 状态判断辅助方法
     public boolean hasError() {
         return errorMessage() != null;
-    }
-    
-    public boolean isValidated() {
-        return "validated".equals(validationStatus());
-    }
-    
-    public boolean canRetry() {
-        return retryCount() < 3; // 最多重试 3 次
     }
 }
