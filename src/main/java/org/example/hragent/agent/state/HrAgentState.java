@@ -24,6 +24,11 @@ public class HrAgentState extends AgentState {
     public static final String SESSION_ID_KEY = "sessionId";
     public static final String USER_ID_KEY = "userId";
     public static final String CHAT_MEMORY_ID_KEY = "chatMemoryId";
+
+    /** 待执行的工具调用请求列表（模型节点下发，动作节点消费，last-wins 覆盖） */
+    public static final String TOOL_CALLS_KEY = "toolCalls";
+    /** 当前工具循环轮次（防死循环，last-wins 覆盖） */
+    public static final String ITERATION_KEY = "iteration";
     
     /** 用户消息前缀 */
     public static final String USER_PREFIX = "[user] ";
@@ -37,7 +42,10 @@ public class HrAgentState extends AgentState {
             ERROR_MESSAGE_KEY, Channels.appender(ArrayList::new),
             SESSION_ID_KEY, Channels.appender(ArrayList::new),
             USER_ID_KEY, Channels.appender(ArrayList::new),
-            CHAT_MEMORY_ID_KEY, Channels.appender(ArrayList::new)
+            CHAT_MEMORY_ID_KEY, Channels.appender(ArrayList::new),
+            // 循环控制：last-wins（每次节点用新值覆盖旧值）
+            TOOL_CALLS_KEY, Channels.base((List<ToolCallRecord> prev, List<ToolCallRecord> next) -> next),
+            ITERATION_KEY, Channels.base((Integer prev, Integer next) -> next)
     );
     
     public HrAgentState(Map<String, Object> initData) {
@@ -81,6 +89,21 @@ public class HrAgentState extends AgentState {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+    
+    /**
+     * 当前待执行的工具调用请求列表（模型节点下发）
+     */
+    @SuppressWarnings("unchecked")
+    public List<ToolCallRecord> toolCalls() {
+        return this.<List<ToolCallRecord>>value(TOOL_CALLS_KEY).orElse(List.of());
+    }
+    
+    /**
+     * 当前工具循环轮次（从 0 开始）
+     */
+    public int currentIteration() {
+        return this.<Integer>value(ITERATION_KEY).orElse(0);
     }
     
     // 状态判断辅助方法

@@ -34,9 +34,15 @@ const allMenus = [
   { key: '/resume-ability-rels', label: '简历能力关联', icon: LinkOutlined, roles: ['HR', 'ADMIN'] }
 ]
 
-// 按当前用户角色过滤菜单
+// 按当前用户角色过滤菜单，并分成「工作台」与「管理」两组
 const menuItems = computed(() =>
   allMenus.filter(m => m.roles.includes(currentUser.value.role || 'EMPLOYEE'))
+)
+const primaryMenus = computed(() =>
+  menuItems.value.filter(m => ['/dashboard', '/agent', '/todo'].includes(m.key))
+)
+const manageMenus = computed(() =>
+  menuItems.value.filter(m => !['/dashboard', '/agent', '/todo'].includes(m.key))
 )
 
 const selectedKeys = computed(() => [route.path])
@@ -65,20 +71,33 @@ const roleLabels: Record<string, string> = {
 
 <template>
   <Layout style="min-height: 100vh">
-    <Sider v-model:collapsed="collapsed" collapsible trigger="null" width="216">
+    <Sider v-model:collapsed="collapsed" collapsible trigger="null" width="232" class="app-sider">
       <div class="logo">
-        {{ collapsed ? 'HR' : 'HR-Agent' }}
+        <RobotOutlined class="logo-icon" />
+        <span v-if="!collapsed" class="logo-text">
+          <span class="logo-name">HR-Agent</span>
+          <span class="logo-sub">智能人力助手</span>
+        </span>
       </div>
       <Menu
-        theme="dark"
         mode="inline"
         :selected-keys="selectedKeys"
         @click="handleMenuClick"
       >
-        <Menu.Item v-for="item in menuItems" :key="item.key">
-          <component :is="item.icon" />
-          <span>{{ item.label }}</span>
-        </Menu.Item>
+        <Menu.ItemGroup v-if="primaryMenus.length" key="primary">
+          <template #title><span class="menu-group-title">工作台</span></template>
+          <Menu.Item v-for="item in primaryMenus" :key="item.key">
+            <component :is="item.icon" />
+            <span>{{ item.label }}</span>
+          </Menu.Item>
+        </Menu.ItemGroup>
+        <Menu.ItemGroup v-if="manageMenus.length" key="manage">
+          <template #title><span class="menu-group-title">管理</span></template>
+          <Menu.Item v-for="item in manageMenus" :key="item.key">
+            <component :is="item.icon" />
+            <span>{{ item.label }}</span>
+          </Menu.Item>
+        </Menu.ItemGroup>
       </Menu>
     </Sider>
     <Layout>
@@ -96,7 +115,7 @@ const roleLabels: Record<string, string> = {
         <div class="header-right">
           <Dropdown>
             <span class="user-info">
-              <Avatar size="small" style="background-color: #2F54EB">
+              <Avatar size="small" style="background-color: #4a7fc1">
                 {{ (currentUser.empName || '?').charAt(0) }}
               </Avatar>
               <span class="user-name">{{ currentUser.empName }}</span>
@@ -122,19 +141,74 @@ const roleLabels: Record<string, string> = {
 </template>
 
 <style scoped>
+.app-sider {
+  background: #ffffff;
+  border-right: 1px solid var(--border-light, #f3f4f6);
+}
 .logo {
-  height: 48px;
-  margin: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  height: 64px;
+  margin: 0 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-weight: 600;
-  font-size: 16px;
-  letter-spacing: 1px;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-light, #f3f4f6);
   transition: all 0.2s;
+}
+.logo-icon {
+  font-size: 22px;
+  color: #4a7fc1;
+  flex-shrink: 0;
+}
+.logo-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.logo-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  letter-spacing: 0.5px;
+}
+.logo-sub {
+  font-size: 11px;
+  color: #6b7280;
+}
+:deep(.app-sider .ant-menu) {
+  border-inline-end: none;
+  padding: 8px 12px;
+  background: transparent;
+}
+:deep(.app-sider .ant-menu-item-group-title) {
+  padding: 16px 12px 6px;
+  font-size: 11px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+:deep(.app-sider .ant-menu-item) {
+  height: 40px;
+  line-height: 40px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  color: rgba(0, 0, 0, 0.65);
+  transition: all 0.15s;
+}
+:deep(.app-sider .ant-menu-item:hover) {
+  background: #e8ecf1;
+  color: rgba(0, 0, 0, 0.88);
+}
+:deep(.app-sider .ant-menu-item-selected) {
+  background: #e8f0fe;
+  color: #4a7fc1;
+  font-weight: 500;
+}
+:deep(.app-sider .ant-menu-item-selected::after) {
+  display: none;
 }
 .app-header {
   background: #fff;
@@ -142,8 +216,8 @@ const roleLabels: Record<string, string> = {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #f0f0f0;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.04);
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   height: 56px;
   line-height: 56px;
 }
@@ -162,15 +236,21 @@ const roleLabels: Record<string, string> = {
   gap: 8px;
   cursor: pointer;
   color: rgba(0, 0, 0, 0.65);
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.user-info:hover {
+  background: #f1f3f5;
 }
 .user-name {
   font-size: 14px;
 }
 .user-role {
   font-size: 12px;
-  color: #8a8f99;
+  color: #6b7280;
   padding: 1px 6px;
-  background: #f0f2f5;
+  background: #f1f3f5;
   border-radius: 4px;
 }
 </style>

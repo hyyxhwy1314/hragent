@@ -8,14 +8,19 @@ import BasicLayout from '@/layouts/BasicLayout.vue'
 
 const theme: ThemeConfig = {
   token: {
-    colorPrimary: '#2F54EB',
-    colorInfo: '#2F54EB',
+    colorPrimary: '#4a7fc1',
+    colorInfo: '#4a7fc1',
+    colorLink: '#4a7fc1',
     colorSuccess: '#52C41A',
     colorWarning: '#FAAD14',
     colorError: '#FF4D4F',
-    borderRadius: 6,
+    colorBgLayout: '#f7f8fa',
+    colorBgContainer: '#ffffff',
+    colorBorder: '#e5e7eb',
+    colorBorderSecondary: '#f3f4f6',
+    borderRadius: 10,
     fontSize: 14,
-    fontFamily: '"PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
   }
 }
 

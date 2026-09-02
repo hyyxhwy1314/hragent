@@ -2,63 +2,45 @@ package org.example.hragent.agent.tools;
 
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.service.AiServices;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * HR Agent AI 服务工厂
+ * Agent 会话记忆工厂
  * <p>
- * 为每个会话创建独立的 AiService 实例，各自拥有独立的 ChatMemory，
- * 实现真正的多轮对话上下文管理。核心完全基于 LangChain4j：
+ * 为每个会话维护独立的 ChatMemory（LangChain4j 对话记忆）。因 Agent 已改为
+ * LangGraph 状态机图（model/action 循环）手写调用模型与工具，本类不再构建 AiService，
+ * 只负责 ChatMemory 的创建与生命周期管理：
  * <ul>
- *     <li>ChatMemory — 对话记忆管理</li>
- *     <li>AiServices — 绑定 @Tool + ChatMemory + ChatLanguageModel</li>
- *     <li>@Tool — 业务工具自动发现与调用</li>
+ *     <li>{@link #getChatMemory(Long)} — 获取/创建某会话的对话记忆</li>
+ *     <li>{@link #clearSession(Long)} — 会话结束时清理对应记忆</li>
  * </ul>
  */
 @Component
 public class HrAgentAiServiceFactory {
 
-    private final ChatLanguageModel chatModel;
-    private final HrBusinessTools hrBusinessTools;
-
-    /** 每个会话独立的 ChatMemory，key = sessionId */
+    /** 每个会话独立的 ChatMemory，key = 会话维度的 Long ID */
     private final ConcurrentHashMap<Long, ChatMemory> chatMemoryMap = new ConcurrentHashMap<>();
 
-    /** 每个会话对应的 AiService 实例，key = sessionId */
-    private final ConcurrentHashMap<Long, HrAgentAiService> aiServiceMap = new ConcurrentHashMap<>();
+    /** 默认保留的最近消息条数（消息轮数一般 = 条数/2） */
+    private static final int MAX_MESSAGES = 40;
 
-    /** 默认保留的最近消息轮数（20 条 ≈ 10 轮对话） */
-    private static final int MAX_MESSAGES = 20;
-
-    public HrAgentAiServiceFactory(ChatLanguageModel chatModel,
-                                    HrBusinessTools hrBusinessTools) {
-        this.chatModel = chatModel;
-        this.hrBusinessTools = hrBusinessTools;
+    public HrAgentAiServiceFactory() {
     }
 
     /**
-     * 获取指定会话的 AiService（懒创建，自带独立 ChatMemory）
+     * 获取指定会话的 ChatMemory（不存在则懒创建）
      *
-     * @param sessionId 会话 ID（Long 类型，LangChain4j ChatMemory 要求）
-     * @return 绑定了该会话 ChatMemory 的 AiService 实例
+     * @param sessionId 会话 ID（Long 类型）
+     * @return 会话独立的 ChatMemory
      */
-    public HrAgentAiService getOrCreate(Long sessionId) {
-        return aiServiceMap.computeIfAbsent(sessionId, id ->
-                AiServices.builder(HrAgentAiService.class)
-                        .chatLanguageModel(chatModel)
-                        .tools(hrBusinessTools)
-                        .chatMemoryProvider(memoryId -> getOrCreateChatMemory(memoryId))
-                        .build()
-        );
+    public ChatMemory getChatMemory(Long sessionId) {
+        return getOrCreateChatMemory(sessionId);
     }
 
     /**
      * 获取或创建指定会话的 ChatMemory
-     * 注意：langchain4j 0.35.0 的 ChatMemoryProvider.get(Object memoryId) 参数为 Object
      */
     private ChatMemory getOrCreateChatMemory(Object memoryId) {
         Long id = memoryId instanceof Long l ? l : (long) String.valueOf(memoryId).hashCode();
@@ -70,24 +52,12 @@ public class HrAgentAiServiceFactory {
     }
 
     /**
-     * 获取指定会话 ChatMemory 中的消息列表（用于持久化到 MySQL）
-     */
-    public java.util.List<dev.langchain4j.data.message.ChatMessage> getMessages(Long sessionId) {
-        ChatMemory memory = chatMemoryMap.get(sessionId);
-        if (memory == null) {
-            return java.util.List.of();
-        }
-        return memory.messages();
-    }
-
-    /**
-     * 清除指定会话的 ChatMemory 和 AiService（会话结束时调用）
+     * 清除指定会话的 ChatMemory（会话结束时调用）
      */
     public void clearSession(Long sessionId) {
         ChatMemory memory = chatMemoryMap.remove(sessionId);
         if (memory != null) {
             memory.clear();
         }
-        aiServiceMap.remove(sessionId);
     }
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { Input, Button, Spin, Tag, Tooltip, message } from 'ant-design-vue'
 import { SendOutlined, ClearOutlined, RobotOutlined, UserOutlined, PlusOutlined, DeleteOutlined, HistoryOutlined } from '@ant-design/icons-vue'
 import { agentChat, agentContinueChat, agentClearSession, getSessions, getSessionMessages } from '@/api/modules/agent'
@@ -19,6 +20,17 @@ const sessionId = ref<string | null>(null)
 const sessions = ref<AgentSession[]>([])
 const showHistory = ref(true)
 const messagesRef = ref<HTMLElement | null>(null)
+const route = useRoute()
+
+// 快捷提问（HR 场景常见问题）
+const quickSuggests = [
+  { label: '查员工信息', text: '查询员工张三的信息' },
+  { label: '发起入职流程', text: '帮我发起一名新员工的入职流程' },
+  { label: '查岗位', text: '查询目前开放的岗位' },
+  { label: '查绩效', text: '查询本月绩效结果' }
+]
+
+const showWelcome = computed(() => messages.value.length <= 1 && !sending.value)
 
 // 加载会话列表
 async function loadSessions() {
@@ -30,6 +42,12 @@ async function loadSessions() {
 onMounted(() => {
   loadSessions()
   addWelcomeMessage()
+  // 支持从工作台快捷提问带入问题（route.query.q）
+  const q = route.query.q as string | undefined
+  if (q) {
+    inputText.value = q
+    nextTick(() => sendMessage())
+  }
 })
 
 function addWelcomeMessage() {
@@ -102,6 +120,12 @@ async function sendMessage() {
     sending.value = false
     scrollToBottom()
   }
+}
+
+// 点击快捷提问直接发送
+function suggest(text: string) {
+  inputText.value = text
+  sendMessage()
 }
 
 async function newConversation() {
@@ -236,6 +260,17 @@ const currentSession = computed(() => {
 
         <!-- 消息区域 -->
         <div class="chat-messages" ref="messagesRef">
+          <div v-if="showWelcome" class="welcome-hero">
+            <div class="welcome-bot"><RobotOutlined /></div>
+            <div class="welcome-title">HR 智能助手</div>
+            <div class="welcome-sub">可以查询员工、岗位、简历与绩效信息，发起入职 / 离职 / 调岗流程</div>
+            <div class="welcome-suggests">
+              <div v-for="s in quickSuggests" :key="s.text" class="welcome-chip" @click="suggest(s.text)">
+                <span class="chip-label">{{ s.label }}</span>
+                <span class="chip-text">{{ s.text }}</span>
+              </div>
+            </div>
+          </div>
           <template v-for="(msg, index) in messages" :key="index">
             <div v-if="msg.content || msg.loading" class="message-row" :class="msg.role">
               <div class="avatar" :class="msg.role">
@@ -256,25 +291,27 @@ const currentSession = computed(() => {
         <!-- 输入区域 -->
         <div class="chat-input-area">
           <div class="input-wrapper">
-            <Input.TextArea
-              v-model:value="inputText"
-              :rows="2"
-              placeholder="输入您的问题，例如：查询员工张三的信息"
-              :disabled="sending"
-              @keydown="handleKeydown"
-              class="chat-input"
-            />
-            <Button
-              type="primary"
-              shape="circle"
-              size="large"
-              :loading="sending"
-              :disabled="!inputText.trim() || sending"
-              @click="sendMessage"
-              class="send-btn"
-            >
-              <SendOutlined />
-            </Button>
+            <div class="chat-input-card">
+              <Input.TextArea
+                v-model:value="inputText"
+                :rows="2"
+                placeholder="输入您的问题，例如：查询员工张三的信息"
+                :disabled="sending"
+                @keydown="handleKeydown"
+                class="chat-input"
+              />
+              <Button
+                type="primary"
+                shape="circle"
+                size="large"
+                :loading="sending"
+                :disabled="!inputText.trim() || sending"
+                @click="sendMessage"
+                class="send-btn"
+              >
+                <SendOutlined />
+              </Button>
+            </div>
           </div>
           <div class="input-hint">
             按 Enter 发送，Shift+Enter 换行
@@ -287,10 +324,10 @@ const currentSession = computed(() => {
 
 <style scoped>
 .chat-page {
-  height: 100%;
+  height: calc(100vh - 56px); /* 视口高度减去顶部 Header，确保消息区域在页面内部滚动 */
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: #f7f8fa;
   overflow: hidden;
 }
 
@@ -306,7 +343,7 @@ const currentSession = computed(() => {
   width: 240px;
   min-width: 240px;
   background: #fff;
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -364,11 +401,11 @@ const currentSession = computed(() => {
 }
 
 .session-item:hover {
-  background: #f5f7fa;
+  background: #e8ecf1;
 }
 
 .session-item.active {
-  background: #e6f0ff;
+  background: #e8f0fe;
 }
 
 .session-info {
@@ -421,7 +458,7 @@ const currentSession = computed(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 24px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
 }
 
@@ -438,7 +475,7 @@ const currentSession = computed(() => {
 
 .header-icon {
   font-size: 20px;
-  color: #2F54EB;
+  color: #4a7fc1;
 }
 
 .header-title {
@@ -461,12 +498,14 @@ const currentSession = computed(() => {
   flex-direction: column;
   gap: 16px;
   scroll-behavior: smooth;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .message-row {
   display: flex;
   gap: 10px;
-  max-width: 85%;
+  max-width: 76%;
 }
 
 .message-row.user {
@@ -476,6 +515,71 @@ const currentSession = computed(() => {
 
 .message-row.assistant {
   align-self: flex-start;
+}
+
+/* 欢迎区 */
+.welcome-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 24px 24px;
+}
+.welcome-bot {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a7fc1, #7ba3d0);
+  color: #fff;
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(74, 127, 193, 0.25);
+  margin-bottom: 16px;
+}
+.welcome-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.88);
+}
+.welcome-sub {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 6px 0 20px;
+}
+.welcome-suggests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.welcome-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.welcome-chip:hover {
+  border-color: #4a7fc1;
+  background: #e8f0fe;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+.chip-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4a7fc1;
+}
+.chip-text {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.65);
 }
 
 .avatar {
@@ -490,7 +594,7 @@ const currentSession = computed(() => {
 }
 
 .avatar.user {
-  background: linear-gradient(135deg, #2F54EB, #597EF7);
+  background: linear-gradient(135deg, #4a7fc1, #6d9ed0);
   color: #fff;
 }
 
@@ -507,13 +611,13 @@ const currentSession = computed(() => {
 }
 
 .bubble.user {
-  background: #2F54EB;
+  background: #4a7fc1;
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
 .bubble.assistant {
-  background: #f0f2f5;
+  background: #f1f3f5;
   color: rgba(0, 0, 0, 0.85);
   border-bottom-left-radius: 4px;
 }
@@ -539,7 +643,7 @@ const currentSession = computed(() => {
 /* 输入区域 */
 .chat-input-area {
   padding: 12px 24px 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
   background: #fff;
 }
@@ -548,15 +652,51 @@ const currentSession = computed(() => {
   display: flex;
   gap: 10px;
   align-items: flex-end;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.chat-input-card {
+  position: relative;
+  flex: 1;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  padding: 6px 8px 6px 12px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.chat-input-card:focus-within {
+  border-color: #4a7fc1;
+  box-shadow: 0 4px 14px rgba(74, 127, 193, 0.12), 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .chat-input {
   flex: 1;
 }
+.chat-input-card :deep(.chat-input) {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  resize: none;
+  padding: 4px 0;
+  font-size: 14px;
+}
+.chat-input-card :deep(.chat-input:focus) {
+  border: none;
+  box-shadow: none;
+}
+.chat-input-card :deep(.chat-input textarea) {
+  font-size: 14px;
+  line-height: 1.6;
+}
 
 .send-btn {
   flex-shrink: 0;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .input-hint {
@@ -564,5 +704,8 @@ const currentSession = computed(() => {
   color: rgba(0, 0, 0, 0.35);
   margin-top: 6px;
   text-align: right;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
 }
 </style>

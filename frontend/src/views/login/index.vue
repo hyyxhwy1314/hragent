@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Form, FormItem, Input, InputPassword, Button, message } from 'ant-design-vue'
-import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, LockOutlined, RobotOutlined } from '@ant-design/icons-vue'
 import { login, type LoginDTO } from '@/api/modules/auth'
 import { setToken } from '@/api/request'
 
@@ -39,8 +39,9 @@ async function handleLogin() {
   <div class="login-page">
     <div class="login-card">
       <div class="login-header">
+        <div class="login-bot"><RobotOutlined /></div>
         <h1 class="login-title">HR-Agent</h1>
-        <p class="login-subtitle">智能人力助手 · 管理后台</p>
+        <p class="login-subtitle">智能人力助手 · 统一管理入口</p>
       </div>
       <Form layout="vertical" @submit.prevent="handleLogin">
         <FormItem>
@@ -86,24 +87,39 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #f7f8fa 0%, #e6edf5 100%);
 }
 .login-card {
-  width: 360px;
-  padding: 40px 32px;
+  width: 380px;
+  padding: 40px 36px 32px;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+}
+.login-bot {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a7fc1, #7ba3d0);
+  color: #fff;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(74, 127, 193, 0.25);
 }
 .login-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   color: #1f2329;
-  margin: 0 0 8px;
+  margin: 0 0 6px;
+  letter-spacing: 0.5px;
 }
 .login-subtitle {
   font-size: 13px;

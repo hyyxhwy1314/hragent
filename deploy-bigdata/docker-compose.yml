@@ -1,0 +1,150 @@
+##
+# HR Agent 大数据学习环境（第一阶段）
+# 技术栈: MySQL(CDC源) -> Debezium -> Kafka -> (Flink SQL/ClickHouse) -> Superset
+##
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: bd-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "Admin@888888"
+      MYSQL_DATABASE: "hr_agent_db"
+      TZ: "Asia/Shanghai"
+    ports:
+      - "13307:3306"
+    volumes:
+      - bd_mysql_data:/var/lib/mysql
+      - ./my.cnf:/etc/mysql/conf.d/zz-bigdata.cnf:ro
+      - ./init:/docker-entrypoint-initdb.d:ro       # 首次启动建表脚本
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  kafka:
+    image: dockerproxy.net/apache/kafka:3.8.0
+    container_name: bd-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    ports:
+      - "9092:9092"
+    volumes:
+      - bd_kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 8s
+      retries: 15
+
+  connect:
+    image: quay.io/debezium/connect:3.6.0.Final
+    container_name: bd-connect
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    environment:
+      BOOTSTRAP_SERVERS: "kafka:9092"
+      GROUP_ID: "bd-connect"
+      CONFIG_STORAGE_TOPIC: "connect_configs"
+      OFFSET_STORAGE_TOPIC: "connect_offsets"
+      STATUS_STORAGE_TOPIC: "connect_statuses"
+      CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
+      CONNECT_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_LOG_LEVEL: "INFO"
+    ports:
+      - "8083:8083"
+
+  flink-jobmanager:
+    image: dockerproxy.net/apache/flink:1.19-scala_2.12-java17
+    container_name: bd-flink-jm
+    restart: unless-stopped
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+      - JOB_MANAGER_MEMORY_PROCESS_SIZE=1024m
+      - TASK_MANAGER_MEMORY_PROCESS_SIZE=1536m
+    ports:
+      - "8081:8081"
+    volumes:
+      - bd_flink_data:/opt/flink/data
+
+  flink-taskmanager:
+    image: dockerproxy.net/apache/flink:1.19-scala_2.12-java17
+    container_name: bd-flink-tm
+    restart: unless-stopped
+    command: taskmanager
+    depends_on:
+      - flink-jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 4
+      - TASK_MANAGER_MEMORY_PROCESS_SIZE=1536m
+    volumes:
+      - bd_flink_data:/opt/flink/data
+
+  clickhouse:
+    image: dockerproxy.net/clickhouse/clickhouse-server:24.8
+    container_name: bd-clickhouse
+    restart: unless-stopped
+    environment:
+      CLICKHOUSE_USER: "default"
+      CLICKHOUSE_PASSWORD: "clickhouse"
+      CLICKHOUSE_DB: "hr_olap"
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - bd_clickhouse_data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  superset:
+    image: dockerproxy.net/apache/superset:4.1.1
+    container_name: bd-superset
+    restart: unless-stopped
+    environment:
+      SUPERSET_SECRET_KEY: "bd-superset-secret-key-change-me"
+    ports:
+      - "8088:8088"
+    volumes:
+      - bd_superset_data:/app/superset_home
+    command: >
+      sh -c "superset fab create-admin --username admin --firstname Admin
+             --lastname User --email admin@example.com --password admin
+             && superset init
+             && superset run -p 8088 --with-threads --reload --debugger"
+
+volumes:
+  bd_mysql_data: {}
+  bd_kafka_data: {}
+  bd_flink_data: {}
+  bd_clickhouse_data: {}
+  bd_superset_data: {}

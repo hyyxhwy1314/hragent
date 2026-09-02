@@ -77,7 +77,7 @@ const columns: any[] = [
   { title: '领导评分', dataIndex: 'leaderScore', width: 110 },
   {
     title: '最终得分', dataIndex: 'finalScore', width: 110,
-    customRender: ({ record }: any) => h('span', { style: { fontWeight: 600, color: '#2F54EB' } }, record.finalScore ?? '-')
+    customRender: ({ record }: any) => h('span', { style: { fontWeight: 600, color: '#4a7fc1' } }, record.finalScore ?? '-')
   },
   { title: '绩效等级', dataIndex: 'performanceLevel', width: 100 },
   {

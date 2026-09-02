@@ -1,3 +1,32 @@
+/* ========== 设计令牌（与 desktop 商务极简风格一致） ========== */
+:root {
+  --bg-primary: #f7f8fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f3f5;
+  --bg-hover: #e8ecf1;
+
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --text-tertiary: #6b7280;
+
+  --accent: #4a7fc1;
+  --accent-light: #e8f0fe;
+  --accent-hover: #3b6db0;
+  --accent-soft: #dbeafe;
+
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
+  --border-focus: #4a7fc1;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
 html, body, #app {
   height: 100%;
   margin: 0;
@@ -5,18 +34,42 @@ html, body, #app {
 }
 
 body {
-  background: #f0f2f5;
+  background: var(--bg-primary);
   color: rgba(0, 0, 0, 0.88);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
 
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 .page-container {
-  padding: 20px;
+  padding: 24px;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .page-header {
-  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
 .page-title {
@@ -24,27 +77,30 @@ body {
   font-weight: 600;
   color: rgba(0, 0, 0, 0.88);
   margin: 0 0 4px 0;
+  letter-spacing: 0.2px;
 }
 
 .page-subtitle {
   font-size: 13px;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--text-tertiary);
   margin: 0;
 }
 
 .search-card {
-  background: #fff;
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   padding: 16px 20px 8px;
   margin-bottom: 12px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  box-shadow: var(--shadow-sm);
 }
 
 .table-card {
-  background: #fff;
-  border-radius: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
   padding: 0 20px 16px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+  box-shadow: var(--shadow-sm);
 }
 
 .table-toolbar {
@@ -86,4 +142,25 @@ body {
   color: #0958d9;
   background: #e6f4ff;
   border-color: #91caff;
+}
+
+/* ========== 表格细节（与 desktop 商务风格一致） ========== */
+.ant-table-wrapper .ant-table-thead > tr > th {
+  background: var(--bg-tertiary);
+  color: rgba(0, 0, 0, 0.65);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-light);
+}
+.ant-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: #f7fafd !important;
+}
+.ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin: 16px 0 4px;
+}
+
+/* 页面标题右侧操作区 */
+.page-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }

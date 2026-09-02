@@ -71,7 +71,7 @@ public class AgentScheduler {
             // 记录执行前的消息数量（用于增量持久化）
             int preMessageCount = getPreExecutionMessageCount(stateData);
             
-            // 将用户消息添加到状态（ToolInvocationNode 会从中提取）
+            // 将用户消息添加到状态（ModelThinkNode 会从中提取）
             addUserMessage(stateData, userMessage);
             
             // 执行 Agent 工作流
