@@ -132,7 +132,6 @@ hr-agent/
 - `entity/`
 - `exception/`
 - `interceptor/`
-- `listener/`
 - `mapper/`
 - `service/`
 - `utils/`

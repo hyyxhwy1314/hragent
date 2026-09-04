@@ -1,6 +1,6 @@
 {
-  "updatedAt": "2026-09-04T11:54:08.818Z",
-  "command": "init",
+  "updatedAt": "2026-09-04T12:18:55.610Z",
+  "command": "update",
   "model": "openrouter/free",
   "status": "interrupted",
   "language": "en"
