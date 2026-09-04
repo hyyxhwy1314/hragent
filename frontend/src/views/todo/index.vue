@@ -4,6 +4,7 @@ import { Table, Button, Space, Tag, Modal, Input, message, App as AntApp, Descri
 import { ReloadOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons-vue'
 import { listTodoTasks, completeTask, FLOW_TYPE_MAP, type TaskVO, type TaskCompleteDTO } from '@/api/modules/flow'
 import { employeeApi, type Employee } from '@/api/modules/employee'
+import { resumeApi, type Resume } from '@/api/modules/resume'
 
 defineOptions({ name: 'TodoPage' })
 const { modal } = AntApp.useApp()
@@ -23,6 +24,25 @@ function empName(id?: number) {
   const e = empMap.value[id]
   return e ? (e.empName || e.empNo || `#${id}`) : `#${id}`
 }
+
+// 简历列表（入职流程的业务对象）
+const resumes = ref<Resume[]>([])
+const resumeMap = computed(() => {
+  const m: Record<number, Resume> = {}
+  resumes.value.forEach(r => { if (r.id) m[r.id] = r })
+  return m
+})
+function bizName(flowType: string, bizId?: number) {
+  if (!bizId) return '-'
+  // 入职流程 bizId 是简历ID
+  if (flowType === 'ONBOARD') {
+    const r = resumeMap.value[bizId]
+    return r ? (r.resumeName || `简历#${bizId}`) : `简历#${bizId}`
+  }
+  // 其他流程 bizId 是员工ID
+  return empName(bizId)
+}
+
 function typeText(t: string) { return FLOW_TYPE_MAP[t] || t }
 
 async function fetchTodo() {
@@ -40,7 +60,14 @@ async function loadEmployees() {
   try { employees.value = await employeeApi.list() || [] } catch { employees.value = [] }
 }
 
-Promise.all([fetchTodo(), loadEmployees()])
+async function loadResumes() {
+  try {
+    const all = await resumeApi.list() || []
+    resumes.value = all.filter(r => r.resumeStatus !== 4)
+  } catch { resumes.value = [] }
+}
+
+Promise.all([fetchTodo(), loadEmployees(), loadResumes()])
 
 // 审批弹窗
 const approveVisible = ref(false)
@@ -74,8 +101,11 @@ const columns: any[] = [
     customRender: ({ record }: any) => typeText(record.flowType)
   },
   { title: '任务节点', dataIndex: 'taskName', width: 160 },
-  { title: '申请人', dataIndex: 'bizId', width: 130,
-    customRender: ({ record }: any) => empName(record.bizId)
+  { title: '业务对象', dataIndex: 'bizId', width: 130,
+    customRender: ({ record }: any) => bizName(record.flowType, record.bizId)
+  },
+  { title: '申请人', dataIndex: 'applyEmpId', width: 130,
+    customRender: ({ record }: any) => empName(record.applyEmpId)
   },
   { title: '创建时间', dataIndex: 'createTime', width: 180 },
   {
@@ -124,7 +154,8 @@ const columns: any[] = [
           {{ typeText(currentTask?.flowType || '') }}
         </Descriptions.Item>
         <Descriptions.Item label="任务节点">{{ currentTask?.taskName }}</Descriptions.Item>
-        <Descriptions.Item label="申请人">{{ empName(currentTask?.bizId) }}</Descriptions.Item>
+        <Descriptions.Item label="业务对象">{{ bizName(currentTask?.flowType || '', currentTask?.bizId) }}</Descriptions.Item>
+        <Descriptions.Item label="申请人">{{ empName(currentTask?.applyEmpId) }}</Descriptions.Item>
         <Descriptions.Item label="创建时间">{{ currentTask?.createTime }}</Descriptions.Item>
       </Descriptions>
       <p style="margin-bottom: 8px">审批意见</p>

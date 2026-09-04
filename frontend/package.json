@@ -10,8 +10,14 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@types/highlight.js": "^9.12.4",
+    "@types/marked": "^5.0.2",
     "ant-design-vue": "^4.2.6",
     "axios": "^1.7.9",
+    "echarts": "^6.1.0",
+    "highlight.js": "^11.12.0",
+    "marked": "^18.0.11",
+    "marked-highlight": "^2.2.4",
     "pinia": "^2.3.0",
     "vue": "^3.5.12",
     "vue-router": "^4.4.5"

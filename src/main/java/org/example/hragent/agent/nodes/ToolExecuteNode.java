@@ -59,6 +59,8 @@ public class ToolExecuteNode implements NodeAction<HrAgentState> {
         Map<String, Object> updates = new HashMap<>();
         updates.put(HrAgentState.TOOL_CALLS_KEY, List.<ToolCallRecord>of());
         updates.put(HrAgentState.TOOL_RESULTS_KEY, summary.toString().trim());
+        // 累计工具调用次数（多轮工具循环累加）
+        updates.put(HrAgentState.TOOL_CALL_COUNT_KEY, state.toolCallCount() + calls.size());
         return updates;
     }
 

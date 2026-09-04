@@ -96,14 +96,14 @@ function onReset() { queryForm.value = {}; fetchList() }
 const startVisible = ref(false)
 const startForm = ref<{
   processKey: string
-  bizId: number | null
-  targetLeaderId: number | null
+  bizId: SelectValue
+  targetLeaderId: SelectValue
   targetDeptName: string
   targetPosition: string
 }>({
   processKey: 'onboard-process',
-  bizId: null,
-  targetLeaderId: null,
+  bizId: undefined,
+  targetLeaderId: undefined,
   targetDeptName: '',
   targetPosition: ''
 })

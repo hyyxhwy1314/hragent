@@ -25,7 +25,7 @@ import static org.bsc.langgraph4j.StateGraph.START;
  *                    └────(无工具调用)─────────┴──────────────────────▶ END
  * </pre>
  * <ul>
- *     <li><b>model</b>（ModelThinkNode）— 首次把用户消息写入会话记忆，调用 LLM 推理并注入全部 @Tool 规格：
+ *     <li><b>model</b>（ModelThinkNode）— 首次把用户消息写入会话记忆，调用 LLM 推理并动态注入相关 @Tool 规格（按用户意图过滤，节省 token）：
  *         模型要求调工具则下发 TOOL_CALLS 走 action，给出最终回答则写 MESSAGES 走 END。</li>
  *     <li><b>action</b>（ToolExecuteNode）— 执行工具调用并把结果以 ToolExecutionResultMessage 回填
  *         会话记忆，清空 TOOL_CALLS 后回到 model 继续决策。</li>

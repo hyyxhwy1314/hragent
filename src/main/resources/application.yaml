@@ -131,5 +131,5 @@ ai:
   api-key: ${AI_API_KEY:}
   base-url: ${AI_BASE_URL:https://llm-8sr4ofm58q8qaj4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1}
   model:
-    name: ${AI_MODEL_NAME:qwen3.7-plus-2026-05-26}
+    name: ${AI_MODEL_NAME:deepseek-v4-flash-0731}
 

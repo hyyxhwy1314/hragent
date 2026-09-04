@@ -5,9 +5,24 @@ export interface AgentChatRequest {
   userId?: string
 }
 
+export interface ToolCallStep {
+  toolName: string
+  arguments: string
+  result: string | null
+  timestamp: string
+}
+
 export interface AgentChatResponse {
   response: string
   sessionId: string
+  /** 思考过程（工具调用步骤汇总） */
+  thinking: string | null
+  /** 工具调用步骤明细 */
+  toolSteps: ToolCallStep[] | null
+  /** 本回合消耗的输入 Token */
+  inputTokens: number
+  /** 本回合消耗的输出 Token */
+  outputTokens: number
 }
 
 export interface AgentSession {

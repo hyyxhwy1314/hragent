@@ -336,6 +336,7 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
             vo.setFlowInstanceId(flowInstance.getId());
             vo.setFlowType(flowInstance.getFlowType());
             vo.setBizId(flowInstance.getBizId());
+            vo.setApplyEmpId(flowInstance.getApplyEmpId());
         }
         return vo;
     }
