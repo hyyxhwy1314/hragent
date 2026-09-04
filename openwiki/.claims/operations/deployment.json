@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:02ad83db525d7fc436cd047c9c12428c7c5356c64ad05ca01f878ff8bd223c81",
+  "claims": [
+    {
+      "id": "claim_4fe1bf2c623c42d89397be400f18771b",
+      "statement": "Docker Compose is the primary mechanism for starting infrastructure services, launching MySQL 5.7 on port 13306 and Redis 6.2 on port 16379 with default credentials Admin@888888 and 123 respectively.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/installation.md#L36-L66",
+          "version": "repo-lines-v1:sha256:5a8c876c6ffbdab056b9b5be25b710745bb61f502e488297b7738c4d955ac355:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwODFlODFlYTRmYWE5ZDA4NGEzZGI3ZDVkYmM5NTc0OGZmYzA2NjM0MzcwZDk5NmFlYjYxYWE4NDM1NTk3M2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3YzA2YzU2MWQ1YzMyNzM0MzY4NTI2OGE0NmIzMzkxZjM5OThlZWU4OTBkMmJlNTFmMGQyMWNjNGE1M2FlNmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNjM2RkNGJkZTFiYWQxMjE2NGEyODI2NDkyZjczNWExNTBmOWFjZjhjYWI2N2Q5OTc0ZWNlOWY2OWQ3NDM0MGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5ZmE0ZDkzZWJmMGM3NjUwZjk1MjYzMjQ3ZjdhMTdjNTlhOTU2OTBmN2JmOGUyYTY4Nzc2N2M4YjBmZmM2NzgifQ"
+        },
+        {
+          "resource": "repo://src/main/resources/application.yaml#L26-L47",
+          "version": "repo-lines-v1:sha256:e1eaf527e86d109e547305b9a8faaf05fc803f7f273ee2e48315b38663a90908:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmMmEzZWMzZDY3NWM3OWFjODBiZDJiYTE5Y2IwMDBkY2Y1ODIwOWM3NTRlMzY0MjE4OGQ2ODVkZjFmNGE2YzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0Yjc4YTMxYTg3ZWVmNWUyMTI0OTQ4NWRhZTIxYjgwYjFiZmE2NmI5ZDBiZDJmODA0MGRhZDE3ZjM0NzIzYjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyNGQ2ZWMyM2QyZTNhNmIwMjVkNjJiNjdjYWRiYmU5ODMwYzI1YzhjYTY3NjE5Y2UyN2YxMTFlMWY1OGE4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJhZGMzZmVhMWZmMTQzMzlkMjYyNTI5OGRmNjFmM2FjNWMyZmJmMTVmNDIwMDc0MzQ1Njk2YzcxMzU3NGIwZmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_fcc667fcec5047daa939c88ec24d1d78",
+      "statement": "The init_schema.sql script runs as a Docker entrypoint init script and creates 14 business tables (t_employee, t_job_post, t_resume, t_flow_instance, t_flow_approval, t_performance, t_training_course, t_ability_tag, t_resume_ability_rel, t_sys_file, t_agent_session, t_agent_message, t_agent_tool_log, t_agent_interact_log) on first container startup.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/installation.md#L48-L50",
+          "version": "repo-lines-v1:sha256:7685a36ff26b1f3fb1c22e2e6ab2f36d6f8c1cfb688468780a3aa6eff29af068:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEzZjRkOTY2MWU5ZDJjM2UxYTI4OWU1ODMyMjk5YmVhMTRjZGI2NGJmODg2NjFkZjcxN2IxMmZhMDJkMDExZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTVlM2IxMzkzOGY1MjA2ZjYxN2UyMjhlZmVmOTAwNDJiYjBkMmZhOGQxMjM1NDk5NDkyYWRhNGE0MTc0MjliYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2VhMjViOWExZTkwNGZkYzQ5ZmRhMDM0N2JjMzgxMGM5NzY3OWVhOGMyZDcwNTEwZjNkYmQyZTUxYjljOTRmYyJ9"
+        },
+        {
+          "resource": "repo://src/main/resources/sql/init_schema.sql#L1-L444",
+          "version": "repo-lines-v1:sha256:8cc4b56a7aa2962818ba6f81748faacc2e5fb7e9615ba83806e96737ca6758bc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQ0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkNWRhY2ZhMGE0NGVmYjY3MDE0YzljZTVlOWE4MTNhNjc2MzI2MjlkOWZlZDg1ZjJkOTZiNWQyNWY0M2IxNzUyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiMjgzZjczODQxOWE3MzBiMWI2ODU4MmQ4NDg0ZGI3ZjM3MWFlNDI4ODZiNzRhODc3Y2VmNjY1MzIxYTI3MzNiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MCwicHJlY2VkaW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_bfae7409834c4bd68b7441bc60cf0b9b",
+      "statement": "Flowable engine tables (ACT_*) are created automatically on first boot because flowable.database-schema-update is set to true in application.yaml, not by the init script.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/resources/application.yaml#L61-L68",
+          "version": "repo-lines-v1:sha256:3878f5a29064799a66e72e45c6e5ea5526060fb0d291ffdce35a8a82f80e3269:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYzMmYzMzM1NGUyZDZmZjBkNmE0YTdhNjg4NmU3ODVhYzE5ZjZkYjYyNDI1YzYxNDczMzVjM2VkMjA3OGFiMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTk4NDcyODA0NzI5NWEwZWJiZGYyODc0MjJkMTQwNjA0NWJmZmQ2ZGZjNmYyM2M4OTg5NDc3MzUwMDIxN2ZjMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmJiMjYwMTczMWQ0OTY4MGMwZDVhZDc0MGY3OTVlNmJkMWViYTcyZmMzOTI1MTZiOWUzYTBkM2MzYmUyMmJkYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmRjODUwYTMyMmJkMTExZWExODAwY2I5ODk5NzRjNGI2NWJjOGQwNmExNGNmMjBkMjM4OTNkYWQxOGI4ODZlZCJ9"
+        },
+        {
+          "resource": "repo://src/main/resources/sql/init_schema.sql#L1-L10",
+          "version": "repo-lines-v1:sha256:7702182535b0b4528882895ca6b5c7b24f60f108b4e3461132d6551274359542:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1ZGFjZmEwYTQ0ZWZiNjcwMTRjOWNlNWU5YTgxM2E2NzYzMjYyOWQ5ZmVkODVmMmQ5NmI1ZDI1ZjQzYjE3NTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1ZGFjZmEwYTQ0ZWZiNjcwMTRjOWNlNWU5YTgxM2E2NzYzMjYyOWQ5ZmVkODVmMmQ5NmI1ZDI1ZjQzYjE3NTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlZjAzOGI4OWVkMmEzOWE5NDYyNjhlM2UzNmVkNzkyMjhlYjc4NmE2OTVmMTI1NjY2MjAzNDA2Yzg1NjkyOWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d8260bfa601f4c349438ad3542bf7ae1",
+      "statement": "The DataInitializer component (config/DataInitializer.java) detects employees with null passwords on startup and sets them to the BCrypt hash of the default password 123456, eliminating hardcoded password hashes in SQL.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/config/DataInitializer.java#L1-L53",
+          "version": "repo-lines-v1:sha256:72f8c25168b7838a7537c69d89ca074a4d3a450b12c0ee96c80f672cd6469121:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwMmQyNTQ4ZGM2YWVkMjQwZTM5MzRkNDM2YTk0YTNjMjk5ODc5MWNkYjE2MmZjZDgxYmRkNzY4NTk2NzlmODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://src/main/resources/sql/init_schema.sql#L385-L419",
+          "version": "repo-lines-v1:sha256:6e1127b016478b1fe344af95bf23d35a3f74a8984ded08f4b677e7e91f792739:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3NjNjM2M5MGJiZDU1OGZiZDE1MWI4ZTM2ODI2Mjg4NjI4MjVlNDEwMGU4NjMzNDYwOTZhMzcwNDU1NzNjMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzNWM1ZjljZjM4NDA4OGYzMGQzYjdhMmNjZjU2ZDZmMjZmNzEwZmNkMDk1Zjc4MjVhYmIzZDUyOTVkMzIxZWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA2N2E3NGEwOGJkYWM4Zjc4Nzc5ODJiYTE4NTI2YTI0OTQ2Y2ZlNzM4ZTM5Yjk1ODQyYTFkOWU5NzU4ZjllOTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY5YjczYzM3OTE2Y2E2NjZhMzY0OWFiNzJiNzZiMzFlNjk0ZGM2NzJiODA5M2Q1MmI5YWQxYzE0ZGExYzZjZjIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d9da8681722b43729f358103702cf08a",
+      "statement": "The backend entrypoint is HrAgentApplication.java, annotated with @SpringBootApplication, @EnableCaching, and @EnableAspectJAutoProxy, and listening on port 8080.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/HrAgentApplication.java#L1-L18",
+          "version": "repo-lines-v1:sha256:6c7a053fca5aca1a9500c18dda4c8c6bcd75722fa27a201d709887ae9a059c03:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0ZDRhMWJkODYyNDVmNGYxZTVmNWE0MjhjZjlhZmE0ZTE1NWU2MzAzZDU0ZWY0M2UwZGNkMjVmOWFlNzVlZjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUyMmZhYTUzNWJkMmVhM2Q1MmU3NDFlZDQ1NDQzNWI3ZmU0OWU4MzU4NmU5NDNkOThkODJiYmZiMjRkMWY1YzUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_32389de047954bee90e3303052566fd7",
+      "statement": "The frontend production build artifact is written to frontend/dist/ and Vite's dev server proxies /api requests to http://localhost:8080.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/installation.md#L29-L32",
+          "version": "repo-lines-v1:sha256:a274a23448ab82c070de15b0300a902732ea05ca83cb9b4905d97c56e16c262b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGFlNThkZTNkZGZkZTk1YjA2NmIyNTllMjRkODNlNTBkMTVhZWRlYWZiNThiMGIyMGQ3YjI2ZGQzMjRlZjBlZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWVkNWEwYTA3MjU1ZWZkM2YyN2E3MzVmNjlkNmVmYjdkY2IzOGYwNzhiZTY0YjFkMzRjMTdlZjY5Mzg2YTk0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjY3ZjA5MDE3Nzg2ZTdmM2NkMDZlMTA3OTFhODcwNjY4MmFmMmUxZGJjMzYyMDRkZjViNTA2ZDdiNjNlZTM2YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiY2MzZGQ0YmRlMWJhZDEyMTY0YTI4MjY0OTJmNzM1YTE1MGY5YWNmOGNhYjY3ZDk5NzRlY2U5ZjY5ZDc0MzQwYSJ9"
+        },
+        {
+          "resource": "repo://frontend/vite.config.ts#L1-L22",
+          "version": "repo-lines-v1:sha256:4c78bd35f381a0226b8256c343554547a435b33a4d77abf914d3dde060c97a65:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2OTRiMTEzZWZmMTAxNWRlOTYwYzdkZWFmOTZiNzAxM2FmMjliNGFiZmUwYjlhZjZhODNmZjExOGYxYWYwN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1ODBiNzY1MThkYWU5NzlmYWViZDAyMzY3YTI5MjkyYTUwZDk3NjA5MjI1MWEzOGE2Y2UzMDg4MGJhNDI4MjUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0f313083ee24488e84958928b3bd4e77",
+      "statement": "AI_API_KEY is the only required environment variable; AI_BASE_URL, AI_MODEL_NAME, MAIL_PASSWORD, COS credentials, and Aliyun OCR credentials are all optional.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/installation.md#L68-L76",
+          "version": "repo-lines-v1:sha256:d2f2c101b1a1744cafc66fe7d4a705ef9090c945ca291a7ff4e8cd9b9b262494:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjBhM2U5YzE4Y2E5MDc5ZDYxMmY3YTZkODUyNzk5YzhlMjJmM2JiODE5ZWEwOWJkNTc1OGJmZTA4ZDcyNGI2OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjZlYjU5NmUwZjk1MjY4ZWJlYzMxZDQ2NzU1MDc1OTQxMzYyMjllYmQ1ODIwMGMyZGFhNTM0MTEyMzFiMjA3YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTJiYWNmZjBlZTBlNWQ1ODBhMmM4YzUzNjJlODM5ZDhhMzEwMmYwNzlhOWM4OTYwNTdhYTk2MjM4YzM4NzY4NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2EyOWYyZmJhZjExOWNlZTQ2ZjZjZDgwOWMzZWVkYjAyZDc5NzQ3Y2JlMGYyZjBiNjBmYTNlZTYwNjJlZjhmNiJ9"
+        },
+        {
+          "resource": "repo://src/main/resources/application.yaml#L128-L135",
+          "version": "repo-lines-v1:sha256:53d3e23fe0674339d592f2e2ecbb0c24a88704ecf8726235d956cd562eec073a:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmZmMDQ4OTY2NjEyOWYxMDE3MGFjNWE1MTQ4YjExYjA0ZTRlNzg5ZGU5NTExZDQ1ZDlmZWE3Y2Q1Yjc2ZmZmZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNzAyNTc1OTNkYTA2ZjY4MmEzZGRkYTU0YTlkMjYwZDRmYzUxNGY2NDUyMzdmNWNhNzRiMDhmOGRhNjFhNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDkxNjYzM2MzZGRlNTYwYTdiMjkxMzgwMmM3MmIzMGQxODlhYmJlNTViZmEwYjQ3NjBjZTljYjI0ODBiZDkwOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_325805f05edd4e2dab645e9c5029fa3e",
+      "statement": "Production frontend deployment uses Nginx to serve static files from frontend/dist/ and reverse-proxy /api/ and /agent/chat/stream to the backend on port 8080.",
+      "evidence": [
+        {
+          "resource": "repo://docs/deploy/guide.md#L27-L56",
+          "version": "repo-lines-v1:sha256:40e8a7f3093bbdd3a85fc64fff011cd2a5a77e08bee81320b219c391836ca46c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NzA1MGUxYjk4YTBlZTcxOTEzMjZhNTZhMmU3M2ExZjVhYzUyMGM0YjY0Zjk0MDc1NzJiYWFhYmY0ZDc0YTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlNmEyMGI5ODc1ZmViMGM2YTk0YWY3NGY4MzNmOTFjZjBlMWU1ZmIxMDZiZTM4YzBiMjcwMGM4OTVlYmNjMjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZiOGNiMGQyY2JmZTRhMjFjMWRkYjJlYmUyMDY0MWIzMjIyYzI2NmMxNWU1YmU2YTQyNGY2NjZmNDZhNzM2NWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_aac4e1fc44d5442383baa83967e60bd0",
+      "statement": "The AI integration connects to an external Aliyun MaaS-compatible endpoint (default: cn-beijing) with model name deepseek-v4-flash-0731.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/resources/application.yaml#L130-L135",
+          "version": "repo-lines-v1:sha256:5e2dca6a86a1380fdde9daee3ffe3cf2b4705f56dba8e55833a073ccef03ea8a:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDdiN2Y3OTAwNWEzMGI2Y2UzOGYxZTM4NzMzNTc3YThhNGE5NjQxZjMxNGM0MDc2MzljYjExN2ZkZjdkNzllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNzAyNTc1OTNkYTA2ZjY4MmEzZGRkYTU0YTlkMjYwZDRmYzUxNGY2NDUyMzdmNWNhNzRiMDhmOGRhNjFhNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTc0YTA2M2QxMDQ5YzQxNTY2YTZmNTc4ZWM3MGNhOGVkZmE5MzE5NGM3ZjcwYzI3MDQ1YWZkZGFlZDA3NDIyMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.0",
+    "at": "2026-09-04T11:44:31.911Z"
+  }
+}

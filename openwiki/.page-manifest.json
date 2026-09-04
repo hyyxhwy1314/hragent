@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "pages": {
+    "/openwiki/operations/deployment.md": {
+      "pageVersion": "sha256:02ad83db525d7fc436cd047c9c12428c7c5356c64ad05ca01f878ff8bd223c81",
+      "completedBy": "openwiki/0.5.0",
+      "completedRunId": "6d58e363-83ed-444d-97a3-0e1447a9c2a8",
+      "gitHead": "35807d9535a639bc6ef460eeb4a1cd2aaad95013",
+      "sourceFingerprint": "sha256:e534a361176d1737933e9f40ec44f77387cf732d0c6dfe002f17c48660d573b1"
+    }
+  }
+}
