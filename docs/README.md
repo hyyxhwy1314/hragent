@@ -46,4 +46,6 @@ mvn spring-boot:run
 cd frontend && npm install && npm run dev
 ```
 
+> 文档站点由 GitHub Actions 自动部署，每次推送 `docs/` 目录变更到 master 即自动更新。
+
 > 详细步骤请查看 [快速开始指南](/guide/quickstart.md)。
