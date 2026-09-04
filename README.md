@@ -5,6 +5,8 @@
 > 库名：`hr_agent_db`
 > 说明：业务表共8张；Flowable流程引擎act_*系列表由框架自动生成，不包含在本DDL内；无数据库外键，应用层做关联；统一逻辑删除。
 
+[![文档站点](https://img.shields.io/badge/docs-hragent-blue?style=flat-square&logo=readthedocs)](https://hyyxhwy1314.github.io/hragent/)
+
 ## 目录
 1. [环境说明](#1-环境说明)
 2. [通用字段规范](#2-通用字段规范)
