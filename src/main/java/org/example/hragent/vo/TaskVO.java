@@ -38,4 +38,7 @@ public class TaskVO {
 
     /** 业务主键ID */
     private Long bizId;
+
+    /** 申请人ID */
+    private Long applyEmpId;
 }

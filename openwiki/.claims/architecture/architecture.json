@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:912ac30f63e89a08dbd2a0cb5fea3ae880eba0732ed99722a2f54f896b563154",
+  "claims": [
+    {
+      "id": "claim_3653ae95953a43a0bf3078657413509b",
+      "statement": "The HR Agent system is a full-stack application with a Vue 3 TypeScript frontend communicating with a Spring Boot 3 backend via REST API / SSE, backed by MySQL, Redis, and Flowable.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        }
+      ]
+    },
+    {
+      "id": "claim_06cfca8c17c240f798ae303dd7c3f0d6",
+      "statement": "The AI Agent engine uses a ReAct loop with ModelThinkNode and ToolExecuteNode, supporting up to MAX_TOOL_CALLS (8) iterations per turn, with dynamic tool filtering based on user intent.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java",
+          "version": "repo-file-v1:sha256:070392e7f7a352024910020284ec919b05e9c93978b569fe874093566fda3c76"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java",
+          "version": "repo-file-v1:sha256:e3756585596d960dbd8d71ae27e71eb544adef2e6ecec51b721470d47e3399e9"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec1a7247eb75488eac463d4e415ba58f",
+      "statement": "Flowable BPMN 2.0 engine provides workflow automation for HR processes (onboarding, offboarding, transfer, probation completion), with ACT_* tables auto-created on first boot.",
+      "evidence": [
+        {
+          "resource": "repo://docs/deploy/guide.md",
+          "version": "repo-file-v1:sha256:f767d9a0ed6fa5bd0fcf25e147aca3c4297123e5adad2b362932be74401b1027"
+        }
+      ]
+    },
+    {
+      "id": "claim_8d646f4992874aec9564f8c375b61dad",
+      "statement": "Security includes AES-256-CBC encryption for sensitive fields, Redis SETNX deduplication with 3s TTL, rate limiting at 2 requests per 5 seconds, and Redisson distributed locking.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        }
+      ]
+    },
+    {
+      "id": "claim_40cd2fcbaf6642539491657472670f8b",
+      "statement": "Frontend is built with Vue 3 and Vite, serving static assets, with API proxy configured to forward /api requests to the backend.",
+      "evidence": [
+        {
+          "resource": "repo://frontend/vite.config.ts",
+          "version": "repo-file-v1:sha256:4c78bd35f381a0226b8256c343554547a435b33a4d77abf914d3dde060c97a65"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.0",
+    "at": "2026-09-05T11:31:09.220Z"
+  }
+}

@@ -1,5 +1,6 @@
 package org.example.hragent.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.example.hragent.entity.Employee;
 import org.example.hragent.entity.Resume;
@@ -77,10 +78,15 @@ public class OnboardApprovedDelegate implements JavaDelegate {
         // 这里设默认密码 123456 的哈希由 DataInitializer 同款逻辑处理（首次登录前会被初始化）
         employeeMapper.insert(emp);
 
+        // 更新简历状态为"已入职"（归档）
+        resumeMapper.update(null, new LambdaUpdateWrapper<Resume>()
+                .eq(Resume::getId, resumeId)
+                .set(Resume::getResumeStatus, 4));
+
         // 把工号写入流程变量，供后续邮件通知节点使用
         execution.setVariable("onboardEmpNo", emp.getEmpNo());
 
-        log.info("员工记录创建成功 empNo={}, empName={}, resumeId={}",
+        log.info("员工记录创建成功 empNo={}, empName={}, resumeId={}, 简历状态已更新为已入职",
                 emp.getEmpNo(), emp.getEmpName(), resumeId);
     }
 

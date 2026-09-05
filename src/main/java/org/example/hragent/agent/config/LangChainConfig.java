@@ -25,7 +25,7 @@ public class LangChainConfig {
     @Value("${ai.base-url}")
     private String baseUrl;
 
-    @Value("${ai.model.name:qwen3.7-plus-2026-05-26}")
+    @Value("${ai.model.name:deepseek-v4-flash-0731}")
     private String modelName;
 
     /**

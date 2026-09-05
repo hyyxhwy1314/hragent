@@ -1,0 +1,23 @@
+{
+  "name": "ai-interact-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "database.hostname": "mysql",
+    "database.port": "3306",
+    "database.user": "root",
+    "database.password": "Admin@888888",
+    "database.server.id": "5401",
+    "database.server.name": "hr_agent_db",
+    "database.include.list": "hr_agent_db",
+    "table.include.list": "hr_agent_db.t_agent_interact_log",
+    "schema.history.internal.kafka.bootstrap.servers": "kafka:9092",
+    "schema.history.internal.kafka.topic": "schema-history.ai-interact",
+    "database.history.kafka.bootstrap.servers": "kafka:9092",
+    "database.history.kafka.topic": "schema-history.ai-interact",
+    "include.schema.changes": "false",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "tombstones.on.delete": "false"
+  }
+}

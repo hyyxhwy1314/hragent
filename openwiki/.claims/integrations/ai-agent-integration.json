@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:bafc55c9a48dc473c8d2803b7298f1d736910b5808170be2ebc4654274cc968b",
+  "claims": [
+    {
+      "id": "claim_a5f4d0f6727d468b9c7b73f0027d3a81",
+      "statement": "The AI Agent engine implements a state-machine-driven ReAct loop using LangGraph4j's StateGraph, with a conditional edge from model to action based on whether TOOL_CALLS is empty",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/AgentScheduler.java#L53-L58",
+          "version": "repo-lines-v1:sha256:37ec625f124122cc832fea91fd31d5a7b4d0bb46c202300d000020471fca377b:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzg3OGEwN2Y1ZTcwYWEyNTU1NmVhMDBhZWRmZWE0ZGY5ZWY5OWVlODZkMjc0Mjc1ZTAzYjdlOTdiNGZjYWQ0MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTNkN2JlYTI2MGQzZmY4NTFlOGZiYzIwZjUzYmIxMWQ3ODhmMmRjZWEzMjNiYmNmNmM4NmQ3NmJlNGYyNTQ3NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWVkMDYzMTk0NmY0MDIzZjY2ZmI4NGEyODNmZjY3YTczNjU1MjBkZGRkN2JlNDE2OGNhMTJlZTg5MDFmZDE0YSJ9"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java#L52-L72",
+          "version": "repo-lines-v1:sha256:f42a1359113a55bdaaca11b3e391cd9368ad0e09cce64e0365e688946c83f0ca:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5ZWNmZGFmZDUyODM0NTE3NmFhMGVmNjJhZjk4MWVkZDk2MzU2YThkZTljYWEzZjBkMjRjNzgxMWQyNzU0MGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQzMzA2OGMxMTk3YjBmZTI0MDc1MjY0YTRiOTUzOGRlMWM4ZGQwN2JlNjdiOTVmYWVjYzljNGM5MGFhYzE2ZTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxMGIzNmFhNzRhNTliY2Y0YTg4MTg1ODM3ZjY1OGFmYWYzNjQ2ZWZmMmJiMTZjMzkyOGQwZTkzMzVlOTQ1ZDIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c88a77e03a044f7e871af0402df05878",
+      "statement": "ModelThinkNode performs intent recognition by filtering tool specifications via ToolFilter based on user query, limiting each conversation turn to a maximum of 8 tool calls to prevent infinite loops",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java#L38-L46",
+          "version": "repo-lines-v1:sha256:fd7978e39c913b079b00080579917f84c20e714e5ae6c38929f526f6ec9adad5:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjM1OGNmZDJiZDJiYWU3YjZlMmYxODdmMzMwMjM1ODY1MjE3MjliMTIzNDM3NzY0ZDA3NTIzM2U2ZmRlOTk5YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTMyZjM3Y2M2ODA1MTExM2FiYzhlZWM5NDI2YTUxOGY2MjY3YzhlMjNhM2YyMzBkNGZjNjQ0ZGMyNmVlYjU4MCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDA4NzI4ZGM2MjIxNzkwOGRhOGQxMjk4MzcxZjUxMmMxN2Q3MmIyODVhMWI4MWRkM2JkNzRmOTMyNmVhZjljYyJ9"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java#L88-L89",
+          "version": "repo-lines-v1:sha256:7bdf4643e4357ba936da2804dc9d9d8fbc3c2ca02184a13c5c1b87f522709bc2:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGYwYjJmOWUyOGQ4MGFhM2JhZWFkZDUzN2E5NjhiNDMxMzU2MTE4NDA0MzU4YjZkMjUxZTZhNWQ0NjQ3ZTliZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2M2NWY4NmUyMzFjNWIzNWM2ZjVmMDdjMTgxMzZmZDYxYTU5NDJkZDc3ZmMxZjNjMTJmNzliNjU4YzFjOGYyNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNGI5NGY3NDlhMjEyNzYyZDAwMDYzYTZkODhlYjUxMjRlZmYzMjllZDgzNzI3ZmFmNWE3ZDA2N2Y4OWQ5NmNmNSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmZkYzhhNDQ2YzlkYmI5MjUwMDAwMTg1M2JkMjNjYmIxODQ1MDY1MjkyOWYwZTY2M2IwMzBlYzU4ZmMyYzg1YSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_79565723d1124b8ebc6b5ec39e3aae49",
+      "statement": "ToolExecuteNode executes tool calls using LangChain4j's DefaultToolExecutor, stores results as ToolExecutionResultMessage in ChatMemory, and clears TOOL_CALLS to return control to the model node",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ToolExecuteNode.java#L50-L65",
+          "version": "repo-lines-v1:sha256:c81d2f3a7c2b893eddcc84e465db64c56e24b32a1428cad7a378ad76e8911489:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzM2M2MDhhYjk2YmEzNjBjNDQwNzljZTViOTVkNDQwMTQwYjg1NjEyMzRmYWZmYWM5M2I4M2Q0YTVkM2IzMWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhhYTFhNDFkNzc1MWI0OWZlYjU4ZDg1MjMxOWEyNDI5OTk3MTI5NjAxOTFlOTk3YWEyNTk2MmFkY2Y3MTQ4YTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyOWY0ZTZmZWYwYjFlZjRkYjE3ODM3ZDk3N2M4MzI1ODk1Mjk3MmJiMTQzODU3ZmUwYTY5ZDQ3NTA0ODQ2YjAifQ"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ToolExecuteNode.java#L73-L80",
+          "version": "repo-lines-v1:sha256:12c163bd2faba920cd13f575826d1a857e8b45e8da86bfc8153af89d03b9be63:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODNjN2JhNWY0MWQ2YmE3NWY0MmM4OGM4NGVkNTI2M2U0ODc5NjE3NWM1MjI3ODc4NDZjYTljYjcxZmIyMWUyMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWFjY2QwYjM4NzI5ZjdkZjk2MGJlZjMwZTU5YjI4N2JjOTZiYmJjY2VlNzk1OWFmNTExZTYyNmMxNTFiYjRmZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTQ1OWUyYzAzNjkzM2NhN2U0MzQxYWZhMzg1NDcxZWNhYTE0OWFjYzUxNzMzYTRkM2IyN2ZjNTQ1Yjg0ZDk2NCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_819828171f1d44d1930ae9c314c8d451",
+      "statement": "Agent sessions are persisted in both Redis (fast state lookup) and MySQL (durable storage) via AgentStatePersistenceService, with ChatMemory managed per-session by HrAgentAiServiceFactory",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/AgentScheduler.java#L76-L98",
+          "version": "repo-lines-v1:sha256:7126ed5344857c0a0a42d87bc018ecb1aef2310864a76609ba0010226a2250af:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3M2EwOGY2YThiOWQyMTc1OTc0OWEzNDYyOWRjMzRkYTgxM2Q4M2ViYmE1ZTVmYjBlOTI0NDNhMjI3NTNjYjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU3ODk4OWM2YjRmNjBkMWU4MzM2ZDY3MTAwZmM1OGJlY2ZmN2QwYTZhMTExMDkxYjk3MWZkNDQ4MmRlNTRlYmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJmMGFkOGY4YzdhZmYxYWY5YjEzYWI5OThkY2EzOGNiNTE2MTU1YzczN2E3MTMzM2IwZWI1YTRkNjMwMzI5M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2ZmQyNzIxNzY1NzM1ZTZkYjkxMzY4OTA2MWU3NmQ3MmQwYjIyMjZiNWE3OGE1NGRiY2RhNzdiMGQ0MDFkOTkifQ"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/persistence/AgentStatePersistenceService.java",
+          "version": "repo-file-v1:sha256:1b89d5a79729ad6e447210bb17b4f8773853fb7a6125ff125dec4fd4a02639c0"
+        }
+      ]
+    },
+    {
+      "id": "claim_1d566a7d451e40e79e909d2b9a17c1b6",
+      "statement": "The AI Agent exposes REST endpoints at /agent/* for chat, session management, and message retrieval, with @RateLimit (5 req/10s) and @RepeatSubmit (3s cooldown) protecting LLM call endpoints",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/controller/AgentController.java#L37-L58",
+          "version": "repo-lines-v1:sha256:a327d4e242f798d4b8d996ba8d1f403bf6431822d1180597f56903ca3b65523b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhM2JkMjRkNjk3YmY5MGZmNGY1NGU0YWQ0ZmJkNTliMjcxOWEyN2U1YWVhN2U1MjU4YjMyMWNhNWU1MzI2MTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZlNDliNmMyNzVmODc4MmU0MDM4MTI1MmU2YzE1ZDRiMGQ2NWE1MzlmNmExMWUzNjNiYWJmNDQ2NDM5MDAxMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwMjg3Y2RlYzI0NGU5NjRkNzY4MjVjYTMxZDBmNjAwYjJiODI5NjVmMzQ1ZTZlMzg3ZGI0ZmRiMTkxMDQwNGIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_44c4c1b660c2407b9629add341c3552b",
+      "statement": "HrBusinessTools integrates with Flowable by calling flowOrchestratorService.start() with process keys for PROC_KEY_LEAVE (offboarding), PROC_KEY_TRANSFER (transfer), and other BPMN workflows, bridging agent tool calls to workflow engine execution",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/tools/HrBusinessTools.java#L400-L407",
+          "version": "repo-lines-v1:sha256:ee7f212f3b50f2ddf59a1e72d473ddab9a4f81c1a81cb9fe57318bd483e2d5c5:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWFmZDlhZjgyNjY4ZTg3OTEwYThiMjRkNjk2NzY2OTA0YjBiMTk5ZjIzYWZmNDk4NGY2ZTZjYmEzNzdjZDYwMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjNiYmQ0MTdlYmVjOGEwNGIzZDdiYzRiMGIwY2U5MzQ4MGIxOTc5ZDZjMmY5Y2Q1Mjk2NzQyNTU1MThmZjFjMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTQ5NzQ4ZTEwMTFmYjlhMmM1YzhhN2MwMGQzZDBlZTI5OWIwMTE3NWI4MmI0ZGVhOWFmOTM0MTYwZTgxOTBiOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDA3N2Y2M2E5YmNkOTA5MmY3NmIyZTUzMGZjZjBlNTU0MmU1MjgyNGYxMzEzNzg5ZDRiNjY4ZDAwNTA0ZWEwYiJ9"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/tools/HrBusinessTools.java#L430-L436",
+          "version": "repo-lines-v1:sha256:834cf5e841fafc3c50c4fa8e64b207e0a6c03378bf06ab7dc50a96df7bea90d5:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGM3NWNkNGM1ODUwZTI2ZTkwM2QwYzQ2NmFiYmU5N2NjOGU4ODI4ZjdmYTZmNGUyNGUzOWI5ODc2N2FhODJlYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjNiYmQ0MTdlYmVjOGEwNGIzZDdiYzRiMGIwY2U5MzQ4MGIxOTc5ZDZjMmY5Y2Q1Mjk2NzQyNTU1MThmZjFjMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTQ5NzQ4ZTEwMTFmYjlhMmM1YzhhN2MwMGQzZDBlZTI5OWIwMTE3NWI4MmI0ZGVhOWFmOTM0MTYwZTgxOTBiOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzdlMGFlNjdhZGJlNTIyOThjYTJmMDQzMmExYzRmNWE2MDFkMjA5ZjFmZjQ5OWM2NWNmNmRjNDVlMjk3YjRhYiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.0",
+    "at": "2026-09-05T11:31:09.220Z"
+  }
+}

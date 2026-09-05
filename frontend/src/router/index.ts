@@ -13,6 +13,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/login', name: 'Login', component: () => import('@/views/login/index.vue'), meta: { title: '登录', public: true } },
   { path: '/', redirect: '/dashboard' },
   { path: '/agent', name: 'Agent', component: () => import('@/views/agent/index.vue'), meta: { title: 'AI 助手', icon: 'RobotOutlined' } },
+  
   { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { title: '工作台', icon: 'DashboardOutlined' } },
   { path: '/todo', name: 'Todo', component: () => import('@/views/todo/index.vue'), meta: { title: '我的待办', icon: 'ClockCircleOutlined' } },
   { path: '/flow', name: 'Flow', component: () => import('@/views/flow/index.vue'), meta: { title: '流程管理', icon: 'ApartmentOutlined', roles: ['HR', 'ADMIN'] } },

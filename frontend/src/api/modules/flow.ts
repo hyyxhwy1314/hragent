@@ -11,6 +11,7 @@ export interface TaskVO {
   flowType: string
   createTime: string
   bizId: number
+  applyEmpId: number
 }
 
 /** 流程实例 */

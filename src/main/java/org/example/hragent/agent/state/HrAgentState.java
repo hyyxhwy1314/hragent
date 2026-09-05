@@ -29,6 +29,12 @@ public class HrAgentState extends AgentState {
     public static final String TOOL_CALLS_KEY = "toolCalls";
     /** 当前工具循环轮次（防死循环，last-wins 覆盖） */
     public static final String ITERATION_KEY = "iteration";
+    /** 本回合累计输入(Token)，last-wins 覆盖（各模型帧累加） */
+    public static final String INPUT_TOKENS_KEY = "inputTokens";
+    /** 本回合累计输出(Token)，last-wins 覆盖 */
+    public static final String OUTPUT_TOKENS_KEY = "outputTokens";
+    /** 本回合累计工具调用次数，last-wins 覆盖 */
+    public static final String TOOL_CALL_COUNT_KEY = "toolCallCount";
     
     /** 用户消息前缀 */
     public static final String USER_PREFIX = "[user] ";
@@ -36,16 +42,20 @@ public class HrAgentState extends AgentState {
     public static final String ASSISTANT_PREFIX = "[assistant] ";
     
     // 状态 schema，使用 appender 通道
-    public static final Map<String, Channel<?>> SCHEMA = Map.of(
-            MESSAGES_KEY, Channels.appender(ArrayList::new),
-            TOOL_RESULTS_KEY, Channels.appender(ArrayList::new),
-            ERROR_MESSAGE_KEY, Channels.appender(ArrayList::new),
-            SESSION_ID_KEY, Channels.appender(ArrayList::new),
-            USER_ID_KEY, Channels.appender(ArrayList::new),
-            CHAT_MEMORY_ID_KEY, Channels.appender(ArrayList::new),
+    public static final Map<String, Channel<?>> SCHEMA = Map.ofEntries(
+            Map.entry(MESSAGES_KEY, Channels.appender(ArrayList::new)),
+            Map.entry(TOOL_RESULTS_KEY, Channels.appender(ArrayList::new)),
+            Map.entry(ERROR_MESSAGE_KEY, Channels.appender(ArrayList::new)),
+            Map.entry(SESSION_ID_KEY, Channels.appender(ArrayList::new)),
+            Map.entry(USER_ID_KEY, Channels.appender(ArrayList::new)),
+            Map.entry(CHAT_MEMORY_ID_KEY, Channels.appender(ArrayList::new)),
             // 循环控制：last-wins（每次节点用新值覆盖旧值）
-            TOOL_CALLS_KEY, Channels.base((List<ToolCallRecord> prev, List<ToolCallRecord> next) -> next),
-            ITERATION_KEY, Channels.base((Integer prev, Integer next) -> next)
+            Map.entry(TOOL_CALLS_KEY, Channels.base((List<ToolCallRecord> prev, List<ToolCallRecord> next) -> next)),
+            Map.entry(ITERATION_KEY, Channels.base((Integer prev, Integer next) -> next)),
+            // 累计统计：last-wins，节点在写入时会基于已有值做累加
+            Map.entry(INPUT_TOKENS_KEY, Channels.base((Integer prev, Integer next) -> next)),
+            Map.entry(OUTPUT_TOKENS_KEY, Channels.base((Integer prev, Integer next) -> next)),
+            Map.entry(TOOL_CALL_COUNT_KEY, Channels.base((Integer prev, Integer next) -> next))
     );
     
     public HrAgentState(Map<String, Object> initData) {
@@ -104,6 +114,21 @@ public class HrAgentState extends AgentState {
      */
     public int currentIteration() {
         return this.<Integer>value(ITERATION_KEY).orElse(0);
+    }
+
+    /** 本回合累计输入 Token */
+    public int inputTokens() {
+        return this.<Integer>value(INPUT_TOKENS_KEY).orElse(0);
+    }
+
+    /** 本回合累计输出 Token */
+    public int outputTokens() {
+        return this.<Integer>value(OUTPUT_TOKENS_KEY).orElse(0);
+    }
+
+    /** 本回合累计工具调用次数 */
+    public int toolCallCount() {
+        return this.<Integer>value(TOOL_CALL_COUNT_KEY).orElse(0);
     }
     
     // 状态判断辅助方法

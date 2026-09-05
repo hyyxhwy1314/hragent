@@ -1,0 +1,61 @@
+name: OpenWiki Update
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+
+      - name: Install OpenWiki
+        run: npm install --global openwiki@0.5.0 mermaid@11.16.0 jsdom@29.1.1
+
+      - name: Run OpenWiki
+        id: openwiki
+        continue-on-error: true
+        run: openwiki code --update --print
+        env:
+          OPENWIKI_PROVIDER: openrouter
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENWIKI_MODEL_ID: "openrouter/free"
+
+      - name: Generate README.md
+        run: node scripts/generate-readme.js
+
+      - name: Remove transient OpenWiki run state
+        if: ${{ !cancelled() }}
+        run: rm -f -- openwiki/.run.json
+
+      - name: Commit and push changes
+        if: ${{ !cancelled() }}
+        run: |
+          git config user.name "openwiki-bot"
+          git config user.email "openwiki-bot@users.noreply.github.com"
+          git add openwiki AGENTS.md CLAUDE.md README.md scripts/generate-readme.js .github/workflows/openwiki-update.yml
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "docs: auto-update OpenWiki and README.md [skip ci]"
+            git push origin master
+          fi
+
+      - name: Propagate OpenWiki failure
+        if: ${{ steps.openwiki.outcome == 'failure' }}
+        run: exit 1

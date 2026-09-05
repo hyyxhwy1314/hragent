@@ -38,11 +38,11 @@ public class AgentController {
     @RateLimit(rate = 5, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "提问太频繁，请稍后再试")
     @RepeatSubmit(interval = 3, unit = TimeUnit.SECONDS, message = "消息正在处理，请勿重复发送")
     public R<ChatResponse> chat(@RequestBody AgentRequest request) {
-        AgentScheduler.AgentResponse response = agentScheduler.processMessageWithSession(
-            request.getMessage(), 
+        ChatResponse response = agentScheduler.processMessageWithSession(
+            request.getMessage(),
             String.valueOf(CurrentUserService.empId())
         );
-        return R.ok(new ChatResponse(response.getResponse(), response.getSessionId()));
+        return R.ok(response);
     }
     
     /**
@@ -53,10 +53,10 @@ public class AgentController {
     @RateLimit(rate = 5, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "提问太频繁，请稍后再试")
     @RepeatSubmit(interval = 3, unit = TimeUnit.SECONDS, message = "消息正在处理，请勿重复发送")
     public R<ChatResponse> continueChat(@PathVariable String sessionId, @RequestBody AgentRequest request) {
-        String response = agentScheduler.continueConversation(request.getMessage(), sessionId);
-        return R.ok(new ChatResponse(response, sessionId));
+        ChatResponse response = agentScheduler.continueConversation(request.getMessage(), sessionId);
+        return R.ok(response);
     }
-    
+
     /**
      * 清除指定会话
      */
@@ -103,19 +103,67 @@ public class AgentController {
     
     /**
      * Agent 对话响应 DTO
+     * 包含完整交互轨迹：思考过程 + 工具调用 + 最终回答，便于前端按主流 Agent 风格展示
      */
     public static class ChatResponse {
-        private String response;
+        private String response;           // 最终回答（支持 Markdown）
+        private String thinking;           // 完整思考过程（每一轮推理+工具调用）
+        private List<ToolCallStep> toolSteps; // 工具调用步骤记录
         private String sessionId;
+        private int inputTokens;           // 本回合消耗的输入 Token 数
+        private int outputTokens;          // 本回合消耗的输出 Token 数
         
         public ChatResponse(String response, String sessionId) {
             this.response = response;
             this.sessionId = sessionId;
+            this.thinking = null;
+            this.toolSteps = null;
+            this.inputTokens = 0;
+            this.outputTokens = 0;
+        }
+        
+        public ChatResponse(String response, String thinking, List<ToolCallStep> toolSteps, String sessionId, int inputTokens, int outputTokens) {
+            this.response = response;
+            this.thinking = thinking;
+            this.toolSteps = toolSteps;
+            this.sessionId = sessionId;
+            this.inputTokens = inputTokens;
+            this.outputTokens = outputTokens;
         }
         
         public String getResponse() { return response; }
         public void setResponse(String response) { this.response = response; }
+        public String getThinking() { return thinking; }
+        public void setThinking(String thinking) { this.thinking = thinking; }
+        public List<ToolCallStep> getToolSteps() { return toolSteps; }
+        public void setToolSteps(List<ToolCallStep> toolSteps) { this.toolSteps = toolSteps; }
         public String getSessionId() { return sessionId; }
         public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+        public int getInputTokens() { return inputTokens; }
+        public void setInputTokens(int inputTokens) { this.inputTokens = inputTokens; }
+        public int getOutputTokens() { return outputTokens; }
+        public void setOutputTokens(int outputTokens) { this.outputTokens = outputTokens; }
+        
+        /**
+         * 单步工具调用记录
+         */
+        public static class ToolCallStep {
+            private String toolName;
+            private String arguments;
+            private String result;
+            private String timestamp;
+            
+            public ToolCallStep(String toolName, String arguments, String result, String timestamp) {
+                this.toolName = toolName;
+                this.arguments = arguments;
+                this.result = result;
+                this.timestamp = timestamp;
+            }
+            
+            public String getToolName() { return toolName; }
+            public String getArguments() { return arguments; }
+            public String getResult() { return result; }
+            public String getTimestamp() { return timestamp; }
+        }
     }
 }

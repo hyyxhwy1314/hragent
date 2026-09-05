@@ -349,6 +349,35 @@ CREATE TABLE `t_agent_tool_log` (
     KEY `idx_tool_name` (`tool_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工具调用日志表';
 
+-- ============================================================
+-- 14. AI 交互日志表 t_agent_interact_log
+-- 记录每次对话回合的交互统计（Token/工具/耗时），供 AI 数据看板与
+-- 大数据链路(MySQL CDC -> Kafka -> Flink -> ClickHouse)分析
+-- ============================================================
+DROP TABLE IF EXISTS `t_agent_interact_log`;
+CREATE TABLE `t_agent_interact_log` (
+    `id`              BIGINT       NOT NULL AUTO_INCREMENT,
+    `session_id`      VARCHAR(64)  NOT NULL                COMMENT '会话ID(t_agent_session.session_id)',
+    `user_id`         BIGINT       DEFAULT NULL            COMMENT '用户ID(t_employee.id)',
+    `user_message`    VARCHAR(500) DEFAULT NULL            COMMENT '用户提问内容',
+    `answer`          VARCHAR(2000) DEFAULT NULL           COMMENT '助手最终回答',
+    `tool_used`       TINYINT      DEFAULT 0               COMMENT '是否调用工具: 0否 1是',
+    `tool_call_count` INT          DEFAULT 0               COMMENT '本回合工具调用次数',
+    `input_tokens`    INT          DEFAULT 0               COMMENT '输入Prompt Token数',
+    `output_tokens`   INT          DEFAULT 0               COMMENT '输出Completion Token数',
+    `duration_ms`     BIGINT       DEFAULT 0               COMMENT '本回合总耗时(毫秒)',
+    `has_error`       TINYINT      DEFAULT 0               COMMENT '是否命中错误兜底: 0正常 1错误',
+    `create_time`     DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `update_time`     DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time`     DATETIME     DEFAULT NULL,
+    `is_deleted`      TINYINT      DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_session_id` (`session_id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_create_time` (`create_time`),
+    KEY `idx_has_error` (`has_error`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI交互日志表';
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
