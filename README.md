@@ -176,4 +176,4 @@ hr-agent/
 
 ---
 
-> 文档自动生成于 2026-09-04 | [OpenWiki](https://hyyxhwy1314.github.io/hragent/) 驱动
+> 文档自动生成于 2026-09-05 | [OpenWiki](https://hyyxhwy1314.github.io/hragent/) 驱动

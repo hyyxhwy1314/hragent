@@ -3,9 +3,6 @@ type: concept
 title: Deployment and Operations
 description: Deploying the HR Agent application using Docker Compose for infrastructure, Maven for the backend, and Vite for the frontend. Covers environment configuration, database initialization, and production deployment patterns.
 tags: [deployment, docker, operations, infrastructure, environment]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-09-04T11:44:31.911Z
 sources:
   - id: openwiki-source-8af68d003d35a6bd2bcb8421
     resource: repo://docs/deploy/guide.md
