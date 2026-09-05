@@ -798,12 +798,19 @@ public class HrBusinessTools {
         }
     }
 
-    /** 从审批查询中提取任务ID（Flowable 任务ID一般为纯数字） */
+    /** 从审批查询中提取任务ID（Flowable 任务ID可能是 UUID 或纯数字） */
     private String extractTaskId(String query) {
         if (query == null) return null;
-        java.util.regex.Matcher m = java.util.regex.Pattern.compile("[0-9]{3,}")
-                .matcher(query.replaceFirst("^(流程|实例|业务)\\s*\\d+", ""));
-        return m.find() ? m.group(0) : null;
+        // 剥离业务前缀（流程/实例/业务 + 数字），避免把业务ID误当任务ID
+        String cleaned = query.replaceFirst("^(流程|实例|业务)\\s*\\d+", "");
+        // 1) 优先匹配 UUID 格式任务ID（Flowable 6+/7+ 默认生成 UUID）
+        java.util.regex.Matcher uuidM = java.util.regex.Pattern
+                .compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+                .matcher(cleaned);
+        if (uuidM.find()) return uuidM.group(0);
+        // 2) 兼容纯数字任务ID
+        java.util.regex.Matcher numM = java.util.regex.Pattern.compile("[0-9]{3,}").matcher(cleaned);
+        return numM.find() ? numM.group(0) : null;
     }
 
     /** 从审批查询中提取审批结果：true=通过，false=拒绝，无法识别返回 null */
