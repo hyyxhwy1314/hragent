@@ -3,9 +3,6 @@ type: system-integration
 title: AI Agent Engine Integration
 description: Describes how the AI Agent engine integrates with the Flowable workflow engine and other system components, including agent node responsibilities, entry points, and configuration.
 tags: [ai-agent, integration, flowable, langgraph4j, langchain4j]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-09-05T11:31:09.220Z
 sources:
   - id: openwiki-source-d54cf5bc6fc60b64b1ad951f
     resource: repo://src/main/java/org/example/hragent/agent/controller/AgentController.java

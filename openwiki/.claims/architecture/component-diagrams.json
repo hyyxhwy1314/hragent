@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:68ecdd9099a5497ef328b4a1fa2086d47600e25fb3f777240083505d60d6c5ad",
+  "claims": [
+    {
+      "id": "claim_77ec62a1ad8b4b22ab2cd0576018cd30",
+      "statement": "The HR Agent system is a full-stack HR management application built on a Spring Boot backend with a Vue 3 frontend, following a layered design with clear separation between presentation, business logic, and data persistence.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        }
+      ]
+    },
+    {
+      "id": "claim_06d09ea07c3b4e9487e74dba5c0beb65",
+      "statement": "The AI Agent engine is built on LangChain4j + LangGraph4j and implements a state-machine-driven ReAct (Reasoning + Acting) loop pattern for multi-step tool orchestration.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        }
+      ]
+    },
+    {
+      "id": "claim_e9334e72d17844ce883ba1e16dc59209",
+      "statement": "The ModelThinkNode writes user messages to session memory, calls LLM reasoning, and dynamically injects relevant @Tool specifications filtered by user intent.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java",
+          "version": "repo-file-v1:sha256:e3756585596d960dbd8d71ae27e71eb544adef2e6ecec51b721470d47e3399e9"
+        }
+      ]
+    },
+    {
+      "id": "claim_c0602240567340e494d395b0c9f551b8",
+      "statement": "The ToolExecuteNode executes tool calls, fills results as ToolExecutionResultMessage into session memory, clears TOOL_CALLS, and returns to model for continued reasoning.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ToolExecuteNode.java",
+          "version": "repo-file-v1:sha256:6a6db8629b28fd0c6241e6bc79fda504dbc7fdf12f77d80d4eb31f7e172af5a5"
+        }
+      ]
+    },
+    {
+      "id": "claim_cfd613fcbcfe41678a2f7e447e3e8f0d",
+      "statement": "The ReAct loop condition edge checks if TOOL_CALLS is empty: if empty (final answer or error) → END; if non-empty (model still issuing tool requests) → action. The model allows a maximum of MAX_TOOL_CALLS (8) iterations per turn to prevent infinite loops.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java",
+          "version": "repo-file-v1:sha256:070392e7f7a352024910020284ec919b05e9c93978b569fe874093566fda3c76"
+        }
+      ]
+    },
+    {
+      "id": "claim_6aa86622094b4746905df13f1d1bbef4",
+      "statement": "The system uses Flowable BPMN 2.0 as the workflow engine supporting four integrated processes: onboarding (入职审批), offboarding (离职审批), transfer (调岗审批), and probation completion (转正审批).",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        }
+      ]
+    },
+    {
+      "id": "claim_7617022171094c2fbe5ca7c433e7f5f6",
+      "statement": "The system's data layer consists of MySQL for persistent storage, Redis for caching and session memory, and Flowable BPMN 2.0 for workflow management.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        }
+      ]
+    },
+    {
+      "id": "claim_f3aa4e254eef428ba477e7844fff6e3f",
+      "statement": "The frontend (Vue 3) communicates with the backend (Spring Boot 3) via REST API and Server-Sent Events (SSE).",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/controller/AgentController.java",
+          "version": "repo-file-v1:sha256:c24fbd7dbe9e762ba2b2d8a72495c48394ff966bc5ec5302e160c8bc03669818"
+        }
+      ]
+    },
+    {
+      "id": "claim_987c4766273e4a3fbc166eb4d4258ea2",
+      "statement": "Tool chains use a dynamic loading strategy, loading only relevant tools based on user intent to reduce token consumption.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        }
+      ]
+    },
+    {
+      "id": "claim_4fe43c8317124d5ba63c2b33dc7e3aff",
+      "statement": "The AI Agent engine integrates tightly with the Flowable BPMN 2.0 workflow engine, acting as an orchestrator within Flowable flows that can receive initial context and extend workflows by calling additional tools or triggering further actions.",
+      "evidence": [
+        {
+          "resource": "repo://docs/guide/architecture.md",
+          "version": "repo-file-v1:sha256:a7b6bcdf19428ebb4f4ee9d75e54f3ac54194dff5194986306962d1d2894952f"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/AgentScheduler.java",
+          "version": "repo-file-v1:sha256:a3e26758d56106c43be74986e82d2b072bbe573a7a29d14d7b8bba1651504ab6"
+        }
+      ]
+    },
+    {
+      "id": "claim_1351b0a404574fed8b36415701b4aeda",
+      "statement": "Session memory for the agent is backed by Redis and stores ChatMemory state as well as ToolExecutionResultMessage entries during the ReAct loop.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/persistence/AgentStatePersistenceService.java",
+          "version": "repo-file-v1:sha256:1b89d5a79729ad6e447210bb17b4f8773853fb7a6125ff125dec4fd4a02639c0"
+        }
+      ]
+    },
+    {
+      "id": "claim_3479587578e346c5b475962e72894942",
+      "statement": "The AgentScheduler component coordinates the integration between Flowable BPMN workflows and the LangGraph4j agent, injecting process context into the agent session when a workflow starts.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/AgentScheduler.java",
+          "version": "repo-file-v1:sha256:a3e26758d56106c43be74986e82d2b072bbe573a7a29d14d7b8bba1651504ab6"
+        }
+      ]
+    },
+    {
+      "id": "claim_65d01bd9a4b34bd09fa990a44e1dcb87",
+      "statement": "Business tools for HR operations are defined in the HrBusinessTools class and are dynamically filtered and loaded based on user intent through the @Tool annotation mechanism.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/tools/HrBusinessTools.java",
+          "version": "repo-file-v1:sha256:e7ffb499995a973dd41e09ba8701099bbb542be2d98814dc57fdfaa19c874af7"
+        }
+      ]
+    },
+    {
+      "id": "claim_f63191d4dd45401aaf01834312294abc",
+      "statement": "The AgentController serves as the REST API entry point for the AI Agent engine, receiving user input from the frontend.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/controller/AgentController.java",
+          "version": "repo-file-v1:sha256:c24fbd7dbe9e762ba2b2d8a72495c48394ff966bc5ec5302e160c8bc03669818"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.0",
+    "at": "2026-09-07T13:51:18.913Z"
+  }
+}
