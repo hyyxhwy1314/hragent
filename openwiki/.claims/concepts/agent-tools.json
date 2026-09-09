@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:c078df43f8fa6c8463c4390e1398af7912e061bcb05bd9a03ac2730893bd86b7",
+  "claims": [
+    {
+      "id": "claim_5ca14b9a943443769c19038760ae7fc2",
+      "statement": "HrBusinessTools is the sole tool provider exposing 20 @Tool-annotated methods organized into 7 HR categories (员工, 简历, 流程, 岗位, 绩效, 培训, 知识).",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/tools/HrBusinessTools.java#L32-L978",
+          "version": "repo-lines-v1:sha256:1a4ba53dce54505e80944d2198ae0358d59a8d55cadcf94755d4ca5b99448a02:eyJzZWxlY3RlZExpbmVDb3VudCI6OTQ3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmOGZhMWU5ZjQ0OTQ5ZmE4OWEzYjQyYjA0OTJkZGJkZmZhMmViNzY0ODQ4ZDM1Nzc4YzlmYjUzYzIwN2ViZGJkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3ZGMxZDczNGJkMWVjYmVlZWVkYTk1MDFkOTRmM2NlOTQ4ODk5OWE0ZGIyMmIwZWFmMDJhYmFmZmZlZjkyYzc5IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_21ba9c20d6c84d788dd76c4e42a41c6a",
+      "statement": "The ReAct loop in HrAgentGraph alternates between ModelThinkNode (LLM reasoning with filtered tools) and ToolExecuteNode (tool execution via DefaultToolExecutor) using last-wins state channels for toolCalls and iteration.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java#L17-L72",
+          "version": "repo-lines-v1:sha256:607bb4a27dcf647516abbdf0daadbe84697efbb678b34f12a791c7db8db0df63:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhYjVmNzUyMGUzMzFiNGQzMzBiZGIzMmI1Mzc5NjgzNzRmNjNhN2E1NTJmY2I2MjE4OGZhMmRlNDYzMDhiZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxMGIzNmFhNzRhNTliY2Y0YTg4MTg1ODM3ZjY1OGFmYWYzNjQ2ZWZmMmJiMTZjMzkyOGQwZTkzMzVlOTQ1ZDIifQ"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java#L67-L123",
+          "version": "repo-lines-v1:sha256:bafdfd182f8fe1a0fbda0ce6ba10c3c796d801556b1d746f3887df58ebc56449:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1ZTJmMWQxYjgxYWM1OGI4N2VhZDFjODgyMjY1MmMzZDIzODJmNmYzM2IzMDI4NWVmZDI5NWExYjQyNmU2NjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyMzMwYzUzNjc5Y2IxZmI5OTcwOGY1ZmUzZTA0MzIwZWNkNWRlMmE2YjAzZTcxMGEzMzgxMWVmZDA4MTk3YWQifQ"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ToolExecuteNode.java#L43-L81",
+          "version": "repo-lines-v1:sha256:1d68f1b45da1a727da6ca71d4c395269bbba948982ad050a2471235a6de48ceb:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYzJiMzExYWJlODc1NzJlOGE3Y2MwZDk5NmE2NTg0NDA3NmU1MjMyZDIxYjdhODU0NzVmOWI0MDU1Yjc0OTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzMzMyMjU5MTA5YTUyNDllZjIzNjlkNDExNjI0M2RmZWI4Nzc1MjE1NDhkNTBkZjE0OTY5MDM4YWViM2NjNjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImYxODRjNzUzOTRlZDYwZTA1YmU4MTk1YmIwZmQ2ZWU0N2MyNjdmMDEwMzA3NThlODI1MmQ5NjlhODgyYjVmYmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_812e0c5685a848f693432095c19f96d1",
+      "statement": "ModelThinkNode constructs all tool specifications once at startup via ToolSpecifications.toolSpecificationsFrom(hrBusinessTools) and then dynamically filters them per query using ToolFilter.filter before each LLM call.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java#L59-L64",
+          "version": "repo-lines-v1:sha256:2275a5e9a8772dc40e2333b67a7526b98975411e41c48f72d4aaa20aed96d169:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODJlZDEwZjM4MDRjODc5MDY1YTc2ZTY0NjM1MWZiOTBhMDY0YWViZTU5ZTk2NjJjNTJlMDUzMzc3YzVkZWE0OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjZiZTBiY2VjOTE2NjU3ZDNhNDg3ZGU5NjhkZWI3MTEzYWM5MTY4YzU3ZWZhY2YzOTcyZmI5OWJkYTkyOWE5NSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGE5OTZlMmQ2N2E5NGM0YWZmZGUxOTZjNjEwYmI0NzU1NDcxY2Q1NjhmNTY2MGE5OGU3ODA0OTQ3NmZkOWE1NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzY5NDZlMTAxZTVlNzhkOTBhNTEwYzY5ZjI2NmVmNzY1NDBkMzA5YjFiODIyNjk1YjUzMTcyZWQyY2FhMDI1OSJ9"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java#L84-L89",
+          "version": "repo-lines-v1:sha256:0beaefb6ad30353a9bcd2f6315a75900edd4b4a67a9bbfff22d691a14e9da1a7:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEzMzlhNGM4MDE4OWU1NTc1MDA5MTU5Y2I2ZTA4NGY3NmI4Y2MzMDIyM2M3NTcxYTJmZTBlNjZhZjI3N2I0NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2M2NWY4NmUyMzFjNWIzNWM2ZjVmMDdjMTgxMzZmZDYxYTU5NDJkZDc3ZmMxZjNjMTJmNzliNjU4YzFjOGYyNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTg0NDc5Njc5MzYyZTY2ODJhNTYyOTJjZjE2YTY3MjkyOGM5MTZmMjEyMmQ2NjkwOGIwZTAzZWUyMDMzYTgwYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmZkYzhhNDQ2YzlkYmI5MjUwMDAwMTg1M2JkMjNjYmIxODQ1MDY1MjkyOWYwZTY2M2IwMzBlYzU4ZmMyYzg1YSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_b92cbad4a10743578e0e59ec9341b086",
+      "statement": "ToolFilter performs keyword-based category matching against CATEGORY_KEYWORDS, maps matched categories to tools via TOOL_CATEGORIES, auto-includes 员工 tools when any non-员工 category matches, and falls back to all tools if no category matches.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/tools/ToolFilter.java#L21-L100",
+          "version": "repo-lines-v1:sha256:3f81483d09d4d4369d4426f53573dfe47439d20feeb8981d9eeb4249f1a2620c:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZWQ4YTI5Y2Q0ZjkyY2E4MTczMGNmODEyM2I0NWE0ZDIzZmRiYTY5ZmRhY2UzMWQ0YTk1NmEyZTU4ZGYyNjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3NmJjYjAyZDQyMzM2ZjFiYTcwNjBjYWI1NDJkN2Y5ZGEwOTU3ZjJkMzQ3ZjkwODAyZGFjZTM0Njc2YmRiNDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkMDg3ZjEzZjMzZjRkMjYyNzQzYzg5NTUzM2Q3OTZlNjdlYzBjODlhMjlkYTJmNzllZjBkZmZjMDMwZDNhYWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlMmI5ZTIxZmRjODZmYzJjMmVlNDQ3MjE4NWQ2NzY0NjdiZGQxY2JmMmUyNGI0ZGM2NDRhYjFhYmIzMzI1NDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f352091f43264154a827fd1c5cc7106d",
+      "statement": "ToolExecuteNode uses DefaultToolExecutor to reflectively invoke the matching @Tool method on HrBusinessTools by name, then writes ToolExecutionResultMessage back into the session ChatMemory.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ToolExecuteNode.java#L73-L81",
+          "version": "repo-lines-v1:sha256:9626acfb6a532d2630fc7f9b9bbbf70199b926d24073e0b57fd00e7e701cd461:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODNjN2JhNWY0MWQ2YmE3NWY0MmM4OGM4NGVkNTI2M2U0ODc5NjE3NWM1MjI3ODc4NDZjYTljYjcxZmIyMWUyMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWFjY2QwYjM4NzI5ZjdkZjk2MGJlZjMwZTU5YjI4N2JjOTZiYmJjY2VlNzk1OWFmNTExZTYyNmMxNTFiYjRmZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjE4NGM3NTM5NGVkNjBlMDViZTgxOTViYjBmZDZlZTQ3YzI2N2YwMTAzMDc1OGU4MjUyZDk2OWE4ODJiNWZiZSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_9bc26f930e8e43528f2988cecb8cb438",
+      "statement": "HrAgentState carries toolCalls (base channel, last-wins) and iteration between graph nodes; MAX_TOOL_CALLS = 8 in ModelThinkNode guards against infinite ReAct loops.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java#L100-L106",
+          "version": "repo-lines-v1:sha256:9fc03aea6041fc83dc137845112f5a21b10d9282988d3c21f842a9afe282386f:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTY5Yjc5MTYzMmM5ODA2MGU1MTYyNGE2MDk1YzcyZTg1MmI1MjQxYjBhNzU1NmI5YjQ2OTcyNTU4ZjMwYjFlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMGM2NDc5Y2MyMzA0NDBmZDQxZTgyMjQyMTg2Nzk2OTg1NTlkMjg5M2JkNjdiNDM4MGFmYWI4MTFiMzhhNTVhYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjZhMWNjMDA0ZjM2MGExNjdkZTJiYzVmOTdhNjZjZjk4YjQyN2QxMjYzNmI5MGZkMDMzYmI2MzlmYzQ2MzUzMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDVlMzIzZjBjZmM0MjhlYmZlMjU1MmE4MGIzOWYxNTA5ZDQ2MTk0Nzk3Y2M4MjZlNjkxYWMxYWI0NDYxNzBiOCJ9"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java#L40-L41",
+          "version": "repo-lines-v1:sha256:c03499a3626aa64b45e2bb305040c1c289fe1b36d563a8bd74bcf1abac233d53:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTNhNDBmYjFiN2M2NjBlMTljN2RjYmU3MzAxOGZhNzU4OWNhMmFkY2Y4MDJmMzQ3YjNlZjg0NTBjMTU2YzkxOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMGJlNTk4NDc0ODY1YzAwZGIyMTdhMmRmZjk0ZDJlMzkyY2E0MTg5NGQwZWNmNDc3NmZkMWVmMTk5MzNlYThhOSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjZiY2Y4N2U5MDc3NTQ4M2JiOWZkM2FlYjA3MGFkZmE5YTZjNDkzNmI1ZjMxZTNmYjM4MWE3OTUxMTQyNjUxZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOWU0OGM0MWQ4OGRmNDUzNzVlYzVhNDAyMjdhMTZjY2NlOGY1NGE5MjliZDllNzUyYzkxMWI0MzBkODU2MzljYyJ9"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/state/HrAgentState.java#L28-L59",
+          "version": "repo-lines-v1:sha256:d9f70f78cbedda423fd1e73f567dadbad4c23149a8d9a3107e4e6be3ee1265e5:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzZGEwMTc0OGM2OWVjMmRmMjhiYWQzYmM4NzQxYmY0ZDI4MjYyNWY1OWVhNDdmYjU2NjE0NjlmYzk4YzFkOTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0ZTQyMDhjZDZmZmI4YzRhMzU0N2IyZjU0YWRhMTk5NzhjM2YzNjVlNzhmOTUwMmVmNTE0NWNkZDJhYTg1NDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ2NGQ2OTMxNDIzOTg3NGIwOTdkZGNmODM2ODNkNWI1N2MyMmE2MzA4NmI5NDg1ZTJhZDU2M2E0ZmQ4ZjM0ODAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwYWMwOWMxZjIyZjAyMmQ2ZmY2ZmQxN2RlZWEyYTZhYmViMjQzYTUwOWRhYjMyYjAwZTk3ZmQ5NTM0MDQ4OWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_140a54d4ad0c40c593cb7b99e227b0db",
+      "statement": "ToolCallRecord is a Serializable record wrapping ToolExecutionRequest fields to enable LangGraph4j state cloning via Java serialization.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/state/ToolCallRecord.java#L7-L32",
+          "version": "repo-lines-v1:sha256:e396be1f9146f39808fdb8fd67d4c220b36981a4a27a3b4b27b8e06469a4efaf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmOTc2OWQ4MWI3ODRlOThiY2FmMjQ0OGM5ODExZDM3NzFkMWY0NDUxNzJhOTYxZGMwZDg0ZDZmNDE5NTJkYmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxMGIzNmFhNzRhNTliY2Y0YTg4MTg1ODM3ZjY1OGFmYWYzNjQ2ZWZmMmJiMTZjMzkyOGQwZTkzMzVlOTQ1ZDIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5f4094aa67624840a7959782a1cbc038",
+      "statement": "HrAgentAiServiceFactory manages per-session ChatMemory using a ConcurrentHashMap<Long, ChatMemory> with MessageWindowChatMemory (MAX_MESSAGES=40) and provides lazy creation and explicit clearing.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/tools/HrAgentAiServiceFactory.java#L20-L62",
+          "version": "repo-lines-v1:sha256:4845c5fed74c0a9f6ecb7c1f0d1cd670be5072aa7a7061092a79cbbe860ddde3:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmExZTlmNDQ5NDlmYTg5YTNiNDJiMDQ5MmRkYmRmZmEyZWI3NjQ4NDhkMzU3NzhjOWZiNTNjMjA3ZWJkYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyYjI1YzBhMTk3YWYwMGI1ZGI0OGM3N2M0MmViNTA4MzlhNTVmY2IwMmRjNmU1NTM0YmRiNzcxM2Y2NmE3MWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b0c5d78631d943ff8d85dd0114b085a6",
+      "statement": "AgentStatePersistenceService stores agent state in Redis (fast workflow state with 24h TTL) and MySQL (session metadata, message history, and tool call logs via AgentToolLog entity).",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/persistence/AgentStatePersistenceService.java#L111-L236",
+          "version": "repo-lines-v1:sha256:14a96d70030e93a14d1415dfe25178687aff91345c0ad24d14aaa8426f9fbd67:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmMDc2NTIwZDRlMDJmMGU0ZGQyZmIzOWUzZmMxZmJmYTRmYzU3MmY2YjQ5OGEwOTE1M2U1NDVhYzA5YWNjOWZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzYWU0MWQ2OTE4MjM3OWJlMzA2Mzc3YWYwMWFjZWFmMWY0MzQ2MGMxNjY0NjcyZGZhOGJhN2FiZTE4YmRjZTc3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1M2RkMDcyYzc5OWJmZTBmY2MwZWExODBhNWE1ZWM5OWU3MWY5ZGFiNDAwMTVmOTdiNDkxM2ExODE5ODgwOGJkIn0"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/persistence/AgentStatePersistenceService.java#L50-L91",
+          "version": "repo-lines-v1:sha256:4e901311bc4d170fb2361773d8f5e203f6f23a6b1a059ffe40e83f146b193eac:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMzYTYzYzU4ODQ3MjdhMDFkMjgwYjM4NGNkZjJhZTdhZDJhYjY2NDE0Yzc1MjBhNWNhZWQ0ZTdkNjZkYTUxZmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkyOGY4NWJkZGFiN2JmMzdjYmUyNjJiOWQ4NWU1YjAzNmMyM2UxOGIxM2Y4MjY2Yjc3NmNlYTY5MDdlODAzOGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxMGMxNTcwMzdiMWEyZDc3NzNhYzI4YmUxMDMwMGVhNTM5NmNlYjExOTZmMTYzYTU5NDBmZDA4Y2Q5MDhmZDYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bb0f6392a41446508c38b204f1326c6d",
+      "statement": "AgentToolLog entity records sessionId, messageId, intentCode, toolName, inputParams, outputResult, status (success/error/timeout), durationMs, and errorMessage for auditing tool executions.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/entity/agent/AgentToolLog.java#L11-L56",
+          "version": "repo-lines-v1:sha256:0087c6f99ee4020c9fe4c483402c1bc923b880bca09953293c7f1d22eb91c471:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhZjIyY2YwNzMyNTkyYzI0NzE0MWNiZTYxZWZhMTEwMTI2MTJmNWEzMTIyYjlhZjliYmFmNTJmNTcyNGQxOTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmNDkwOTRkMGIzMDkxNjJkY2FlNGY5OGFkNTI5M2UxMzBhYzE1YjY3ZTZjMDk5OGI5MWE5OTZkZmIxZGViOGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3NzE0NmU0NDVlZDQyZmJlNDM3NDk4NzBjNTY5OTQ0ZmEzYjZmNmMyNjRmOTVhNTllZjhmMTVjYjIzY2Q4ODAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxMGIzNmFhNzRhNTliY2Y0YTg4MTg1ODM3ZjY1OGFmYWYzNjQ2ZWZmMmJiMTZjMzkyOGQwZTkzMzVlOTQ1ZDIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_432f16ffab5847c28755a7296bda623a",
+      "statement": "Adding a new tool requires only adding a @Tool method to HrBusinessTools and registering it in ToolFilter.TOOL_CATEGORIES; no other wiring changes are needed because ModelThinkNode discovers tools via reflection at construction and ToolExecuteNode resolves by name at runtime.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java#L64-L65",
+          "version": "repo-lines-v1:sha256:9023b2f8a7b0f7c00df7812b16eb9e4cd1113b45a27220a90b9346c035e598d2:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjZiZTBiY2VjOTE2NjU3ZDNhNDg3ZGU5NjhkZWI3MTEzYWM5MTY4YzU3ZWZhY2YzOTcyZmI5OWJkYTkyOWE5NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2Q4ZmZiZDg3NjM3YWI2ZDIyN2Q4YWRjZTQ3ZTQ5Y2FjZmI1Y2QzMzZlMzhjNTc1ODBmZjNiZmU5YjFkZWIwNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWI4NDRmMjM5N2ZhY2NmMjdhYTZlYjU0MDVhNzdiNTRjZmU1ZTE5Yzk5NDg3ZWM3ZTQ0MGMzNjhmOTZjNTg5ZCJ9"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ToolExecuteNode.java#L73-L81",
+          "version": "repo-lines-v1:sha256:9626acfb6a532d2630fc7f9b9bbbf70199b926d24073e0b57fd00e7e701cd461:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODNjN2JhNWY0MWQ2YmE3NWY0MmM4OGM4NGVkNTI2M2U0ODc5NjE3NWM1MjI3ODc4NDZjYTljYjcxZmIyMWUyMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWFjY2QwYjM4NzI5ZjdkZjk2MGJlZjMwZTU5YjI4N2JjOTZiYmJjY2VlNzk1OWFmNTExZTYyNmMxNTFiYjRmZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjE4NGM3NTM5NGVkNjBlMDViZTgxOTViYjBmZDZlZTQ3YzI2N2YwMTAzMDc1OGU4MjUyZDk2OWE4ODJiNWZiZSJ9"
+        },
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/tools/ToolFilter.java#L38-L59",
+          "version": "repo-lines-v1:sha256:d8effcf76c7555db2ed5161cd6af0cf62875151a1bd3f73a651a9bda99264d24:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5OWJkMDFkMjIwOGM3ZDQxNTE0MGEyZjc0YWRjZTg1NzMyMDBiNTUwNDQwZGNkZDQyYWNmMDYzMDJkMjNkMDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE2NzRhZjJiNjUyN2ViZTEzZDZkOTIyOGFkOGI2YjVmOWE3Yjg3YTlmNGMwMjczYzA1NTVmMjM4ZTNmZjI0OGYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiMzI5ZDI4YmJiOTc2MzFiNjk0NTVhMGZmYjUzYjA4YWViOTFiNjRkMzJhODg2ZjViNDMzMzg4M2M1M2RkNTgifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.0",
+    "at": "2026-09-09T12:36:52.655Z"
+  }
+}

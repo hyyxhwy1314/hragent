@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:017586ab24cfa1da927b287abb48d13e1ee6cefff4206ea0990766905300c6c7",
+  "claims": [
+    {
+      "id": "claim_e168ed92928043769b80d5bb0c8de4c6",
+      "statement": "The AI Agent engine implements a ReAct (Reasoning + Acting) loop pattern using LangGraph4j with ModelThinkNode for reasoning and ToolExecuteNode for action execution.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java",
+          "version": "repo-file-v1:sha256:070392e7f7a352024910020284ec919b05e9c93978b569fe874093566fda3c76"
+        }
+      ]
+    },
+    {
+      "id": "claim_c3d4b66ff210445fa7499802b1323770",
+      "statement": "The ModelThinkNode handles intent recognition, LLM reasoning, and dynamic tool filtering based on user intent.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ModelThinkNode.java",
+          "version": "repo-file-v1:sha256:e3756585596d960dbd8d71ae27e71eb544adef2e6ecec51b721470d47e3399e9"
+        }
+      ]
+    },
+    {
+      "id": "claim_442267117e664db893ff5f6192e38a2c",
+      "statement": "The ToolExecuteNode executes tool calls, processes results, updates session memory, and returns control to ModelThinkNode.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/nodes/ToolExecuteNode.java",
+          "version": "repo-file-v1:sha256:6a6db8629b28fd0c6241e6bc79fda504dbc7fdf12f77d80d4eb31f7e172af5a5"
+        }
+      ]
+    },
+    {
+      "id": "claim_c6422959e30b4d89ab0fe2a7c30197ca",
+      "statement": "The ReAct loop includes a maximum tool call limit (MAX_TOOL_CALLS = 8) to prevent infinite loops.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java",
+          "version": "repo-file-v1:sha256:070392e7f7a352024910020284ec919b05e9c93978b569fe874093566fda3c76"
+        }
+      ]
+    },
+    {
+      "id": "claim_e80a3f584da24ebd9b516115d1dbd78e",
+      "statement": "The AI Agent integrates with business tools through dynamic loading based on user intent to optimize token consumption.",
+      "evidence": [
+        {
+          "resource": "repo://src/main/java/org/example/hragent/agent/tools/HrBusinessTools.java",
+          "version": "repo-file-v1:sha256:e7ffb499995a973dd41e09ba8701099bbb542be2d98814dc57fdfaa19c874af7"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.0",
+    "at": "2026-09-09T12:36:52.655Z"
+  }
+}
