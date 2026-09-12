@@ -3,9 +3,6 @@ type: system-architecture
 title: HR Agent Component and Data Diagrams
 description: Visual diagrams of system components, data flows, and architectural patterns for the HR Agent system structure.
 tags: [architecture, system-design, hr-agent, components, data-flows]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-09-07T13:51:18.913Z
 sources:
   - id: openwiki-source-6ec421dd4387e27f9056c84b
     resource: repo://docs/guide/architecture.md

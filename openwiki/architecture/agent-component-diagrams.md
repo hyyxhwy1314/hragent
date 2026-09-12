@@ -5,7 +5,7 @@ description: Detailed visual diagrams of the AI Agent engine components, includi
 tags: [ai-agent, react-loop, architecture, system-design]
 verified:
   - by: openwiki/0.5.0
-    at: 2026-09-09T12:36:52.655Z
+    at: 2026-09-12T11:51:26.801Z
 sources:
   - id: openwiki-source-d4a71d1b95d10c44c6f6eccb
     resource: repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java

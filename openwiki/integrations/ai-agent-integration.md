@@ -19,9 +19,6 @@ sources:
   - id: openwiki-source-588a663b3d128aab542f2b9c
     resource: repo://src/main/java/org/example/hragent/agent/tools/HrBusinessTools.java
 generated: { by: "openwiki/0.5.0", at: "2026-09-05T11:31:09.220Z" }
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-09-05T11:31:09.220Z
 ---
 
 # AI Agent Engine Integration

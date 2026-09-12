@@ -3,9 +3,6 @@ type: concept
 title: Business Tools Architecture
 description: Documents the HR business tools system, including tool classification, the @Tool annotation pattern, dynamic tool filtering, and the extensibility points for adding new tools.
 tags: [agent, tools, langchain4j, langgraph4j, hr-business]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-09-09T12:36:52.655Z
 sources:
   - id: openwiki-source-d4a71d1b95d10c44c6f6eccb
     resource: repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java

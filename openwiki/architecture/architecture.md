@@ -3,9 +3,6 @@ type: system-architecture
 title: HR Agent System Architecture
 description: High-level overview of the HR Agent system components, runtime domains, and data flow.
 tags: [architecture, system-design, hr-agent]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-09-07T13:51:18.913Z
 sources:
   - id: openwiki-source-8af68d003d35a6bd2bcb8421
     resource: repo://docs/deploy/guide.md
