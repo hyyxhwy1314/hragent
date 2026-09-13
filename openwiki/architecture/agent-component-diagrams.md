@@ -3,9 +3,6 @@ type: ai-agent-architecture
 title: AI Agent Component Diagrams
 description: Detailed visual diagrams of the AI Agent engine components, including the ReAct loop architecture, agent node responsibilities, and integration points with other system components.
 tags: [ai-agent, react-loop, architecture, system-design]
-verified:
-  - by: openwiki/0.5.0
-    at: 2026-09-12T11:51:26.801Z
 sources:
   - id: openwiki-source-d4a71d1b95d10c44c6f6eccb
     resource: repo://src/main/java/org/example/hragent/agent/graph/HrAgentGraph.java

@@ -25,6 +25,9 @@ sources:
   - id: openwiki-source-b20d996412d2bfcfb9bb587e
     resource: repo://src/main/java/org/example/hragent/entity/agent/AgentToolLog.java
 generated: { by: "openwiki/0.5.0", at: "2026-09-09T12:36:52.655Z" }
+verified:
+  - by: openwiki/0.5.0
+    at: 2026-09-13T13:01:03.446Z
 ---
 
 # Business Tools Architecture
