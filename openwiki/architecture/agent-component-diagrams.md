@@ -12,7 +12,10 @@ sources:
     resource: repo://src/main/java/org/example/hragent/agent/nodes/ToolExecuteNode.java
   - id: openwiki-source-588a663b3d128aab542f2b9c
     resource: repo://src/main/java/org/example/hragent/agent/tools/HrBusinessTools.java
-generated: { by: "openwiki/0.5.0", at: "2026-09-09T12:36:52.655Z" }
+generated: { by: "openwiki/0.5.0", at: "2026-09-14T14:37:08.303Z" }
+verified:
+  - by: openwiki/0.5.0
+    at: 2026-09-14T14:37:08.303Z
 ---
 
 # AI Agent Component Diagrams
@@ -23,13 +26,12 @@ This page provides detailed visual diagrams of the AI Agent engine components, f
 
 This diagram illustrates the core ReAct (Reasoning + Acting) loop pattern implemented by the AI Agent engine using LangGraph4j. This is the heart of the system's intelligent behavior.
 
-<!-- openwiki: mermaid parse failed and this diagram was converted to a text fence so it does not break rendering. Fix the diagram source and restore the mermaid fence. Parser error: Parse error on line 3: ...Model ->|有工具调用<br/>(TOOL_CALLS non-empt Expecting 'SQE', 'DOUBLECIRCLEEND', 'PE', '-)', 'STADIUMEND', 'SUBROUTINEEND', 'PIPE', 'CYLINDEREND', 'DIAMOND_STOP', 'TAGEND', 'TRAPEND', 'INVTRAPEND', 'UNICODE_TEXT', 'TEXT', 'TAGSTART', got 'PS' -->
-```text
+```mermaid
 graph LR
     START([开始]) --> Model["ModelThinkNode\nIntent Recognition & LLM Reasoning"]
-    Model -->|有工具调用<br/>(TOOL_CALLS non-empty)| Action["ToolExecuteNode\nTool Execution"]
-    Model -->|无工具调用<br/>(TOOL_CALLS empty)| END([结束])
-    Action -->|结果回填<br/状态更新| Model
+    Model -->|TOOL_CALLS present| Action["ToolExecuteNode\nTool Execution"]
+    Model -->|TOOL_CALLS empty| END([结束])
+    Action -->|results updated| Model
     
     %% Loop limit annotation
     style Model fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
