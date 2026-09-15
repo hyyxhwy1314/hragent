@@ -15,7 +15,7 @@ sources:
 generated: { by: "openwiki/0.5.0", at: "2026-09-14T14:37:08.303Z" }
 verified:
   - by: openwiki/0.5.0
-    at: 2026-09-14T14:37:08.303Z
+    at: 2026-09-15T13:02:01.630Z
 ---
 
 # AI Agent Component Diagrams
