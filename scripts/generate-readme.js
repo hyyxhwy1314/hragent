@@ -77,7 +77,7 @@ function generateReadme(project, frontend, backendModules, frontendViews, openwi
     { icon: '🤖', title: 'AI 智能助手', desc: '自然语言驱动的 HR 操作助手，支持对话式查询员工、简历、审批进度等，动态工具加载节省 Token' },
     { icon: '👤', title: '员工管理', desc: '员工信息 CRUD，支持多角色权限体系（员工/主管/HR/HRBP/管理员）' },
     { icon: '📄', title: '简历管理', desc: '候选人简历管理，AI 解析结构化 JSON，智能标签匹配与评分' },
-    { icon: '📋', title: '流程审批', desc: 'Flowable 工作流引擎驱动入职/离职等审批流程，全程轨迹追踪' },
+    { icon: '📋', title: '流程审批', desc: 'Flowable 工作流引擎驱动入职/转正/调岗/离职四类审批流程，全程轨迹追踪' },
     { icon: '📊', title: '绩效管理', desc: '员工绩效记录与评估管理' },
     { icon: '📚', title: '培训管理', desc: '培训课程目录管理与能力标签匹配推荐' },
     { icon: '📈', title: '数据看板', desc: '工作台仪表盘，含指标卡片、Token 消耗趋势图、活动日志' },
