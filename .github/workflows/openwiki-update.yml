@@ -1,11 +1,8 @@
 name: OpenWiki Update
 
 on:
-  push:
-    branches: [master]
+  # 仅支持手动触发，避免每次 push / 定时自动运行消耗模型额度
   workflow_dispatch:
-  schedule:
-    - cron: "0 8 * * *"
 
 permissions:
   contents: write
