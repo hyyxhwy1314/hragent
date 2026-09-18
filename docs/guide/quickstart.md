@@ -50,7 +50,7 @@ spring:
 
 ai:
   api-key: ${AI_API_KEY}
-  model: deepseek-v4-flash-0731
+  model: qwen3.7-flash
 ```
 
 ### 5. 启动后端

@@ -217,7 +217,7 @@ ${frontendViews.map(v => `- \`${v}/\``).join('\n')}
 |------|------|--------|------|
 | \`AI_API_KEY\` | 是 | — | AI 模型 API 密钥 |
 | \`AI_BASE_URL\` | 否 | 阿里云 MaaS 地址 | AI 服务地址 |
-| \`AI_MODEL_NAME\` | 否 | deepseek-v4-flash-0731 | 模型名称 |
+| \`AI_MODEL_NAME\` | 否 | qwen3.7-flash | 模型名称 |
 | \`MAIL_PASSWORD\` | 否 | — | QQ SMTP 授权码 |
 | \`COS_ACCESS_KEY\` | 否 | — | 对象存储密钥 |
 
