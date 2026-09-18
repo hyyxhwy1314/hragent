@@ -132,6 +132,7 @@ hr-agent/
 - `entity/`
 - `exception/`
 - `interceptor/`
+- `listener/`
 - `mapper/`
 - `service/`
 - `utils/`
@@ -142,6 +143,8 @@ hr-agent/
 - `abilityTag/`
 - `agent/`
 - `aiDashboard/`
+- `architecture/`
+- `contractReview/`
 - `dashboard/`
 - `employee/`
 - `flow/`
