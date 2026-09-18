@@ -32,9 +32,11 @@ jobs:
         continue-on-error: true
         run: openwiki code --update --print
         env:
-          OPENWIKI_PROVIDER: openrouter
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENWIKI_MODEL_ID: "openrouter/free"
+          # 改用 hragent 自身的阿里云 MaaS 模型（OpenAI 兼容接口），替代不稳定的 openrouter/free
+          OPENWIKI_PROVIDER: openai-compatible
+          OPENAI_COMPATIBLE_API_KEY: ${{ secrets.AI_API_KEY }}
+          OPENAI_COMPATIBLE_BASE_URL: "https://llm-8sr4ofm58q8qaj4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+          OPENWIKI_MODEL_ID: "deepseek-v4-flash-0731"
 
       - name: Generate README.md
         run: node scripts/generate-readme.js
