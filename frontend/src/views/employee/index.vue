@@ -23,9 +23,9 @@ function resetFormState() {
 }
 
 const statusOpts = [
-  { label: '在职', value: 1 },
+  { label: '在职（正职）', value: 1 },
   { label: '离职', value: 0 },
-  { label: '试用', value: 2 }
+  { label: '实习（试用）', value: 2 }
 ]
 const statusColor: Record<number, string> = { 1: 'green', 0: 'red', 2: 'orange' }
 const genderOpts = [
@@ -163,9 +163,10 @@ const columns: any[] = [
     customRender: ({ record }: any) => leaderNameMap.value[record.leaderId]?.split('（')[0] || '-'
   },
   { title: '手机号', dataIndex: 'phone', width: 130 },
+  { title: '邮箱', dataIndex: 'email', width: 190, ellipsis: true },
   { title: '入职日期', dataIndex: 'entryDate', width: 120 },
   {
-    title: '状态', dataIndex: 'empStatus', width: 90,
+    title: '状态', dataIndex: 'empStatus', width: 120,
     customRender: ({ record }: any) => h(Tag, { color: statusColor[record.empStatus] || 'default' }, () => statusText(record.empStatus))
   },
   {

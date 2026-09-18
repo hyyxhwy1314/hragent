@@ -112,6 +112,14 @@ const startForm = ref<{
 const isOnboard = computed(() => startForm.value.processKey === 'onboard-process')
 // 是否离职流程（bizId 选员工）
 const isLeave = computed(() => startForm.value.processKey === 'leave-process')
+// 是否调岗流程（bizId 选员工 + 可选目标部门/岗位）
+const isTransfer = computed(() => startForm.value.processKey === 'transfer-process')
+// 是否转正流程（bizId 只能选实习/试用员工）
+const isRegular = computed(() => startForm.value.processKey === 'regular-process')
+// 是否员工相关流程（离职/转正/调岗，bizId 选员工）
+const isBizEmployee = computed(() =>
+  ['leave-process', 'regular-process', 'transfer-process'].includes(startForm.value.processKey)
+)
 
 // 候选简历列表（入职流程）
 const resumeOptions = computed(() =>
@@ -133,10 +141,20 @@ const leaderOptions = computed(() =>
     }))
 )
 
-// 在职员工列表（离职流程选员工）
+// 在职员工列表（离职/调岗流程选员工）
 const empOptions = computed(() =>
   employees.value
     .filter(e => e.id && e.empStatus !== 0)
+    .map(e => ({
+      label: `${e.empName || '未命名'}（${e.empNo || '-'}）`,
+      value: e.id!
+    }))
+)
+
+// 实习/试用员工列表（转正流程只能选这批人，empStatus=2）
+const regularEmpOptions = computed(() =>
+  employees.value
+    .filter(e => e.id && e.empStatus === 2)
     .map(e => ({
       label: `${e.empName || '未命名'}（${e.empNo || '-'}）`,
       value: e.id!
@@ -165,23 +183,50 @@ function openLeaveStart() {
   startVisible.value = true
 }
 
+function openRegularStart() {
+  startForm.value = {
+    processKey: 'regular-process',
+    bizId: null,
+    targetLeaderId: null,
+    targetDeptName: '',
+    targetPosition: ''
+  }
+  startVisible.value = true
+}
+
+function openTransferStart() {
+  startForm.value = {
+    processKey: 'transfer-process',
+    bizId: null,
+    targetLeaderId: null,
+    targetDeptName: '',
+    targetPosition: ''
+  }
+  startVisible.value = true
+}
+
 async function handleStart() {
   if (!startForm.value.bizId) {
-    message.warning(isOnboard.value ? '请选择候选人简历' : isLeave.value ? '请选择员工' : '请选择业务对象')
+    message.warning(isOnboard.value ? '请选择候选人简历' : isBizEmployee.value ? '请选择员工' : '请选择业务对象')
     return
   }
   if (isOnboard.value && !startForm.value.targetLeaderId) {
     message.warning('请选择用人部门主管')
     return
   }
-  // 组装请求：入职流程通过 bizJson 传递部门主管等参数
+  // 组装请求：入职/调岗流程通过 bizJson 传递业务参数
   const bizJson = isOnboard.value
     ? JSON.stringify({
         targetLeaderId: startForm.value.targetLeaderId,
         targetDeptName: startForm.value.targetDeptName || undefined,
         targetPosition: startForm.value.targetPosition || undefined
       })
-    : undefined
+    : isTransfer.value
+      ? JSON.stringify({
+          targetDeptName: startForm.value.targetDeptName || undefined,
+          targetPosition: startForm.value.targetPosition || undefined
+        })
+      : undefined
   try {
     await startProcess({
       processKey: startForm.value.processKey,
@@ -307,6 +352,8 @@ function traceStatusColor(status: string) {
         <div class="table-toolbar-right">
           <Space>
             <Button type="primary" :icon="h(PlusOutlined)" @click="openStart">发起入职流程</Button>
+            <Button :icon="h(PlusOutlined)" @click="openRegularStart">发起转正流程</Button>
+            <Button :icon="h(PlusOutlined)" @click="openTransferStart">发起调岗流程</Button>
             <Button :icon="h(PlusOutlined)" @click="openLeaveStart">发起离职流程</Button>
           </Space>
         </div>
@@ -323,6 +370,8 @@ function traceStatusColor(status: string) {
         <a-form-item label="流程类型">
           <Select v-model:value="startForm.processKey" :options="[
             { label: '入职流程', value: 'onboard-process' },
+            { label: '转正流程', value: 'regular-process' },
+            { label: '调岗流程', value: 'transfer-process' },
             { label: '离职流程', value: 'leave-process' }
           ]" />
         </a-form-item>
@@ -345,12 +394,30 @@ function traceStatusColor(status: string) {
           </a-form-item>
         </template>
 
-        <!-- 离职流程：选员工 -->
-        <template v-if="isLeave">
-          <a-form-item label="选择员工" required>
+        <!-- 离职/转正/调岗流程：选员工 -->
+        <template v-if="isBizEmployee">
+          <!-- 转正流程只能选实习/试用员工 -->
+          <a-form-item v-if="isRegular" label="选择实习生" required>
+            <Select v-model:value="startForm.bizId" :options="regularEmpOptions"
+              placeholder="请选择实习/试用员工" show-search option-filter-prop="label" />
+            <div v-if="regularEmpOptions.length === 0" style="color: #fa8c16; font-size: 12px; margin-top: 4px">
+              当前无实习/试用期员工，暂无可转正人员
+            </div>
+          </a-form-item>
+          <!-- 离职/调岗流程：选在职员工 -->
+          <a-form-item v-else label="选择员工" required>
             <Select v-model:value="startForm.bizId" :options="empOptions"
               placeholder="请选择在职员工" show-search option-filter-prop="label" />
           </a-form-item>
+          <!-- 调岗流程：目标部门/岗位（可选） -->
+          <template v-if="isTransfer">
+            <a-form-item label="目标部门（可选）">
+              <a-input v-model:value="startForm.targetDeptName" placeholder="如：研发部" />
+            </a-form-item>
+            <a-form-item label="目标岗位（可选）">
+              <a-input v-model:value="startForm.targetPosition" placeholder="如：Java工程师" />
+            </a-form-item>
+          </template>
         </template>
       </a-form>
     </Modal>

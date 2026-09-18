@@ -5,7 +5,7 @@ import {
   DashboardOutlined, UserOutlined, TeamOutlined, FileTextOutlined,
   TrophyOutlined, BookOutlined, TagOutlined, LinkOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined, DownOutlined,
-  ClockCircleOutlined, ApartmentOutlined, RobotOutlined
+  ClockCircleOutlined, ApartmentOutlined, RobotOutlined, FileProtectOutlined, DeploymentUnitOutlined
 } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { clearToken } from '@/api/request'
@@ -31,7 +31,9 @@ const allMenus = [
   { key: '/performances', label: '绩效管理', icon: TrophyOutlined, roles: ['DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
   { key: '/training-courses', label: '培训课程', icon: BookOutlined, roles: ['HR', 'ADMIN'] },
   { key: '/ability-tags', label: '能力标签', icon: TagOutlined, roles: ['HR', 'ADMIN'] },
-  { key: '/resume-ability-rels', label: '简历能力关联', icon: LinkOutlined, roles: ['HR', 'ADMIN'] }
+  { key: '/resume-ability-rels', label: '简历能力关联', icon: LinkOutlined, roles: ['HR', 'ADMIN'] },
+  { key: '/contract-review', label: '合同审查', icon: FileProtectOutlined, roles: ['HR', 'ADMIN'] },
+  { key: '/architecture', label: '系统架构', icon: DeploymentUnitOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] }
 ]
 
 // 按当前用户角色过滤菜单，并分成「工作台」与「管理」两组

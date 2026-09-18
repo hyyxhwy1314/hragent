@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL http://www.omg.org/spec/BPMN/2.0/20100501/BPMN20.xsd"
+             id="Definitions_regular"
+             targetNamespace="http://flowable.org/bpmn">
+
+    <!--转正流程：直属上级审批（bizId=员工ID，审批人由策略解析为上级）→ HR审核 → 通过则更新员工转正状态与日期-->
+    <process id="regular-process" name="转正申请流程" isExecutable="true">
+        <!--开始节点：员工发起转正-->
+        <startEvent id="regular_start" name="发起转正申请"/>
+        <sequenceFlow id="flow_r1" sourceRef="regular_start" targetRef="regular_1_dept_audit"/>
+
+        <!--节点1：直属上级审批 审批人启动流程时策略解析为${approver_dept}-->
+        <userTask id="regular_1_dept_audit" name="直属上级审批"
+                  flowable:assignee="${approver_dept}"/>
+        <sequenceFlow id="flow_r2" sourceRef="regular_1_dept_audit" targetRef="regular_gw_dept"/>
+
+        <!--网关1：上级审批结果判断-->
+        <exclusiveGateway id="regular_gw_dept" name="直属上级审批结果"/>
+        <sequenceFlow id="flow_r3" sourceRef="regular_gw_dept" targetRef="regular_2_hr_audit">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_r4" sourceRef="regular_gw_dept" targetRef="regular_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--节点2：HR人事审核 候选组HR-->
+        <userTask id="regular_2_hr_audit" name="HR人事审核"
+                  flowable:assignee="${approver_hr}"
+                  flowable:candidateGroups="HR"/>
+        <sequenceFlow id="flow_r5" sourceRef="regular_2_hr_audit" targetRef="regular_gw_hr"/>
+
+        <!--网关2：HR审核结果判断-->
+        <exclusiveGateway id="regular_gw_hr" name="HR审核结果"/>
+        <sequenceFlow id="flow_r6" sourceRef="regular_gw_hr" targetRef="regular_3_auto_regular">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_r7" sourceRef="regular_gw_hr" targetRef="regular_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--自动服务任务：转正后置业务，JavaDelegate 更新员工转正日期并将试用状态改为在职-->
+        <serviceTask id="regular_3_auto_regular" name="执行转正操作"
+                     flowable:delegateExpression="${regularApprovedDelegate}"/>
+        <sequenceFlow id="flow_r8" sourceRef="regular_3_auto_regular" targetRef="regular_4_send_email"/>
+
+        <!--自动服务任务：发送转正结果通知邮件（async=true 异步执行，失败自动重试，不阻塞审批主流程）-->
+        <serviceTask id="regular_4_send_email" name="发送转正通知邮件"
+                     flowable:delegateExpression="${approvalEmailDelegate}"
+                     flowable:async="true"/>
+        <sequenceFlow id="flow_r9" sourceRef="regular_4_send_email" targetRef="regular_end_success"/>
+
+        <!--结束节点：转正成功-->
+        <endEvent id="regular_end_success" name="转正完成"/>
+        <!--结束节点：转正驳回-->
+        <endEvent id="regular_end_rejected" name="转正申请驳回"/>
+    </process>
+</definitions>

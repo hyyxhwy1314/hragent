@@ -72,6 +72,16 @@ export interface ResumeAiAnalysisVO {
   evaluation?: string
 }
 
+/** 简历 AI 深度分析结果 */
+export interface ResumeDeepAnalysisVO {
+  success: boolean
+  summary?: string
+  strengths?: string[]
+  weaknesses?: string[]
+  matchAnalysis?: string
+  suggestions?: string[]
+}
+
 export const resumeApi = {
   ...createCrudApi<Resume>('/resumes'),
   /** 上传简历附件，返回文件ID、预览URL与解析字段 */
@@ -93,5 +103,9 @@ export const resumeApi = {
   /** AI分析简历 */
   aiAnalyze(id: number): Promise<ResumeAiAnalysisVO> {
     return httpPost<ResumeAiAnalysisVO>(`/resumes/${id}/ai-analyze`)
+  },
+  /** AI深度分析简历 */
+  deepAnalyze(id: number): Promise<ResumeDeepAnalysisVO> {
+    return httpPost<ResumeDeepAnalysisVO>(`/resumes/${id}/deep-analysis`)
   }
 }

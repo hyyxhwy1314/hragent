@@ -23,6 +23,8 @@ import org.example.hragent.service.ResumeParserService;
 import org.example.hragent.service.AliyunOcrService;
 import org.example.hragent.service.FileService;
 import org.example.hragent.service.ResumeAiAnalysisService;
+import org.example.hragent.service.ResumeDeepAnalysisService;
+import org.example.hragent.vo.ResumeDeepAnalysisVO;
 import org.example.hragent.config.AliyunOcrProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -73,6 +75,9 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
 
     @Autowired
     private ResumeAiAnalysisService resumeAiAnalysisService;
+
+    @Autowired
+    private ResumeDeepAnalysisService resumeDeepAnalysisService;
 
     @Autowired
     private FileService fileService;
@@ -265,6 +270,29 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
         // 直接调用分析服务，传递字节数组和文件名
         ResumeAiAnalysisVO result = resumeAiAnalysisService.analyzeResume(fileBytes, resume.getResumeName());
         log.info("Python服务调用完成，结果: {}", result.getSuccess());
+
+        // Python 解析成功则落库：正文 + 识别出的邮箱，供入职流程回填员工邮箱使用
+        if (Boolean.TRUE.equals(result.getSuccess())
+                && result.getResumeText() != null && !result.getResumeText().isBlank()) {
+            resume.setResumeContent(result.getResumeText());
+            if (result.getEmail() != null && !result.getEmail().isBlank()) {
+                resume.setEmail(result.getEmail());
+            }
+            resumeService.updateById(resume);
+            log.info("简历解析结果已落库 resumeId={}, email={}", id, resume.getEmail());
+        }
         return R.ok(result);
+    }
+
+    /**
+     * 简历 AI 深度分析
+     * 基于简历原文由本地大模型生成结构化深度评估（优势/短板/匹配分析/建议）
+     * 深度分析耗时长、大模型调用成本高，需限流 + 防重复点击
+     */
+    @PostMapping("/{id}/deep-analysis")
+    @RateLimit(rate = 3, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "深度分析请求过于频繁，请稍后再试")
+    @RepeatSubmit(interval = 30, unit = TimeUnit.SECONDS, message = "深度分析进行中，请勿重复点击")
+    public R<ResumeDeepAnalysisVO> deepAnalyze(@PathVariable Long id) {
+        return R.ok(resumeDeepAnalysisService.analyzeDeep(id));
     }
 }

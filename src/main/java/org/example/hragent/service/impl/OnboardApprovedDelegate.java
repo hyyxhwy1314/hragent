@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 入职流程通过后自动创建员工记录的 JavaDelegate
@@ -60,12 +62,13 @@ public class OnboardApprovedDelegate implements JavaDelegate {
         emp.setGender(resume.getGender());
         emp.setBirthDate(resume.getBirthDate());
         emp.setPhone(resume.getPhone());
-        emp.setEmail(resume.getEmail());
         emp.setIdCard(resume.getIdCard());
+        // 回填员工邮箱：优先识别简历里的 QQ 邮箱，否则用简历邮箱字段
+        emp.setEmail(resolveEmail(resume));
         emp.setDeptName(targetDeptName);
         emp.setPositionName(targetPosition != null ? targetPosition : resume.getExpectPosition());
         emp.setEntryDate(LocalDate.now());
-        emp.setEmpStatus(1); // 试用中
+        emp.setEmpStatus(2); // 试用（实习生/试用期员工，转正后才是正式在职）
         emp.setRole("EMPLOYEE");
         if (targetLeaderIdStr != null) {
             try {
@@ -94,5 +97,32 @@ public class OnboardApprovedDelegate implements JavaDelegate {
     private String generateEmpNo() {
         return "EMP" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
                 + String.format("%04d", System.currentTimeMillis() % 10000);
+    }
+
+    /** QQ 邮箱正则：匹配 `xxx@qq.com`（不区分大小写） */
+    private static final Pattern QQ_EMAIL = Pattern.compile(
+            "[A-Za-z0-9][A-Za-z0-9._%+-]*@qq\\.com", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * 回填邮箱：依次从「简历正文 QQ 识别 → AI 结构化字段 → 简历邮箱字段」取，
+     * 命中即用。任何一条来源的邮箱入库，入职回填都能认到，不强制依赖 PDF 解析。
+     */
+    private String resolveEmail(Resume resume) {
+        String content = resume.getResumeContent();
+        if (content != null) {
+            Matcher m = QQ_EMAIL.matcher(content);
+            if (m.find()) {
+                return m.group();
+            }
+        }
+        // AI 结构化字段（如做过结构化/深度分析）里可能已含 QQ 邮箱
+        String struct = resume.getResumeStructJson();
+        if (struct != null) {
+            Matcher sm = QQ_EMAIL.matcher(struct);
+            if (sm.find()) {
+                return sm.group();
+            }
+        }
+        return resume.getEmail();
     }
 }

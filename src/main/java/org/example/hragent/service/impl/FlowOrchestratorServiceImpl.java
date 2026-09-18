@@ -89,6 +89,8 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
         Map<String, Object> variables = new HashMap<>();
         variables.put("bizId", dto.getBizId());
         variables.put("applyEmpId", applyEmpId);
+        // 流程类型变量：供审批通过后的自动节点（如结果通知邮件）选用对应业务文案
+        variables.put("flowType", FlowConstants.flowTypeOf(dto.getProcessKey()));
         variables.putAll(assigneeResolver.resolve(dto.getProcessKey(), dto.getBizId(), applyEmpId));
 
         // 解析 bizJson 平铺为流程变量（HR 发起时可通过 bizJson 指定 targetLeaderId 等业务参数）

@@ -77,6 +77,7 @@ public class ResumeAiAnalysisServiceImpl implements ResumeAiAnalysisService {
                 vo.setSuccess(jsonNode.path("success").asBoolean());
                 vo.setFilename(jsonNode.path("filename").asText());
                 vo.setResumeText(jsonNode.path("resume_text").asText());
+                vo.setEmail(jsonNode.hasNonNull("email") ? jsonNode.path("email").asText(null) : null);
                 vo.setEvaluation(jsonNode.path("evaluation").asText());
                 log.info("Python AI分析成功: {}", vo.getFilename());
                 return vo;

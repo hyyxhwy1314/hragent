@@ -6,7 +6,7 @@ import {
 import {
   SearchOutlined, ReloadOutlined, FileTextOutlined, UploadOutlined, RobotOutlined
 } from '@ant-design/icons-vue'
-import { resumeApi, type Resume, type ResumeAiAnalysisVO } from '@/api/modules/resume'
+import { resumeApi, type Resume, type ResumeAiAnalysisVO, type ResumeDeepAnalysisVO } from '@/api/modules/resume'
 import { useCrud } from '@/composables/useCrud'
 
 defineOptions({ name: 'ResumePage' })
@@ -18,6 +18,11 @@ const aiAnalyzing = ref(false)
 const analyzingId = ref<number | null>(null)
 const aiAnalysisResult = ref<ResumeAiAnalysisVO | null>(null)
 const showAiModal = ref(false)
+// 深度分析
+const deepAnalyzing = ref(false)
+const deepAnalyzingId = ref<number | null>(null)
+const deepAnalysisResult = ref<ResumeDeepAnalysisVO | null>(null)
+const showDeepModal = ref(false)
 // 存储每个简历的AI分析结果，用简历ID作为key
 const aiResultsMap = ref<Map<number, ResumeAiAnalysisVO>>(new Map())
 
@@ -163,6 +168,31 @@ function onViewAiResult(r: Resume) {
   }
 }
 
+// AI深度分析简历
+async function onDeepAnalyze(r: Resume) {
+  if (!r.id || !r.resumeFileId) {
+    message.warning('该简历未上传附件')
+    return
+  }
+  deepAnalyzing.value = true
+  deepAnalyzingId.value = r.id
+  try {
+    const result = await resumeApi.deepAnalyze(r.id)
+    deepAnalysisResult.value = result
+    showDeepModal.value = true
+    if (result.success) {
+      message.success('深度分析完成')
+    } else {
+      message.warning('深度分析失败: ' + result.summary)
+    }
+  } catch {
+    /* 错误提示已由拦截器统一处理 */
+  } finally {
+    deepAnalyzing.value = false
+    deepAnalyzingId.value = null
+  }
+}
+
 const columns: any[] = [
   { title: '简历名称', dataIndex: 'resumeName', width: 220, ellipsis: true },
   {
@@ -203,6 +233,13 @@ const columns: any[] = [
         loading: aiAnalyzing.value && analyzingId.value === record.id,
         onClick: () => onAiAnalyze(record)
       }, () => 'AI分析'),
+      h(Button, { 
+        size: 'small', 
+        type: 'link', 
+        disabled: !record.resumeFileId, 
+        loading: deepAnalyzing.value && deepAnalyzingId.value === record.id,
+        onClick: () => onDeepAnalyze(record)
+      }, () => '深度分析'),
       h(Button, { 
         size: 'small', 
         type: 'link', 
@@ -295,5 +332,91 @@ const columns: any[] = [
         </div>
       </div>
     </Modal>
+
+    <!-- 深度分析结果弹窗 -->
+    <Modal
+      v-model:open="showDeepModal"
+      title="AI 深度分析结果"
+      :footer="null"
+      width="760px"
+    >
+      <a-spin :spinning="deepAnalyzing">
+        <div v-if="deepAnalysisResult">
+          <a-alert
+            v-if="!deepAnalysisResult.success"
+            type="error"
+            show-icon
+            :message="deepAnalysisResult.summary || '深度分析失败'"
+            style="margin-bottom: 16px"
+          />
+          <template v-else>
+            <div class="deep-summary">
+              {{ deepAnalysisResult.summary || '暂无总体评价' }}
+            </div>
+
+            <div class="deep-section" v-if="deepAnalysisResult.strengths?.length">
+              <div class="deep-title green">核心优势</div>
+              <ul class="deep-list">
+                <li v-for="(s, i) in deepAnalysisResult.strengths" :key="i">{{ s }}</li>
+              </ul>
+            </div>
+
+            <div class="deep-section" v-if="deepAnalysisResult.weaknesses?.length">
+              <div class="deep-title orange">潜在短板</div>
+              <ul class="deep-list">
+                <li v-for="(w, i) in deepAnalysisResult.weaknesses" :key="i">{{ w }}</li>
+              </ul>
+            </div>
+
+            <div class="deep-section" v-if="deepAnalysisResult.matchAnalysis">
+              <div class="deep-title blue">岗位匹配分析</div>
+              <div class="deep-text">{{ deepAnalysisResult.matchAnalysis }}</div>
+            </div>
+
+            <div class="deep-section" v-if="deepAnalysisResult.suggestions?.length">
+              <div class="deep-title blue">招聘 / 面试建议</div>
+              <ul class="deep-list">
+                <li v-for="(s, i) in deepAnalysisResult.suggestions" :key="i">{{ s }}</li>
+              </ul>
+            </div>
+          </template>
+        </div>
+      </a-spin>
+    </Modal>
   </div>
 </template>
+
+<style scoped>
+.deep-summary {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1f2937;
+  background: #f0f7ff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  white-space: pre-wrap;
+}
+.deep-section {
+  margin-top: 16px;
+}
+.deep-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.deep-title.green { color: #1e6f4e; }
+.deep-title.orange { color: #b45309; }
+.deep-title.blue { color: #4a7fc1; }
+.deep-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.deep-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #374151;
+}
+</style>

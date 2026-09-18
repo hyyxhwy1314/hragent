@@ -441,6 +441,35 @@ public class HrBusinessTools {
     }
 
     /**
+     * 为指定员工发起转正流程
+     */
+    @Tool("为指定员工发起转正申请流程，参数为员工姓名")
+    public String startRegularProcess(String query) {
+        try {
+            String employeeName = extractProcessEmployeeName(query);
+            if (employeeName == null || employeeName.isEmpty()) {
+                return "请提供员工姓名以发起转正流程，例如：发起张三的转正流程";
+            }
+
+            Employee employee = findEmployeeByName(employeeName);
+            if (employee == null) {
+                return String.format("未找到员工：%s，请确认员工姓名是否正确", employeeName);
+            }
+
+            FlowStartDto dto = new FlowStartDto();
+            dto.setProcessKey(FlowConstants.PROC_KEY_REGULAR);
+            dto.setBizId(employee.getId());
+            flowOrchestratorService.start(dto);
+
+            return String.format("已为员工 %s（工号：%s）发起转正流程，审批已提交至相关负责人。",
+                    employee.getEmpName(), employee.getEmpNo());
+
+        } catch (Exception e) {
+            return "发起转正流程失败：" + e.getMessage();
+        }
+    }
+
+    /**
      * 查询审批流程实例列表，可按流程类型(onboard/leave/transfer/regular)或状态筛选
      * 参数格式示例：查询流程实例 / 查询入职流程 / 查询进行中的流程
      */
@@ -685,7 +714,7 @@ public class HrBusinessTools {
      */
     private String extractProcessEmployeeName(String query) {
         if (query == null || query.isEmpty()) return null;
-        // 去掉"发起"前缀和"的离职/入职/调岗流程"后缀
+        // 去掉"发起"前缀和"的离职/入职/调岗/转正流程"后缀
         String name = query.replaceAll("^(发起|为)", "")
                 .replaceAll("的(离职|入职|调岗|转正)流程$", "")
                 .trim();

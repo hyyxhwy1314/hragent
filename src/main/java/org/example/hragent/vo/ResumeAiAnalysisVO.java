@@ -17,6 +17,8 @@ public class ResumeAiAnalysisVO {
     private String filename;
     /** 简历文本 */
     private String resumeText;
+    /** 简历邮箱（Python 从文本识别，QQ 优先；供落库 t_resume.email） */
+    private String email;
     /** AI评价 */
     private String evaluation;
 }

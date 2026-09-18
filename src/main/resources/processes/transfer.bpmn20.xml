@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL http://www.omg.org/spec/BPMN/2.0/20100501/BPMN20.xsd"
+             id="Definitions_transfer"
+             targetNamespace="http://flowable.org/bpmn">
+
+    <!--调岗流程：直属上级审批（bizId=员工ID，审批人由策略解析为上级）→ HR审核 → 通过则更新员工部门/岗位-->
+    <process id="transfer-process" name="调岗申请流程" isExecutable="true">
+        <!--开始节点：员工发起调岗-->
+        <startEvent id="transfer_start" name="发起调岗申请"/>
+        <sequenceFlow id="flow_t1" sourceRef="transfer_start" targetRef="transfer_1_dept_audit"/>
+
+        <!--节点1：直属上级审批 审批人启动流程时策略解析为${approver_dept}，目标部门/岗位由 bizJson 传入 targetDeptName/targetPosition-->
+        <userTask id="transfer_1_dept_audit" name="直属上级审批"
+                  flowable:assignee="${approver_dept}"/>
+        <sequenceFlow id="flow_t2" sourceRef="transfer_1_dept_audit" targetRef="transfer_gw_dept"/>
+
+        <!--网关1：上级审批结果判断-->
+        <exclusiveGateway id="transfer_gw_dept" name="直属上级审批结果"/>
+        <sequenceFlow id="flow_t3" sourceRef="transfer_gw_dept" targetRef="transfer_2_hr_audit">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_t4" sourceRef="transfer_gw_dept" targetRef="transfer_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--节点2：HR人事审核 候选组HR-->
+        <userTask id="transfer_2_hr_audit" name="HR人事审核"
+                  flowable:assignee="${approver_hr}"
+                  flowable:candidateGroups="HR"/>
+        <sequenceFlow id="flow_t5" sourceRef="transfer_2_hr_audit" targetRef="transfer_gw_hr"/>
+
+        <!--网关2：HR审核结果判断-->
+        <exclusiveGateway id="transfer_gw_hr" name="HR审核结果"/>
+        <sequenceFlow id="flow_t6" sourceRef="transfer_gw_hr" targetRef="transfer_3_auto_transfer">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_t7" sourceRef="transfer_gw_hr" targetRef="transfer_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--自动服务任务：调岗后置业务，JavaDelegate 读取 targetDeptName/targetPosition 更新员工部门/岗位-->
+        <serviceTask id="transfer_3_auto_transfer" name="执行调岗操作"
+                     flowable:delegateExpression="${transferApprovedDelegate}"/>
+        <sequenceFlow id="flow_t8" sourceRef="transfer_3_auto_transfer" targetRef="transfer_4_send_email"/>
+
+        <!--自动服务任务：发送调岗结果通知邮件（async=true 异步执行，失败自动重试，不阻塞审批主流程）-->
+        <serviceTask id="transfer_4_send_email" name="发送调岗通知邮件"
+                     flowable:delegateExpression="${approvalEmailDelegate}"
+                     flowable:async="true"/>
+        <sequenceFlow id="flow_t9" sourceRef="transfer_4_send_email" targetRef="transfer_end_success"/>
+
+        <!--结束节点：调岗成功-->
+        <endEvent id="transfer_end_success" name="调岗完成"/>
+        <!--结束节点：调岗驳回-->
+        <endEvent id="transfer_end_rejected" name="调岗申请驳回"/>
+    </process>
+</definitions>

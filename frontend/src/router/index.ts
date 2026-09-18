@@ -23,7 +23,9 @@ const routes: RouteRecordRaw[] = [
   { path: '/performances', name: 'Performance', component: Performance, meta: { title: '绩效管理', icon: 'TrophyOutlined' } },
   { path: '/training-courses', name: 'TrainingCourse', component: TrainingCourse, meta: { title: '培训课程', icon: 'BookOutlined' } },
   { path: '/ability-tags', name: 'AbilityTag', component: AbilityTag, meta: { title: '能力标签', icon: 'TagOutlined' } },
-  { path: '/resume-ability-rels', name: 'ResumeAbilityRel', component: ResumeAbilityRel, meta: { title: '简历能力关联', icon: 'LinkOutlined' } }
+  { path: '/resume-ability-rels', name: 'ResumeAbilityRel', component: ResumeAbilityRel, meta: { title: '简历能力关联', icon: 'LinkOutlined' } },
+  { path: '/contract-review', name: 'ContractReview', component: () => import('@/views/contractReview/index.vue'), meta: { title: '合同审查', icon: 'FileProtectOutlined', roles: ['HR', 'ADMIN'] } },
+  { path: '/architecture', name: 'Architecture', component: () => import('@/views/architecture/index.vue'), meta: { title: '系统架构', icon: 'DeploymentUnitOutlined' } }
 ]
 
 const router = createRouter({
