@@ -1,4 +1,4 @@
-import { httpGet, httpPost } from '../request'
+import { httpGet, httpPost, httpUpload } from '../request'
 
 /** 流程任务 */
 export interface TaskVO {
@@ -51,6 +51,46 @@ export interface TaskCompleteDTO {
   approved: boolean
   comment?: string
   delegateToEmpId?: number
+  /** 抄送人员工ID列表（本节点审批完成时抄送） */
+  ccEmpIds?: number[]
+}
+
+/** 抄送我的流程 */
+export interface FlowCcVO {
+  id: number
+  flowInstanceId: number
+  flowNo: string
+  flowType: string
+  bizId: number
+  applyEmpId: number
+  flowStatus: number
+  nodeName: string
+  readFlag: boolean
+  createTime: string
+}
+
+/** 流程运行态图（BPMN XML + 节点高亮） */
+export interface FlowDiagramVO {
+  bpmnXml: string
+  activeActivityIds: string[]
+  finishedActivityIds: string[]
+}
+
+/** 已部署流程定义 */
+export interface ProcessDefinition {
+  id: string
+  key: string
+  name: string
+  version: number
+  deploymentId: string
+}
+
+/** 流程定义 XML 详情 */
+export interface ProcessDefinitionXml {
+  key: string
+  name: string
+  version: number
+  bpmnXml: string
 }
 
 // 流程状态映射
@@ -66,7 +106,10 @@ export const FLOW_TYPE_MAP: Record<string, string> = {
   ONBOARD: '入职',
   REGULAR: '转正',
   TRANSFER: '调岗',
-  LEAVE: '离职'
+  LEAVE: '离职',
+  LEAVE_REQUEST: '请假',
+  CERTIFICATE: '证明',
+  MULTI_SIGN: '会签/或签'
 }
 
 /** 查待办 */
@@ -106,4 +149,34 @@ export function listInstances(params?: {
 /** 流程审批轨迹 */
 export function getFlowTrace(flowInstanceId: number): Promise<FlowTraceVO[]> {
   return httpGet(`/flow/query/instances/${flowInstanceId}/trace`)
+}
+
+/** 流程运行态图（BPMN XML + 活动/已完成节点高亮） */
+export function getFlowDiagram(flowInstanceId: number): Promise<FlowDiagramVO> {
+  return httpGet(`/flow/query/instances/${flowInstanceId}/diagram`)
+}
+
+/** 抄送我的流程列表 */
+export function listMyCc(): Promise<FlowCcVO[]> {
+  return httpGet('/flow/query/cc/my')
+}
+
+/** 标记抄送记录已读 */
+export function markCcRead(ccId: number): Promise<boolean> {
+  return httpPost(`/flow/query/cc/${ccId}/read`)
+}
+
+/** 已部署流程定义列表 */
+export function listDefinitions(): Promise<ProcessDefinition[]> {
+  return httpGet('/flow/process/definitions')
+}
+
+/** 查询流程定义（最新版本）的 BPMN XML */
+export function getDefinitionXml(processKey: string): Promise<ProcessDefinitionXml> {
+  return httpGet(`/flow/process/definitions/${processKey}/xml`)
+}
+
+/** 部署 BPMN 流程定义（file 需携带 .bpmn20.xml 文件名后缀） */
+export function deployProcess(file: File): Promise<Record<string, any>> {
+  return httpUpload('/flow/process/deploy', file)
 }

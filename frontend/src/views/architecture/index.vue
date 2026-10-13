@@ -126,11 +126,11 @@ const stack = [
   margin-bottom: 20px;
 }
 .layer {
-  background: #fff;
-  border: 1px solid #eef0f3;
-  border-radius: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   padding: 16px 18px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 .layer-head {
   display: flex;
@@ -146,10 +146,11 @@ const stack = [
 .layer-name {
   font-size: 15px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 .layer-desc {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 .layer-modules {
   display: flex;
@@ -163,29 +164,29 @@ const stack = [
   flex: 1 1 200px;
   min-width: 180px;
   max-width: 260px;
-  border: 1px solid #eef0f3;
+  border: 1px solid var(--border);
   border-top: 2px solid var(--accent, #4a7fc1);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
-  background: #fafbfc;
+  background: var(--bg-primary);
   transition: all 0.15s;
   cursor: default;
 }
 .module:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
   border-color: var(--accent, #4a7fc1);
 }
 .module-name {
   font-weight: 600;
   font-size: 13px;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 .module-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-tertiary);
   margin-top: 4px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 .tags {
   display: flex;
@@ -195,14 +196,14 @@ const stack = [
 }
 .tag {
   font-size: 11px;
-  color: #4a7fc1;
-  background: #e8f0fe;
+  color: var(--accent);
+  background: var(--accent-light);
   padding: 1px 6px;
   border-radius: 4px;
 }
 .legend {
   padding: 16px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 .stack-list {
   display: flex;
@@ -212,11 +213,11 @@ const stack = [
 }
 .stack {
   font-size: 12px;
-  color: #374151;
-  background: #f1f3f5;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
   padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid #eef0f3;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
 }
 .tip {
   max-width: 260px;

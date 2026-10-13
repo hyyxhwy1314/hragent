@@ -11,8 +11,6 @@ import org.example.hragent.exception.ErrorCode;
 import org.example.hragent.service.BaseService;
 import org.example.hragent.vo.PageVO;
 
-import java.util.List;
-
 public abstract class BaseServiceImpl<M extends BaseMapper<T>, T extends BaseEntity>
         extends ServiceImpl<M, T> implements BaseService<T> {
 

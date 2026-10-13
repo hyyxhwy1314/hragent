@@ -2,10 +2,11 @@ package org.example.hragent.service;
 
 import org.example.hragent.dto.FlowStartDto;
 import org.example.hragent.dto.TaskCompleteDto;
+import org.example.hragent.vo.FlowCcVO;
+import org.example.hragent.vo.FlowDiagramVO;
 import org.example.hragent.vo.FlowInstanceVO;
 import org.example.hragent.vo.FlowTraceVO;
 import org.example.hragent.vo.TaskVO;
-import org.flowable.task.api.Task;
 
 import java.util.List;
 
@@ -55,4 +56,13 @@ public interface FlowOrchestratorService {
 
     /** 撤回流程 */
     boolean cancel(Long flowInstanceId, Long operatorEmpId);
+
+    /** 查询抄送给我的流程列表 */
+    List<FlowCcVO> listMyCc(Long empId);
+
+    /** 标记抄送记录已读 */
+    boolean markCcRead(Long ccId, Long empId);
+
+    /** 查询流程运行态图（BPMN XML + 活动/已完成节点高亮） */
+    FlowDiagramVO getDiagram(Long flowInstanceId);
 }

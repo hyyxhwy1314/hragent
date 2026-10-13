@@ -6,6 +6,7 @@
 |------|---------|-----------|------|
 | MySQL 5.7 | douban-mysql | 13306 | 业务数据库 |
 | Redis 6.2 | douban-redis | 16379 | 缓存 |
+| Qdrant | douban-qdrant | 6333 / 6334 | 向量库（集合 `hr_knowledge`） |
 | 数据库名 | hr_agent_db | - | 字符集 utf8mb4 |
 
 ## ER 模型
@@ -35,6 +36,7 @@ t_training_course ──── t_ability_tag (tag_ids 逗号分隔)
 | t_ability_tag | 能力标签表 | tag_name, category |
 | t_resume_ability_rel | 简历-标签中间表 | resume_id, tag_id |
 | t_agent_interact_log | AI 交互日志 | user_message, answer, input_tokens |
+| t_knowledge_chunk | 知识库片段表（RAG） | 原文内容、来源文档引用、visibility(PUBLIC/HR) |
 
 ## 通用字段规范
 
@@ -50,3 +52,16 @@ t_training_course ──── t_ability_tag (tag_ids 逗号分隔)
 
 > 敏感字段（手机号、身份证、基本工资）应用层 AES-256-CBC 加密存储，数据库只存密文。
 > 不使用数据库外键约束，所有关联关系由应用层维护。
+
+## 增量 DDL 脚本
+
+项目**不使用自动迁移**，建表脚本位于 `src/main/resources/sql/`，需**手动执行**。现有脚本：
+
+| 脚本 | 说明 |
+|------|------|
+| `init_schema.sql` | 基础表结构初始化 |
+| `flow_enhance_ddl.sql` | 流程审批相关增量 |
+| `employee_self_service_ddl.sql` | 员工自助服务增量 |
+| `rag_knowledge_ddl.sql` | 知识库片段表（`t_knowledge_chunk`）增量 |
+
+> 知识库检索（RAG）采用分层存储：原文与元数据存 MySQL 表 `t_knowledge_chunk`，向量存 Qdrant 集合 `hr_knowledge`。启用该能力前请手动执行 `rag_knowledge_ddl.sql` 建表。

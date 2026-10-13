@@ -48,12 +48,38 @@ export interface AgentMessage {
   createTime: string
 }
 
+/** 异步任务提交响应 */
+export interface AgentTaskSubmitResponse {
+  taskId: string
+  sessionId: string
+}
+
+/** 异步任务记录（轮询返回） */
+export interface AgentTaskRecord {
+  taskId: string
+  sessionId: string
+  status: 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'TIMEOUT'
+  steps: string[]
+  result: AgentChatResponse | null
+  error: string | null
+  createdAt: number
+  finishedAt: number
+}
+
 export function agentChat(data: AgentChatRequest): Promise<AgentChatResponse> {
   return httpPost('/agent/chat', data)
 }
 
 export function agentContinueChat(sessionId: string, data: AgentChatRequest): Promise<AgentChatResponse> {
   return httpPost(`/agent/chat/${sessionId}`, data)
+}
+
+export function agentChatAsync(data: AgentChatRequest & { sessionId?: string }): Promise<AgentTaskSubmitResponse> {
+  return httpPost('/agent/chat/async', data)
+}
+
+export function getAgentTask(taskId: string): Promise<AgentTaskRecord> {
+  return httpGet(`/agent/tasks/${taskId}`)
 }
 
 export function agentClearSession(sessionId: string): Promise<boolean> {

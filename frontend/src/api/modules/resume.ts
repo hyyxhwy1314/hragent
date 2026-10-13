@@ -64,12 +64,12 @@ export interface ResumeUploadVO {
   parsed?: ResumeParsedData
 }
 
-/** 简历AI分析结果 */
-export interface ResumeAiAnalysisVO {
-  success: boolean
-  filename?: string
-  resumeText?: string
-  evaluation?: string
+/** 简历 AI 深度分析 - 分类技能标签匹配明细 */
+export interface ResumeTagMatch {
+  category?: string
+  score?: number
+  matched?: string[]
+  missing?: string[]
 }
 
 /** 简历 AI 深度分析结果 */
@@ -80,6 +80,10 @@ export interface ResumeDeepAnalysisVO {
   weaknesses?: string[]
   matchAnalysis?: string
   suggestions?: string[]
+  /** 综合评分（0-100） */
+  score?: number
+  /** 各分类技能标签匹配明细 */
+  tagMatch?: ResumeTagMatch[]
 }
 
 export const resumeApi = {
@@ -100,12 +104,12 @@ export const resumeApi = {
   downloadFile(id: number): Promise<void> {
     return httpDownload(`/resumes/${id}/file/download`, `resume-${id}`)
   },
-  /** AI分析简历 */
-  aiAnalyze(id: number): Promise<ResumeAiAnalysisVO> {
-    return httpPost<ResumeAiAnalysisVO>(`/resumes/${id}/ai-analyze`)
-  },
   /** AI深度分析简历 */
   deepAnalyze(id: number): Promise<ResumeDeepAnalysisVO> {
     return httpPost<ResumeDeepAnalysisVO>(`/resumes/${id}/deep-analysis`)
+  },
+  /** 查询最近一次深度分析/评分结果（不重新计算） */
+  getScore(id: number): Promise<ResumeDeepAnalysisVO> {
+    return httpGet<ResumeDeepAnalysisVO>(`/resumes/${id}/score`)
   }
 }

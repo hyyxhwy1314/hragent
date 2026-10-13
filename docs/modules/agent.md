@@ -46,7 +46,7 @@ AI 智能助手是本系统的核心亮点，基于 LangChain4j + LangGraph4j �
 | 岗位 | queryJobPost, listJobPost | 岗位管理 |
 | 绩效 | queryPerformance, savePerformance | 绩效管理 |
 | 培训 | queryTrainingCourse, saveTrainingCourse | 培训管理 |
-| 知识 | queryPolicy | 制度查询 |
+| 知识 | queryPolicy, hrKnowledgeQA | 制度查询、知识库检索问答（RAG，返回真实召回条款片段） |
 
 ### 思考过程展示
 
@@ -54,6 +54,61 @@ AI 助手会展示完整的思考过程，包括：
 1. 推理过程（用户可折叠查看）
 2. 工具调用步骤（调用了什么工具、参数是什么）
 3. Token 消耗统计（每次对话的输入/输出 Token 数）
+
+## 知识库检索（RAG）
+
+系统内置向量检索的知识库问答能力，AI 工具 `hrKnowledgeQA` 由原先只返回模板话术升级为返回知识库真实召回的条款片段。
+
+### 分层存储
+
+| 数据 | 存储位置 |
+|------|---------|
+| 原文与元数据 | MySQL 表 `t_knowledge_chunk` |
+| 向量 | Qdrant 集合 `hr_knowledge` |
+
+向量库为 Docker 容器 `douban-qdrant`，映射端口 6333（REST）/ 6334（gRPC）；客户端**直接调用 Qdrant REST API**（JDK HttpClient + Jackson），**未引入**向量库 SDK 依赖。
+
+### 向量化模型
+
+复用阿里云 MaaS 兼容端点，模型 `text-embedding-v3`（1024 维），与对话模型**共用** `ai.base-url` / `ai.api-key`，仅模型名不同，配置项为 `ai.embedding.model.name`（环境变量 `AI_EMBEDDING_MODEL_NAME`）。
+
+### 检索链路
+
+```
+查询向量化 ──► Qdrant top-k 相似度检索（带 visibility 权限预过滤）
+          ──► 返回带来源文档引用的片段 ──► 主模型据此作答
+```
+
+片段带 `visibility` 元数据做权限感知：
+
+| 取值 | 可见范围 |
+|------|---------|
+| PUBLIC | 全员可见 |
+| HR | 仅 HR/HRBP/ADMIN 可见 |
+
+### 内置知识文档与索引入库
+
+内置知识文档位于 `src/main/resources/knowledge/*.md`，共 6 篇（考勤、请假、转正、绩效、薪酬、行为规范）。应用启动时**幂等**切分并向量化入库（MySQL 已有片段则跳过）。
+
+重建索引：将 `hragent.rag.reindex` 设为 `true` 并重启即可（会清空旧片段与 Qdrant 集合并重新向量化）。
+
+### 配置项 `hragent.rag`
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `enabled` | true | 是否启用知识库检索 |
+| `top-k` | 5 | 检索返回片段数 |
+| `min-score` | 0.35 | 相似度下限 |
+| `chunk-size` | 400 | 切分块大小 |
+| `chunk-overlap` | 80 | 切分块重叠 |
+| `reindex` | false | 是否重建索引 |
+| `qdrant.{host,port,collection,vector-dim}` | — | Qdrant 连接与集合、向量维度 |
+
+增量建表脚本 `src/main/resources/sql/rag_knowledge_ddl.sql` 需**手动执行**。核心代码位于 `agent/rag/`：`KnowledgeRetrievalService`、`KnowledgeBaseInitializer`、`QdrantVectorClient`、`RagProperties`、`TextSplitter`。
+
+## 工具路由
+
+工具选择采用分层 Tool Routing：注册表 → 确定性硬过滤 → 粗分类 → BM25 召回 Top-K → 模型精选 → 执行前鉴权。代码位于 `agent/routing/`（`ToolRouter` 顶部有中文链路注释）。
 
 ## 对话示例
 

@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.example.hragent.annotation.RateLimit;
 import org.example.hragent.annotation.RepeatSubmit;
+import org.example.hragent.annotation.LogAction;
 import org.example.hragent.converter.ResumeConverter;
 import org.example.hragent.dto.ResumeQueryDto;
 import org.example.hragent.dto.ResumeSaveDto;
@@ -292,7 +293,16 @@ public class ResumeController extends BaseCrudController<Resume, ResumeVO, Resum
     @PostMapping("/{id}/deep-analysis")
     @RateLimit(rate = 3, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "深度分析请求过于频繁，请稍后再试")
     @RepeatSubmit(interval = 30, unit = TimeUnit.SECONDS, message = "深度分析进行中，请勿重复点击")
+    @LogAction(module = "简历分析", action = "深度分析", markToken = true)
     public R<ResumeDeepAnalysisVO> deepAnalyze(@PathVariable Long id) {
         return R.ok(resumeDeepAnalysisService.analyzeDeep(id));
+    }
+
+    /**
+     * 查询简历最近一次深度分析/评分结果（不做重新分析，直接读取落库明细）
+     */
+    @GetMapping("/{id}/score")
+    public R<ResumeDeepAnalysisVO> getScore(@PathVariable Long id) {
+        return R.ok(resumeDeepAnalysisService.getScore(id));
     }
 }

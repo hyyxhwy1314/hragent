@@ -1,17 +1,23 @@
 <script setup lang="ts">
-import { ref, h, computed } from 'vue'
-import { Table, Button, Space, Select, Tag, Modal, Timeline, message, App as AntApp } from 'ant-design-vue'
-import { ReloadOutlined, PlusOutlined, UnorderedListOutlined, CheckCircleFilled, CloseCircleFilled, ClockCircleOutlined } from '@ant-design/icons-vue'
+import { ref, h, computed, watch } from 'vue'
+import { Table, Button, Space, Select, Tag, Modal, Timeline, message, App as AntApp, Badge } from 'ant-design-vue'
 import {
-  listInstances, startProcess, cancelFlow, getFlowTrace,
+  ReloadOutlined, PlusOutlined, UnorderedListOutlined, CheckCircleFilled, CloseCircleFilled,
+  ClockCircleOutlined, ApartmentOutlined
+} from '@ant-design/icons-vue'
+import {
+  listInstances, startProcess, cancelFlow, getFlowTrace, listMyCc, markCcRead,
   FLOW_STATUS_MAP, FLOW_TYPE_MAP,
-  type FlowInstance, type FlowTraceVO
+  type FlowInstance, type FlowTraceVO, type FlowCcVO
 } from '@/api/modules/flow'
 import { employeeApi, type Employee } from '@/api/modules/employee'
 import { resumeApi, type Resume } from '@/api/modules/resume'
+import FlowDiagramModal from './FlowDiagramModal.vue'
 
 defineOptions({ name: 'FlowPage' })
 const { modal } = AntApp.useApp()
+
+const activeTab = ref('list')
 
 const loading = ref(false)
 const dataSource = ref<FlowInstance[]>([])
@@ -37,7 +43,7 @@ const resumeMap = computed(() => {
   resumes.value.forEach(r => { if (r.id) m[r.id] = r })
   return m
 })
-function bizName(row: FlowInstance) {
+function bizName(row: { bizId?: number; flowType: string }) {
   if (!row.bizId) return '-'
   // 入职流程 bizId 是简历ID
   if (row.flowType === 'ONBOARD') {
@@ -60,9 +66,6 @@ const flowStatusOpts = [
   { label: '已拒绝', value: 3 },
   { label: '已撤回', value: 4 }
 ]
-
-// 当前登录人
-const currentUser = JSON.parse(localStorage.getItem('hragent_user') || '{}')
 
 async function fetchList() {
   loading.value = true
@@ -92,12 +95,49 @@ Promise.all([fetchList(), loadEmployees(), loadResumes()])
 function onSearch() { fetchList() }
 function onReset() { queryForm.value = {}; fetchList() }
 
+// ============ 抄送我的 ============
+const ccLoading = ref(false)
+const ccList = ref<FlowCcVO[]>([])
+
+async function fetchCc() {
+  ccLoading.value = true
+  try {
+    ccList.value = await listMyCc() || []
+  } catch {
+    ccList.value = []
+  } finally {
+    ccLoading.value = false
+  }
+}
+
+async function onMarkRead(row: FlowCcVO) {
+  if (row.readFlag) return
+  try {
+    await markCcRead(row.id)
+    row.readFlag = true
+    message.success('已标记为已读')
+  } catch {}
+}
+
+// 切到抄送 Tab 时刷新
+watch(activeTab, (v) => { if (v === 'cc') fetchCc() })
+
+// ============ 运行态流程图 ============
+const diagramOpen = ref(false)
+const diagramFlowId = ref<number>()
+const diagramTitle = ref('')
+function onViewDiagram(row: { id?: number; flowInstanceId?: number; flowType: string }) {
+  diagramFlowId.value = row.id ?? row.flowInstanceId
+  diagramTitle.value = `${typeText(row.flowType)}流程图`
+  diagramOpen.value = true
+}
+
 // 发起流程弹窗
 const startVisible = ref(false)
 const startForm = ref<{
   processKey: string
-  bizId: SelectValue
-  targetLeaderId: SelectValue
+  bizId: any
+  targetLeaderId: any
   targetDeptName: string
   targetPosition: string
 }>({
@@ -110,8 +150,6 @@ const startForm = ref<{
 
 // 是否入职流程（bizId 选简历 + 需指定部门主管）
 const isOnboard = computed(() => startForm.value.processKey === 'onboard-process')
-// 是否离职流程（bizId 选员工）
-const isLeave = computed(() => startForm.value.processKey === 'leave-process')
 // 是否调岗流程（bizId 选员工 + 可选目标部门/岗位）
 const isTransfer = computed(() => startForm.value.processKey === 'transfer-process')
 // 是否转正流程（bizId 只能选实习/试用员工）
@@ -258,11 +296,12 @@ const traceVisible = ref(false)
 const traceData = ref<FlowTraceVO[]>([])
 const traceLoading = ref(false)
 
-async function onViewTrace(row: FlowInstance) {
+async function onViewTrace(id?: number) {
+  if (!id) return
   traceVisible.value = true
   traceLoading.value = true
   try {
-    traceData.value = await getFlowTrace(row.id) || []
+    traceData.value = await getFlowTrace(id) || []
   } catch {
     traceData.value = []
   } finally {
@@ -276,7 +315,7 @@ function typeText(t: string) { return FLOW_TYPE_MAP[t] || t }
 
 const columns: any[] = [
   { title: '流水号', dataIndex: 'flowNo', width: 180 },
-  { title: '类型', dataIndex: 'flowType', width: 80,
+  { title: '类型', dataIndex: 'flowType', width: 90,
     customRender: ({ record }: any) => typeText(record.flowType)
   },
   { title: '业务对象', dataIndex: 'bizId', width: 130,
@@ -291,13 +330,47 @@ const columns: any[] = [
     customRender: ({ record }: any) => h(Tag, { color: statusColor(record.flowStatus) }, () => statusText(record.flowStatus))
   },
   {
-    title: '操作', key: 'action', width: 200, fixed: 'right',
+    title: '操作', key: 'action', width: 240, fixed: 'right',
     customRender: ({ record }: any) => h(Space, {}, () => [
-      h(Button, { size: 'small', type: 'link', onClick: () => onViewTrace(record) },
+      h(Button, { size: 'small', type: 'link', onClick: () => onViewDiagram(record) },
+        () => h(ApartmentOutlined, {}, () => ' 流程图')),
+      h(Button, { size: 'small', type: 'link', onClick: () => onViewTrace(record.id) },
         () => h(UnorderedListOutlined, {}, () => ' 轨迹')),
       record.flowStatus === 1 ? h(Button, {
         size: 'small', type: 'link', danger: true, onClick: () => onCancel(record)
       }, () => '撤回') : null
+    ])
+  }
+]
+
+// 抄送我的列表
+const ccColumns: any[] = [
+  { title: '流水号', dataIndex: 'flowNo', width: 180 },
+  { title: '类型', dataIndex: 'flowType', width: 90,
+    customRender: ({ record }: any) => typeText(record.flowType)
+  },
+  { title: '业务对象', dataIndex: 'bizId', width: 130,
+    customRender: ({ record }: any) => bizName(record)
+  },
+  { title: '申请人', dataIndex: 'applyEmpId', width: 110,
+    customRender: ({ record }: any) => empName(record.applyEmpId)
+  },
+  { title: '抄送节点', dataIndex: 'nodeName', width: 120 },
+  { title: '抄送时间', dataIndex: 'createTime', width: 180 },
+  {
+    title: '状态', dataIndex: 'flowStatus', width: 100,
+    customRender: ({ record }: any) => h(Tag, { color: statusColor(record.flowStatus) }, () => statusText(record.flowStatus))
+  },
+  {
+    title: '操作', key: 'action', width: 200, fixed: 'right',
+    customRender: ({ record }: any) => h(Space, {}, () => [
+      h(Button, { size: 'small', type: 'link', onClick: () => onViewDiagram(record) },
+        () => h(ApartmentOutlined, {}, () => ' 流程图')),
+      h(Button, { size: 'small', type: 'link', onClick: () => onViewTrace(record.flowInstanceId) },
+        () => h(UnorderedListOutlined, {}, () => ' 轨迹')),
+      !record.readFlag ? h(Button, {
+        size: 'small', type: 'link', onClick: () => onMarkRead(record)
+      }, () => '标记已读') : h(Tag, { color: 'default' }, () => '已读')
     ])
   }
 ]
@@ -309,60 +382,82 @@ function traceDotColor(status: string) {
   if (status === '待处理') return 'blue'
   return 'gray'
 }
-function traceStatusColor(status: string) {
-  if (status === '已通过') return 'green'
-  if (status === '已拒绝') return 'red'
-  if (status === '待处理') return 'blue'
-  return 'default'
-}
 </script>
 
 <template>
   <div class="page-container">
     <div class="page-header">
       <h2 class="page-title">流程管理</h2>
-      <p class="page-subtitle">发起审批流程，查看流程状态与审批轨迹</p>
+      <p class="page-subtitle">发起审批流程，查看流程状态、审批轨迹与运行态流程图</p>
     </div>
 
-    <div class="search-card">
-      <a-form layout="inline" :model="queryForm">
-        <a-form-item label="类型">
-          <Select v-model:value="queryForm.flowType" placeholder="全部" allow-clear style="width: 120px"
-            :options="flowTypeOpts" />
-        </a-form-item>
-        <a-form-item label="状态">
-          <Select v-model:value="queryForm.flowStatus" placeholder="全部" allow-clear style="width: 120px"
-            :options="flowStatusOpts" />
-        </a-form-item>
-        <a-form-item>
-          <Space>
-            <Button type="primary" :icon="h(ReloadOutlined)" @click="onSearch">查询</Button>
-            <Button @click="onReset">重置</Button>
-          </Space>
-        </a-form-item>
-      </a-form>
-    </div>
-
-    <div class="table-card">
-      <div class="table-toolbar">
-        <div class="table-toolbar-left">
-          <strong>流程列表</strong>
-          <span style="color: rgba(0,0,0,0.45); font-size: 13px">共 {{ dataSource.length }} 条</span>
+    <a-tabs v-model:activeKey="activeTab">
+      <a-tab-pane key="list" tab="流程列表">
+        <div class="search-card">
+          <a-form layout="inline" :model="queryForm">
+            <a-form-item label="类型">
+              <Select v-model:value="queryForm.flowType" placeholder="全部" allow-clear style="width: 120px"
+                :options="flowTypeOpts" />
+            </a-form-item>
+            <a-form-item label="状态">
+              <Select v-model:value="queryForm.flowStatus" placeholder="全部" allow-clear style="width: 120px"
+                :options="flowStatusOpts" />
+            </a-form-item>
+            <a-form-item>
+              <Space>
+                <Button type="primary" :icon="h(ReloadOutlined)" @click="onSearch">查询</Button>
+                <Button @click="onReset">重置</Button>
+              </Space>
+            </a-form-item>
+          </a-form>
         </div>
-        <div class="table-toolbar-right">
-          <Space>
-            <Button type="primary" :icon="h(PlusOutlined)" @click="openStart">发起入职流程</Button>
-            <Button :icon="h(PlusOutlined)" @click="openRegularStart">发起转正流程</Button>
-            <Button :icon="h(PlusOutlined)" @click="openTransferStart">发起调岗流程</Button>
-            <Button :icon="h(PlusOutlined)" @click="openLeaveStart">发起离职流程</Button>
-          </Space>
-        </div>
-      </div>
 
-      <Table :columns="columns" :data-source="dataSource" :loading="loading"
-        :pagination="{ pageSize: 10, showSizeChanger: true }"
-        :scroll="{ x: 1000 }" row-key="id" />
-    </div>
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left">
+              <strong>流程列表</strong>
+              <span style="color: rgba(0,0,0,0.45); font-size: 13px">共 {{ dataSource.length }} 条</span>
+            </div>
+            <div class="table-toolbar-right">
+              <Space>
+                <Button type="primary" :icon="h(PlusOutlined)" @click="openStart">发起入职流程</Button>
+                <Button :icon="h(PlusOutlined)" @click="openRegularStart">发起转正流程</Button>
+                <Button :icon="h(PlusOutlined)" @click="openTransferStart">发起调岗流程</Button>
+                <Button :icon="h(PlusOutlined)" @click="openLeaveStart">发起离职流程</Button>
+              </Space>
+            </div>
+          </div>
+
+          <Table :columns="columns" :data-source="dataSource" :loading="loading"
+            :pagination="{ pageSize: 10, showSizeChanger: true }"
+            :scroll="{ x: 1100 }" row-key="id" />
+        </div>
+      </a-tab-pane>
+
+      <a-tab-pane key="cc" tab="抄送我的">
+        <div class="table-card">
+          <div class="table-toolbar">
+            <div class="table-toolbar-left">
+              <strong>抄送我的流程</strong>
+              <span style="color: rgba(0,0,0,0.45); font-size: 13px">共 {{ ccList.length }} 条</span>
+            </div>
+            <div class="table-toolbar-right">
+              <Button :icon="h(ReloadOutlined)" @click="fetchCc">刷新</Button>
+            </div>
+          </div>
+          <Table :columns="ccColumns" :data-source="ccList" :loading="ccLoading"
+            :pagination="{ pageSize: 10, showSizeChanger: true }"
+            :scroll="{ x: 1100 }" row-key="id">
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.dataIndex === 'nodeName'">
+                <Badge :status="record.readFlag ? 'default' : 'processing'" />
+                {{ record.nodeName || '-' }}
+              </template>
+            </template>
+          </Table>
+        </div>
+      </a-tab-pane>
+    </a-tabs>
 
     <!-- 发起流程弹窗 -->
     <Modal v-model:open="startVisible" title="发起流程" @ok="handleStart" okText="发起" cancelText="取消" width="520px">
@@ -460,5 +555,8 @@ function traceStatusColor(status: string) {
         </Timeline.Item>
       </Timeline>
     </Modal>
+
+    <!-- 运行态流程图 -->
+    <FlowDiagramModal v-model:open="diagramOpen" :flow-instance-id="diagramFlowId" :title="diagramTitle" />
   </div>
 </template>

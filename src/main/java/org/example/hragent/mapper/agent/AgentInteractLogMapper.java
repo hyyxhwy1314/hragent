@@ -60,4 +60,14 @@ public interface AgentInteractLogMapper extends BaseMapper<AgentInteractLog> {
             "<if test='days != null'> AND create_time &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)</if>" +
             "</script>")
     Map<String, Object> statSummary(@Param("days") Integer days);
+
+    /**
+     * 查询指定用户最近一次 AI 交互的 Token 总量
+     * 用于行为日志关联 AI 类操作的 Token 消耗
+     */
+    @Select("SELECT COALESCE(input_tokens, 0) + COALESCE(output_tokens, 0) AS tokens " +
+            "FROM t_agent_interact_log " +
+            "WHERE is_deleted = 0 AND user_id = #{userId} " +
+            "ORDER BY id DESC LIMIT 1")
+    Map<String, Object> statLatestTokenByUser(@Param("userId") Long userId);
 }

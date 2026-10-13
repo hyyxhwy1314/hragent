@@ -32,6 +32,7 @@ CREATE TABLE `t_employee` (
     `position_name` VARCHAR(64)  DEFAULT NULL             COMMENT '岗位名称',
     `entry_date`    DATE         DEFAULT NULL             COMMENT '入职日期',
     `regular_date`  DATE         DEFAULT NULL             COMMENT '转正日期',
+    `contract_end_date` DATE     DEFAULT NULL             COMMENT '劳动合同到期日期',
     `leave_date`    DATE         DEFAULT NULL             COMMENT '离职日期',
     `emp_status`    TINYINT      DEFAULT 1                COMMENT '在职状态 0离职 1在职 2试用',
     `base_salary`   VARCHAR(32)  DEFAULT NULL             COMMENT '基本工资',
@@ -111,6 +112,7 @@ CREATE TABLE `t_resume` (
     `delivery_source`    TINYINT       DEFAULT NULL            COMMENT '简历来源',
     `target_job_id`      BIGINT        DEFAULT NULL            COMMENT '投递岗位id(t_job_post.id)',
     `match_score`        DECIMAL(5,2)  DEFAULT NULL            COMMENT 'AI人岗匹配分数',
+    `score_detail`       TEXT          DEFAULT NULL            COMMENT 'AI深度评分明细(JSON)',
     `screening_opinion`  TEXT         DEFAULT NULL            COMMENT 'AI筛选评语',
     `owner_emp_id`       BIGINT        DEFAULT NULL            COMMENT '负责HR(t_employee.id)',
     `remark`             VARCHAR(255) DEFAULT NULL,
@@ -145,6 +147,7 @@ CREATE TABLE `t_flow_instance` (
     UNIQUE KEY `uk_flow_no` (`flow_no`),
     KEY `idx_proc_inst_id` (`flowable_proc_inst_id`),
     KEY `idx_flow_type_status` (`flow_type`, `flow_status`),
+    KEY `idx_status_id` (`flow_status`, `id`),
     KEY `idx_apply_emp` (`apply_emp_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='流程实例表';
 
@@ -169,6 +172,26 @@ CREATE TABLE `t_flow_approval` (
     KEY `idx_flow_instance` (`flow_instance_id`),
     KEY `idx_approver` (`approver_emp_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='流程审批记录表';
+
+-- ============================================================
+-- 5.1 流程抄送记录表 t_flow_cc
+-- ============================================================
+DROP TABLE IF EXISTS `t_flow_cc`;
+CREATE TABLE `t_flow_cc` (
+    `id`                BIGINT       NOT NULL AUTO_INCREMENT,
+    `flow_instance_id`  BIGINT       NOT NULL                COMMENT '流程实例ID(t_flow_instance.id)',
+    `node_name`         VARCHAR(64)  DEFAULT NULL            COMMENT '抄送发生的节点名称',
+    `cc_emp_id`         BIGINT       NOT NULL                COMMENT '抄送人(t_employee.id)',
+    `read_flag`         TINYINT      DEFAULT 0               COMMENT '读取标记 0未读 1已读',
+    `create_time`       DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `update_time`       DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time`       DATETIME     DEFAULT NULL,
+    `is_deleted`        TINYINT      DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_cc_emp` (`cc_emp_id`),
+    KEY `idx_cc_flow_instance` (`flow_instance_id`),
+    KEY `idx_cc_emp_read` (`cc_emp_id`, `read_flag`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='流程抄送记录表';
 
 -- ============================================================
 -- 6. 绩效表 t_performance
@@ -377,6 +400,126 @@ CREATE TABLE `t_agent_interact_log` (
     KEY `idx_create_time` (`create_time`),
     KEY `idx_has_error` (`has_error`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI交互日志表';
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================
+-- 15. 用户行为日志表 t_behavior_log
+-- 统一记录几乎所有用户操作行为（简历分析、AI 交互、归档、流程、
+-- 员工管理、看板查询等），由全局拦截器异步采集，供工作台
+-- Token 消耗看板与操作日志时间线展示。
+-- ============================================================
+DROP TABLE IF EXISTS `t_behavior_log`;
+CREATE TABLE `t_behavior_log` (
+    `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+    `user_id`     BIGINT       DEFAULT NULL            COMMENT '操作人ID(t_employee.id)',
+    `username`    VARCHAR(50)  DEFAULT NULL            COMMENT '操作人姓名',
+    `module`      VARCHAR(30)  DEFAULT NULL            COMMENT '业务模块(简历分析/AI交互/流程/员工等)',
+    `action`      VARCHAR(50)  DEFAULT NULL            COMMENT '动作名称(如 深度分析/智能问答/发起审批)',
+    `summary`     VARCHAR(500) DEFAULT NULL            COMMENT '操作摘要',
+    `detail`      VARCHAR(2000) DEFAULT NULL           COMMENT '详情(JSON字符串)',
+    `http_method` VARCHAR(10)  DEFAULT NULL            COMMENT 'HTTP 方法',
+    `request_uri` VARCHAR(200) DEFAULT NULL            COMMENT '请求路径',
+    `status`      VARCHAR(10)  DEFAULT 'success'       COMMENT '状态: success 成功 / fail 失败',
+    `duration_ms` BIGINT       DEFAULT 0               COMMENT '请求耗时(毫秒)',
+    `token_count` INT          DEFAULT 0               COMMENT '本次操作 Token 消耗(仅供 AI 类)',
+    `create_time` DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time` DATETIME     DEFAULT NULL,
+    `is_deleted`  TINYINT      DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_module` (`module`),
+    KEY `idx_status` (`status`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户行为日志表';
+
+-- ============================================================
+-- 16. 请假申请表 t_leave_request
+-- 员工发起请假，直属上级→HR 两级审批；审批通过后扣减假期余额。
+-- ============================================================
+DROP TABLE IF EXISTS `t_leave_request`;
+CREATE TABLE `t_leave_request` (
+    `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+    `emp_id`            BIGINT        NOT NULL                COMMENT '申请员工ID(t_employee.id)',
+    `leave_type`        VARCHAR(32)   NOT NULL                COMMENT '请假类型: 年假/事假/病假/调休/其他',
+    `start_date`        DATE          NOT NULL                COMMENT '开始日期',
+    `end_date`          DATE          NOT NULL                COMMENT '结束日期',
+    `leave_days`        DECIMAL(5,1)  NOT NULL                COMMENT '请假天数',
+    `reason`            VARCHAR(500)  DEFAULT NULL            COMMENT '请假原因',
+    `status`            TINYINT       DEFAULT 0               COMMENT '状态 0审批中 1通过 2拒绝 3撤销',
+    `flow_instance_id`  BIGINT        DEFAULT NULL            COMMENT '关联流程实例(t_flow_instance.id)',
+    `create_time`       DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    `update_time`       DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time`       DATETIME      DEFAULT NULL,
+    `is_deleted`        TINYINT       DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_emp` (`emp_id`),
+    KEY `idx_status` (`status`),
+    KEY `idx_flow_instance` (`flow_instance_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='请假申请表';
+
+-- ============================================================
+-- 17. 假期余额表 t_leave_balance
+-- 年度假期余额：工龄满1年 5天/年，不满按入职月数/12×5 取整；首次使用时懒初始化。
+-- ============================================================
+DROP TABLE IF EXISTS `t_leave_balance`;
+CREATE TABLE `t_leave_balance` (
+    `id`          BIGINT        NOT NULL AUTO_INCREMENT,
+    `emp_id`      BIGINT        NOT NULL                COMMENT '员工ID(t_employee.id)',
+    `year`        INT           NOT NULL                COMMENT '年度',
+    `total_days`  DECIMAL(5,1)  NOT NULL                COMMENT '年度总假期天数',
+    `used_days`   DECIMAL(5,1)  DEFAULT 0               COMMENT '已使用天数',
+    `create_time` DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time` DATETIME      DEFAULT NULL,
+    `is_deleted`  TINYINT       DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_emp_year` (`emp_id`, `year`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='假期余额表';
+
+-- ============================================================
+-- 18. 证明开具申请表 t_certificate_request
+-- 在职/收入证明申请，审批通过后生成证明内容并邮件发送。
+-- ============================================================
+DROP TABLE IF EXISTS `t_certificate_request`;
+CREATE TABLE `t_certificate_request` (
+    `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+    `emp_id`            BIGINT        NOT NULL                COMMENT '申请员工ID(t_employee.id)',
+    `cert_type`         VARCHAR(32)   NOT NULL                COMMENT '证明类型: 在职证明/收入证明',
+    `purpose`           VARCHAR(255)  DEFAULT NULL            COMMENT '用途说明',
+    `status`            TINYINT       DEFAULT 0               COMMENT '状态 0审批中 1通过 2拒绝 3撤销',
+    `content`           TEXT          DEFAULT NULL            COMMENT '审批通过后生成的证明内容',
+    `flow_instance_id`  BIGINT        DEFAULT NULL            COMMENT '关联流程实例(t_flow_instance.id)',
+    `create_time`       DATETIME      DEFAULT CURRENT_TIMESTAMP,
+    `update_time`       DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time`       DATETIME      DEFAULT NULL,
+    `is_deleted`        TINYINT       DEFAULT 0,
+    PRIMARY KEY (`id`),
+    KEY `idx_emp` (`emp_id`),
+    KEY `idx_status` (`status`),
+    KEY `idx_flow_instance` (`flow_instance_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='证明开具申请表';
+
+-- ============================================================
+-- 19. 到期提醒记录表 t_expire_reminder
+-- 定时任务扫描合同/转正到期生成提醒记录，UNIQUE 去重防止重复发送。
+-- ============================================================
+DROP TABLE IF EXISTS `t_expire_reminder`;
+CREATE TABLE `t_expire_reminder` (
+    `id`          BIGINT       NOT NULL AUTO_INCREMENT,
+    `emp_id`      BIGINT       NOT NULL                COMMENT '员工ID(t_employee.id)',
+    `remind_type` VARCHAR(32)  NOT NULL                COMMENT '提醒类型: CONTRACT(合同到期)/REGULAR(转正到期)',
+    `expire_date` DATE         NOT NULL                COMMENT '到期日期',
+    `remind_date` DATE         NOT NULL                COMMENT '提醒日期',
+    `sent`        TINYINT      DEFAULT 1               COMMENT '是否已发送提醒 0否 1是',
+    `create_time` DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    `update_time` DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `delete_time` DATETIME     DEFAULT NULL,
+    `is_deleted`  TINYINT      DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_emp_type_date` (`emp_id`, `remind_type`, `expire_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='到期提醒记录表';
 
 SET FOREIGN_KEY_CHECKS = 1;
 

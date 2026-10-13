@@ -1,6 +1,9 @@
 package org.example.hragent.utils;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
 
 /**
  * 当前登录用户上下文（ThreadLocal）
@@ -37,7 +40,10 @@ public class CurrentUserService {
     }
 
     @Data
-    public static class CurrentUser {
+    @NoArgsConstructor
+    public static class CurrentUser implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private Long empId;
         private String empName;
         private String role;

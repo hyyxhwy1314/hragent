@@ -16,7 +16,9 @@ const routes: RouteRecordRaw[] = [
   
   { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { title: '工作台', icon: 'DashboardOutlined' } },
   { path: '/todo', name: 'Todo', component: () => import('@/views/todo/index.vue'), meta: { title: '我的待办', icon: 'ClockCircleOutlined' } },
+  { path: '/self-service', name: 'SelfService', component: () => import('@/views/selfService/index.vue'), meta: { title: '员工自助', icon: 'IdcardOutlined' } },
   { path: '/flow', name: 'Flow', component: () => import('@/views/flow/index.vue'), meta: { title: '流程管理', icon: 'ApartmentOutlined', roles: ['HR', 'ADMIN'] } },
+  { path: '/flow-designer', name: 'FlowDesigner', component: () => import('@/views/flowDesigner/index.vue'), meta: { title: '流程设计器', icon: 'ApartmentOutlined', roles: ['HR', 'ADMIN'] } },
   { path: '/employees', name: 'Employee', component: Employee, meta: { title: '员工管理', icon: 'UserOutlined', roles: ['HR', 'ADMIN'] } },
   { path: '/job-posts', name: 'JobPost', component: JobPost, meta: { title: '岗位管理', icon: 'TeamOutlined' } },
   { path: '/resumes', name: 'Resume', component: Resume, meta: { title: '简历管理', icon: 'FileTextOutlined' } },

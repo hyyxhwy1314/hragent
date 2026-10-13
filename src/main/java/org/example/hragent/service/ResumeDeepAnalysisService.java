@@ -14,4 +14,12 @@ public interface ResumeDeepAnalysisService {
      * @return 结构化深度分析结果
      */
     ResumeDeepAnalysisVO analyzeDeep(Long resumeId);
+
+    /**
+     * 查询简历最近一次深度分析/评分结果
+     *
+     * @param resumeId 简历ID
+     * @return 最近一次结果；无记录时 success=false
+     */
+    ResumeDeepAnalysisVO getScore(Long resumeId);
 }

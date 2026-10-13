@@ -3,6 +3,8 @@ package org.example.hragent.dto;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 任务完成请求
  * <p>
@@ -20,4 +22,7 @@ public class TaskCompleteDto {
 
     /** 转办目标员工ID（仅转办时填写） */
     private Long delegateToEmpId;
+
+    /** 抄送人员工ID列表（本节点审批完成时抄送，仅知悉不参与流转） */
+    private List<Long> ccEmpIds;
 }

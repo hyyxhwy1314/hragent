@@ -1,6 +1,7 @@
 package org.example.hragent.controller;
 
 import jakarta.validation.Valid;
+import org.example.hragent.annotation.LogAction;
 import org.example.hragent.dto.TaskCompleteDto;
 import org.example.hragent.exception.BusinessException;
 import org.example.hragent.exception.ErrorCode;
@@ -51,12 +52,14 @@ public class FlowTaskController {
 
     /** 完成任务（通过/拒绝） */
     @PostMapping("/{taskId}/complete")
+    @LogAction(module = "流程审批", action = "审批处理")
     public R<Boolean> complete(@PathVariable String taskId, @Valid @RequestBody TaskCompleteDto dto) {
         return R.ok(flowOrchestratorService.completeTask(taskId, dto));
     }
 
     /** 转办任务 */
     @PostMapping("/{taskId}/delegate")
+    @LogAction(module = "流程审批", action = "转办任务")
     public R<Boolean> delegate(@PathVariable String taskId, @Valid @RequestBody TaskCompleteDto dto) {
         return R.ok(flowOrchestratorService.delegateTask(taskId, dto));
     }

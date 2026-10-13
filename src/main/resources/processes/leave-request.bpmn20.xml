@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL http://www.omg.org/spec/BPMN/2.0/20100501/BPMN20.xsd"
+             id="Definitions_leave_request"
+             targetNamespace="http://flowable.org/bpmn">
+
+    <!--请假申请流程：直属上级审批 → (请假>5天则加签总监审批) → HR审核 → 通过则扣减假期余额并发送通知邮件
+        bizId=请假单ID，审批人由策略从业务单解析申请员工；总监审批人由策略解析为上级的上级-->
+    <process id="leave-request-process" name="请假申请流程" isExecutable="true">
+        <!--开始节点：员工发起请假-->
+        <startEvent id="lr_start" name="发起请假申请"/>
+        <sequenceFlow id="flow_lr1" sourceRef="lr_start" targetRef="lr_1_dept_audit"/>
+
+        <!--节点1：直属上级审批 审批人启动流程时策略解析为${approver_dept}-->
+        <userTask id="lr_1_dept_audit" name="直属上级审批"
+                  flowable:assignee="${approver_dept}"/>
+        <sequenceFlow id="flow_lr2" sourceRef="lr_1_dept_audit" targetRef="lr_gw_dept"/>
+
+        <!--网关1：直属上级审批结果判断-->
+        <exclusiveGateway id="lr_gw_dept" name="直属上级审批结果"/>
+        <sequenceFlow id="flow_lr3" sourceRef="lr_gw_dept" targetRef="lr_gw_days">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_lr4" sourceRef="lr_gw_dept" targetRef="lr_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--网关3：请假天数智能判断——超过 5 天自动路由到总监审批，否则直达 HR-->
+        <exclusiveGateway id="lr_gw_days" name="请假天数判断" default="flow_lr10"/>
+        <sequenceFlow id="flow_lr9" sourceRef="lr_gw_days" targetRef="lr_2_director_audit">
+            <conditionExpression xsi:type="tFormalExpression">${leaveDays != null and leaveDays gt 5}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_lr10" sourceRef="lr_gw_days" targetRef="lr_2_hr_audit"/>
+
+        <!--节点2：总监审批（仅请假>5天触发）审批人策略解析为${approver_director}-->
+        <userTask id="lr_2_director_audit" name="总监审批"
+                  flowable:assignee="${approver_director}"/>
+        <sequenceFlow id="flow_lr11" sourceRef="lr_2_director_audit" targetRef="lr_gw_director"/>
+
+        <!--网关4：总监审批结果判断-->
+        <exclusiveGateway id="lr_gw_director" name="总监审批结果"/>
+        <sequenceFlow id="flow_lr12" sourceRef="lr_gw_director" targetRef="lr_2_hr_audit">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_lr13" sourceRef="lr_gw_director" targetRef="lr_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--节点3：HR人事审核 候选组HR-->
+        <userTask id="lr_2_hr_audit" name="HR人事审核"
+                  flowable:assignee="${approver_hr}"
+                  flowable:candidateGroups="HR"/>
+        <sequenceFlow id="flow_lr5" sourceRef="lr_2_hr_audit" targetRef="lr_gw_hr"/>
+
+        <!--网关2：HR审核结果判断-->
+        <exclusiveGateway id="lr_gw_hr" name="HR审核结果"/>
+        <sequenceFlow id="flow_lr6" sourceRef="lr_gw_hr" targetRef="lr_3_auto_deduct">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_lr7" sourceRef="lr_gw_hr" targetRef="lr_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--自动服务任务：审批通过后扣减假期余额并回写请假单状态-->
+        <serviceTask id="lr_3_auto_deduct" name="扣减假期余额"
+                     flowable:delegateExpression="${leaveRequestApprovedDelegate}"/>
+        <sequenceFlow id="flow_lr8" sourceRef="lr_3_auto_deduct" targetRef="lr_4_send_email"/>
+
+        <!--自动服务任务：发送请假结果通知邮件（async=true 异步执行，失败自动重试，不阻塞审批主流程）-->
+        <serviceTask id="lr_4_send_email" name="发送请假结果邮件"
+                     flowable:delegateExpression="${leaveRequestEmailDelegate}"
+                     flowable:async="true"/>
+        <sequenceFlow id="flow_lr14" sourceRef="lr_4_send_email" targetRef="lr_end_success"/>
+
+        <!--结束节点：请假成功-->
+        <endEvent id="lr_end_success" name="请假完成"/>
+        <!--结束节点：请假驳回-->
+        <endEvent id="lr_end_rejected" name="请假申请驳回"/>
+    </process>
+</definitions>

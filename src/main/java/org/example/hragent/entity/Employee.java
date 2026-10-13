@@ -55,6 +55,9 @@ public class Employee extends BaseEntity {
     @TableField("regular_date")
     private LocalDate regularDate;
 
+    @TableField("contract_end_date")
+    private LocalDate contractEndDate;
+
     @TableField("leave_date")
     private LocalDate leaveDate;
 

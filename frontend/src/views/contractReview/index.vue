@@ -202,9 +202,10 @@ function fillSample() {
 
 <style scoped>
 .card {
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
 }
 .panel-head {
   display: flex;
@@ -212,10 +213,10 @@ function fillSample() {
   justify-content: space-between;
   margin-bottom: 12px;
   font-size: 14px;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 .content-area {
-  background: #fafbfc;
+  background: #f9fafc;
   font-size: 13px;
 }
 .actions {
@@ -226,24 +227,24 @@ function fillSample() {
 }
 .hint {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 .summary-block {
-  background: #f0f7ff;
-  border-radius: 8px;
+  background: var(--accent-light);
+  border-radius: var(--radius-md);
   padding: 14px 16px;
   margin-bottom: 16px;
 }
 .summary-label {
   font-size: 12px;
-  color: #4a7fc1;
+  color: var(--accent);
   font-weight: 600;
   margin-bottom: 6px;
 }
 .summary-text {
   font-size: 14px;
   line-height: 1.7;
-  color: #1f2937;
+  color: var(--text-primary);
   white-space: pre-wrap;
 }
 .issues-list {
@@ -252,10 +253,10 @@ function fillSample() {
   gap: 12px;
 }
 .issue-item {
-  border: 1px solid #eef0f3;
-  border-radius: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   padding: 12px 14px;
-  background: #fff;
+  background: var(--bg-secondary);
 }
 .issue-head {
   display: flex;
@@ -266,25 +267,25 @@ function fillSample() {
 .issue-type {
   font-weight: 600;
   font-size: 13px;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 .issue-clause {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-tertiary);
   margin-bottom: 4px;
 }
 .issue-desc {
   font-size: 13px;
   line-height: 1.6;
-  color: #374151;
+  color: var(--text-secondary);
 }
 .issue-suggestion {
   margin-top: 8px;
   font-size: 13px;
   line-height: 1.6;
-  color: #1e6f4e;
-  background: #ecfdf5;
-  border-radius: 6px;
+  color: #2f7d4f;
+  background: #ecfdf3;
+  border-radius: var(--radius-sm);
   padding: 8px 10px;
 }
 .sg-label {

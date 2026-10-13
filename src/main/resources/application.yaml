@@ -57,6 +57,78 @@ hragent:
   jwt:
     secret: hragent-secret-key-for-jwt-signing-must-be-long-enough-2026
     expire-hours: 24
+  # AI Agent 上下文与 token 预算配置
+  agent:
+    memory:
+      # 单次模型推理允许携带的最大历史 token 数（超出自动丢弃最旧消息）
+      max-tokens: 6000
+      # 单条工具结果回填会话记忆的最大字符数（防止长列表撑爆 token 预算）
+      max-tool-result-chars: 3000
+    # 工具路由（分层 Tool Routing）：结构化注册表 -> 硬过滤 -> 粗分类 -> BM25 召回 -> 模型精选 -> 执行鉴权
+    routing:
+      # 运行环境：prod 时叠加生产黑名单（production-blocked-tools）
+      environment: dev
+      # 单次召回候选工具数上限
+      top-k: 10
+      # 域收缩后候选不足时，放宽到全部可见工具并扩大返回条数
+      expanded-top-k: 18
+      # 候选数低于该值时触发放宽召回
+      min-candidates: 3
+      # 低置信度阈值（仅用于评估，不阻断执行）
+      low-confidence-score: 0.5
+      # 常驻工具：高频低风险，任何请求都预绑定
+      pinned-tools:
+        - queryEmployeeInfo
+        - queryEmployeeList
+        - queryProcessInstances
+        - queryMyTodoTasks
+        - hrKnowledgeQA
+      # 全局禁用工具（任意环境都不暴露）
+      blocked-tools: []
+      # 生产环境禁用工具（如真实高风险写操作）
+      production-blocked-tools: []
+      # 预留：语义召回开关（默认关闭，仅用 BM25）
+      embedding-enabled: false
+    # 异步任务化：长耗时的 Agent 工作流在独立线程池执行，前端轮询进度
+    task:
+      # 单任务最大执行时长（毫秒），超时标记 TIMEOUT 并中断
+      max-duration-ms: 300000
+      # 异步任务线程池大小（执行线程 + 监督线程共用）
+      thread-pool-size: 4
+  # 知识库检索（RAG）：原文与元数据存 MySQL，向量存 Qdrant
+  rag:
+    # 是否启用知识库检索（关闭时 hrKnowledgeQA 退回模板话术）
+    enabled: true
+    # 单次检索召回的片段数
+    top-k: 5
+    # 相似度阈值，低于该值的片段不返回
+    min-score: 0.35
+    # 文档切分片段大小（字符）
+    chunk-size: 400
+    # 相邻片段重叠字符数
+    chunk-overlap: 80
+    # 启动时是否重建知识库（删除旧片段与旧集合后重新向量化）
+    reindex: false
+    qdrant:
+      host: 127.0.0.1
+      port: 6333
+      collection: hr_knowledge
+      # 向量维度，需与 embedding 模型输出一致（text-embedding-v3 默认 1024）
+      vector-dim: 1024
+  # 飞书官方远程 MCP 服务（云文档场景）
+  # 接入文档：https://open.feishu.cn/document/mcp_open_tools/developers-call-remote-mcp-server
+  # 需先在飞书开放平台创建自建应用并申请对应权限（如 docx:document:create/readonly 等），
+  # 未配置 App ID/Secret 时自动降级，AI 仅使用本地 HR 工具。
+  mcp:
+    feishu:
+      enabled: true
+      app-id: ${FEISHU_MCP_APP_ID:}
+      app-secret: ${FEISHU_MCP_APP_SECRET:}
+      endpoint: https://mcp.feishu.cn/mcp
+      token-endpoint: https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal
+      # 本次连接允许调用的工具（逗号分隔）；search-doc/search-user 仅支持用户身份（UAT），
+      # 走应用身份（TAT）时需从列表中排除
+      allowed-tools: create-doc,fetch-doc,update-doc,list-docs,get-comments,add-comments,get-user,fetch-file
 
 flowable:
   database-schema-update: true
@@ -86,6 +158,16 @@ logging:
     com.baomidou.mybatisplus: WARN
     org.flowable: WARN
     org.apache.ibatis: WARN
+
+# 关闭邮件健康检查：smtp 探活在网络受限/未配置授权码时会报连接异常噪音，且邮件为异步非阻断发送，无需纳入健康状态
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
 
 # Elasticsearch7.17.9
 #elasticsearch:
@@ -132,4 +214,8 @@ ai:
   base-url: ${AI_BASE_URL:https://llm-8sr4ofm58q8qaj4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1}
   model:
     name: ${AI_MODEL_NAME:qwen3.7-flash}
+  # 向量化模型：与对话模型共用同一 OpenAI 兼容端点（同 base-url/api-key），仅模型名不同
+  embedding:
+    model:
+      name: ${AI_EMBEDDING_MODEL_NAME:text-embedding-v3}
 

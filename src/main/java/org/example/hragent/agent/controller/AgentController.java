@@ -2,8 +2,11 @@ package org.example.hragent.agent.controller;
 
 import org.example.hragent.agent.graph.AgentScheduler;
 import org.example.hragent.agent.persistence.AgentStatePersistenceService;
+import org.example.hragent.agent.task.AgentAsyncTaskService;
+import org.example.hragent.agent.task.AgentAsyncTaskService.AgentTaskRecord;
 import org.example.hragent.annotation.RateLimit;
 import org.example.hragent.annotation.RepeatSubmit;
+import org.example.hragent.annotation.LogAction;
 import org.example.hragent.entity.agent.AgentMessage;
 import org.example.hragent.entity.agent.AgentSession;
 import org.example.hragent.utils.CurrentUserService;
@@ -23,11 +26,14 @@ public class AgentController {
     
     private final AgentScheduler agentScheduler;
     private final AgentStatePersistenceService persistenceService;
+    private final AgentAsyncTaskService asyncTaskService;
     
     public AgentController(AgentScheduler agentScheduler,
-                          AgentStatePersistenceService persistenceService) {
+                          AgentStatePersistenceService persistenceService,
+                          AgentAsyncTaskService asyncTaskService) {
         this.agentScheduler = agentScheduler;
         this.persistenceService = persistenceService;
+        this.asyncTaskService = asyncTaskService;
     }
     
     /**
@@ -37,6 +43,7 @@ public class AgentController {
     @PostMapping("/chat")
     @RateLimit(rate = 5, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "提问太频繁，请稍后再试")
     @RepeatSubmit(interval = 3, unit = TimeUnit.SECONDS, message = "消息正在处理，请勿重复发送")
+    @LogAction(module = "AI交互", action = "智能问答", markToken = true)
     public R<ChatResponse> chat(@RequestBody AgentRequest request) {
         ChatResponse response = agentScheduler.processMessageWithSession(
             request.getMessage(),
@@ -52,9 +59,37 @@ public class AgentController {
     @PostMapping("/chat/{sessionId}")
     @RateLimit(rate = 5, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "提问太频繁，请稍后再试")
     @RepeatSubmit(interval = 3, unit = TimeUnit.SECONDS, message = "消息正在处理，请勿重复发送")
+    @LogAction(module = "AI交互", action = "智能问答", markToken = true)
     public R<ChatResponse> continueChat(@PathVariable String sessionId, @RequestBody AgentRequest request) {
         ChatResponse response = agentScheduler.continueConversation(request.getMessage(), sessionId);
         return R.ok(response);
+    }
+
+    /**
+     * 异步提交对话任务（长任务友好）
+     * 立即返回 taskId，工作流在后台线程执行，前端轮询任务状态获取进度与结果。
+     * 请求瞬间任务尚未执行，token 消耗以交互日志为准，故不标记 token。
+     */
+    @PostMapping("/chat/async")
+    @RateLimit(rate = 5, rateInterval = 10, rateIntervalUnit = TimeUnit.SECONDS, message = "提问太频繁，请稍后再试")
+    @RepeatSubmit(interval = 3, unit = TimeUnit.SECONDS, message = "消息正在处理，请勿重复发送")
+    @LogAction(module = "AI交互", action = "智能问答", markToken = false)
+    public R<TaskSubmitResponse> chatAsync(@RequestBody AgentRequest request) {
+        AgentTaskRecord record = asyncTaskService.submit(
+            request.getMessage(),
+            String.valueOf(CurrentUserService.empId()),
+            request.getSessionId(),
+            CurrentUserService.get()
+        );
+        return R.ok(new TaskSubmitResponse(record.getTaskId(), record.getSessionId()));
+    }
+
+    /**
+     * 查询异步任务状态与进度（轮询接口）
+     */
+    @GetMapping("/tasks/{taskId}")
+    public R<AgentTaskRecord> getTask(@PathVariable String taskId) {
+        return R.ok(asyncTaskService.get(taskId));
     }
 
     /**
@@ -94,11 +129,32 @@ public class AgentController {
     public static class AgentRequest {
         private String message;
         private String userId;
+        private String sessionId;
         
         public String getMessage() { return message; }
         public void setMessage(String message) { this.message = message; }
         public String getUserId() { return userId; }
         public void setUserId(String userId) { this.userId = userId; }
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+    }
+
+    /**
+     * 异步任务提交响应 DTO：前端凭 taskId 轮询任务进度
+     */
+    public static class TaskSubmitResponse {
+        private String taskId;
+        private String sessionId;
+        
+        public TaskSubmitResponse(String taskId, String sessionId) {
+            this.taskId = taskId;
+            this.sessionId = sessionId;
+        }
+        
+        public String getTaskId() { return taskId; }
+        public void setTaskId(String taskId) { this.taskId = taskId; }
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
     }
     
     /**

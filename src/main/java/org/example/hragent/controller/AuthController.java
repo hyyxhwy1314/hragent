@@ -1,7 +1,6 @@
 package org.example.hragent.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.hragent.dto.LoginDto;
 import org.example.hragent.entity.Employee;

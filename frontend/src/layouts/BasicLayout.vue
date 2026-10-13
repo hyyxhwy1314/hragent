@@ -5,7 +5,8 @@ import {
   DashboardOutlined, UserOutlined, TeamOutlined, FileTextOutlined,
   TrophyOutlined, BookOutlined, TagOutlined, LinkOutlined,
   MenuFoldOutlined, MenuUnfoldOutlined, LogoutOutlined, DownOutlined,
-  ClockCircleOutlined, ApartmentOutlined, RobotOutlined, FileProtectOutlined, DeploymentUnitOutlined
+  ClockCircleOutlined, ApartmentOutlined, RobotOutlined, FileProtectOutlined, DeploymentUnitOutlined,
+  IdcardOutlined, PlusOutlined
 } from '@ant-design/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { clearToken } from '@/api/request'
@@ -24,7 +25,9 @@ const allMenus = [
   { key: '/dashboard', label: '工作台', icon: DashboardOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
   { key: '/agent', label: 'AI 助手', icon: RobotOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
   { key: '/todo', label: '我的待办', icon: ClockCircleOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
+  { key: '/self-service', label: '员工自助', icon: IdcardOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
   { key: '/flow', label: '流程管理', icon: ApartmentOutlined, roles: ['HR', 'ADMIN'] },
+  { key: '/flow-designer', label: '流程设计器', icon: ApartmentOutlined, roles: ['HR', 'ADMIN'] },
   { key: '/employees', label: '员工管理', icon: UserOutlined, roles: ['HR', 'ADMIN'] },
   { key: '/job-posts', label: '岗位管理', icon: TeamOutlined, roles: ['EMPLOYEE', 'DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] },
   { key: '/resumes', label: '简历管理', icon: FileTextOutlined, roles: ['HR', 'ADMIN'] },
@@ -41,10 +44,10 @@ const menuItems = computed(() =>
   allMenus.filter(m => m.roles.includes(currentUser.value.role || 'EMPLOYEE'))
 )
 const primaryMenus = computed(() =>
-  menuItems.value.filter(m => ['/dashboard', '/agent', '/todo'].includes(m.key))
+  menuItems.value.filter(m => ['/dashboard', '/agent', '/todo', '/self-service'].includes(m.key))
 )
 const manageMenus = computed(() =>
-  menuItems.value.filter(m => !['/dashboard', '/agent', '/todo'].includes(m.key))
+  menuItems.value.filter(m => !['/dashboard', '/agent', '/todo', '/self-service'].includes(m.key))
 )
 
 const selectedKeys = computed(() => [route.path])
@@ -53,6 +56,11 @@ const title = computed(() => (route.meta.title as string) || '')
 function handleMenuClick(info: any) {
   const key = String(info.key)
   if (key !== route.path) router.push(key)
+}
+
+/** 快速新建对话：跳转 AI 助手页（进入即新会话） */
+function goAgent() {
+  router.push('/agent')
 }
 
 async function handleLogout() {
@@ -72,7 +80,7 @@ const roleLabels: Record<string, string> = {
 </script>
 
 <template>
-  <Layout style="min-height: 100vh">
+  <Layout class="app-root">
     <Sider v-model:collapsed="collapsed" collapsible trigger="null" width="232" class="app-sider">
       <div class="logo">
         <RobotOutlined class="logo-icon" />
@@ -81,33 +89,40 @@ const roleLabels: Record<string, string> = {
           <span class="logo-sub">智能人力助手</span>
         </span>
       </div>
-      <Menu
-        mode="inline"
-        :selected-keys="selectedKeys"
-        @click="handleMenuClick"
-      >
-        <Menu.ItemGroup v-if="primaryMenus.length" key="primary">
-          <template #title><span class="menu-group-title">工作台</span></template>
-          <Menu.Item v-for="item in primaryMenus" :key="item.key">
-            <component :is="item.icon" />
-            <span>{{ item.label }}</span>
-          </Menu.Item>
-        </Menu.ItemGroup>
-        <Menu.ItemGroup v-if="manageMenus.length" key="manage">
-          <template #title><span class="menu-group-title">管理</span></template>
-          <Menu.Item v-for="item in manageMenus" :key="item.key">
-            <component :is="item.icon" />
-            <span>{{ item.label }}</span>
-          </Menu.Item>
-        </Menu.ItemGroup>
-      </Menu>
+      <div class="menu-wrap">
+        <Menu
+          mode="inline"
+          :inline-collapsed="collapsed"
+          :selected-keys="selectedKeys"
+          @click="handleMenuClick"
+        >
+          <Menu.ItemGroup v-if="primaryMenus.length" key="primary">
+            <template #title><span class="menu-group-title">工作台</span></template>
+            <Menu.Item v-for="item in primaryMenus" :key="item.key">
+              <component :is="item.icon" />
+              <span>{{ item.label }}</span>
+            </Menu.Item>
+          </Menu.ItemGroup>
+          <Menu.ItemGroup v-if="manageMenus.length" key="manage">
+            <template #title><span class="menu-group-title">管理</span></template>
+            <Menu.Item v-for="item in manageMenus" :key="item.key">
+              <component :is="item.icon" />
+              <span>{{ item.label }}</span>
+            </Menu.Item>
+          </Menu.ItemGroup>
+        </Menu>
+      </div>
     </Sider>
-    <Layout>
+    <Layout class="app-main">
       <Header class="app-header">
         <div class="header-left">
           <Button type="text" @click="collapsed = !collapsed">
             <MenuUnfoldOutlined v-if="collapsed" />
             <MenuFoldOutlined v-else />
+          </Button>
+          <Button type="primary" ghost class="new-chat-btn" @click="goAgent">
+            <PlusOutlined />
+            <span>新建对话</span>
           </Button>
           <Breadcrumb>
             <Breadcrumb.Item>HR-Agent</Breadcrumb.Item>
@@ -117,7 +132,7 @@ const roleLabels: Record<string, string> = {
         <div class="header-right">
           <Dropdown>
             <span class="user-info">
-              <Avatar size="small" style="background-color: #4a7fc1">
+              <Avatar size="small" style="background-color: var(--accent)">
                 {{ (currentUser.empName || '?').charAt(0) }}
               </Avatar>
               <span class="user-name">{{ currentUser.empName }}</span>
@@ -135,7 +150,7 @@ const roleLabels: Record<string, string> = {
           </Dropdown>
         </div>
       </Header>
-      <Content style="overflow: hidden;">
+      <Content class="app-content">
         <router-view />
       </Content>
     </Layout>
@@ -143,9 +158,30 @@ const roleLabels: Record<string, string> = {
 </template>
 
 <style scoped>
+/* 根布局锁定视口高度：侧栏固定、仅内容区内部滚动 */
+.app-root {
+  height: 100vh;
+  overflow: hidden;
+}
+.app-main {
+  min-width: 0;
+}
+.app-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
 .app-sider {
-  background: #ffffff;
-  border-right: 1px solid var(--border-light, #f3f4f6);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
+  display: flex;
+  flex-direction: column;
+}
+.menu-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .logo {
   height: 64px;
@@ -154,12 +190,12 @@ const roleLabels: Record<string, string> = {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  border-bottom: 1px solid var(--border-light, #f3f4f6);
+  border-bottom: 1px solid var(--sidebar-border);
   transition: all 0.2s;
 }
 .logo-icon {
   font-size: 22px;
-  color: #4a7fc1;
+  color: var(--accent);
   flex-shrink: 0;
 }
 .logo-text {
@@ -171,12 +207,12 @@ const roleLabels: Record<string, string> = {
 .logo-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
-  letter-spacing: 0.5px;
+  color: #eef1f5;
+  letter-spacing: 0.4px;
 }
 .logo-sub {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--sidebar-text-muted);
 }
 :deep(.app-sider .ant-menu) {
   border-inline-end: none;
@@ -186,7 +222,7 @@ const roleLabels: Record<string, string> = {
 :deep(.app-sider .ant-menu-item-group-title) {
   padding: 16px 12px 6px;
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--sidebar-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
@@ -195,38 +231,47 @@ const roleLabels: Record<string, string> = {
 :deep(.app-sider .ant-menu-item) {
   height: 40px;
   line-height: 40px;
-  border-radius: 6px;
+  border-radius: 8px;
   margin-bottom: 4px;
-  color: rgba(0, 0, 0, 0.65);
+  color: var(--sidebar-text);
   transition: all 0.15s;
 }
 :deep(.app-sider .ant-menu-item:hover) {
-  background: #e8ecf1;
-  color: rgba(0, 0, 0, 0.88);
+  background: var(--sidebar-hover);
+  color: #ffffff;
 }
 :deep(.app-sider .ant-menu-item-selected) {
-  background: #e8f0fe;
-  color: #4a7fc1;
+  background: var(--sidebar-active);
+  color: #ffffff;
   font-weight: 500;
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 :deep(.app-sider .ant-menu-item-selected::after) {
   display: none;
 }
 .app-header {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(180%) blur(8px);
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
   height: 56px;
   line-height: 56px;
+  position: relative;
+  z-index: 10;
 }
 .header-left {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.new-chat-btn {
+  border-radius: 8px;
+  font-weight: 500;
+  margin-right: 4px;
 }
 .header-right {
   display: flex;
@@ -243,16 +288,16 @@ const roleLabels: Record<string, string> = {
   transition: background 0.15s;
 }
 .user-info:hover {
-  background: #f1f3f5;
+  background: var(--bg-hover);
 }
 .user-name {
   font-size: 14px;
 }
 .user-role {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-tertiary);
   padding: 1px 6px;
-  background: #f1f3f5;
+  background: var(--bg-tertiary);
   border-radius: 4px;
 }
 </style>

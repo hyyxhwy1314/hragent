@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL http://www.omg.org/spec/BPMN/2.0/20100501/BPMN20.xsd"
+             id="Definitions_certificate"
+             targetNamespace="http://flowable.org/bpmn">
+
+    <!--证明开具流程：直属上级审批（bizId=证明申请单ID，审批人由策略从业务单解析申请员工）→ HR审核 → 通过则生成证明内容并邮件发送-->
+    <process id="certificate-process" name="证明开具申请流程" isExecutable="true">
+        <!--开始节点：员工发起证明申请-->
+        <startEvent id="cf_start" name="发起证明申请"/>
+        <sequenceFlow id="flow_cf1" sourceRef="cf_start" targetRef="cf_1_dept_audit"/>
+
+        <!--节点1：直属上级审批 审批人启动流程时策略解析为${approver_dept}-->
+        <userTask id="cf_1_dept_audit" name="直属上级审批"
+                  flowable:assignee="${approver_dept}"/>
+        <sequenceFlow id="flow_cf2" sourceRef="cf_1_dept_audit" targetRef="cf_gw_dept"/>
+
+        <!--网关1：上级审批结果判断-->
+        <exclusiveGateway id="cf_gw_dept" name="直属上级审批结果"/>
+        <sequenceFlow id="flow_cf3" sourceRef="cf_gw_dept" targetRef="cf_2_hr_audit">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_cf4" sourceRef="cf_gw_dept" targetRef="cf_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--节点2：HR人事审核 候选组HR-->
+        <userTask id="cf_2_hr_audit" name="HR人事审核"
+                  flowable:assignee="${approver_hr}"
+                  flowable:candidateGroups="HR"/>
+        <sequenceFlow id="flow_cf5" sourceRef="cf_2_hr_audit" targetRef="cf_gw_hr"/>
+
+        <!--网关2：HR审核结果判断-->
+        <exclusiveGateway id="cf_gw_hr" name="HR审核结果"/>
+        <sequenceFlow id="flow_cf6" sourceRef="cf_gw_hr" targetRef="cf_3_auto_cert">
+            <conditionExpression xsi:type="tFormalExpression">${approved}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="flow_cf7" sourceRef="cf_gw_hr" targetRef="cf_end_rejected">
+            <conditionExpression xsi:type="tFormalExpression">${!approved}</conditionExpression>
+        </sequenceFlow>
+
+        <!--自动服务任务：审批通过后生成证明内容并回写申请单-->
+        <serviceTask id="cf_3_auto_cert" name="生成证明内容"
+                     flowable:delegateExpression="${certificateApprovedDelegate}"/>
+        <sequenceFlow id="flow_cf8" sourceRef="cf_3_auto_cert" targetRef="cf_4_send_email"/>
+
+        <!--自动服务任务：发送证明邮件（async=true 异步执行，失败自动重试，不阻塞审批主流程）-->
+        <serviceTask id="cf_4_send_email" name="发送证明邮件"
+                     flowable:delegateExpression="${certificateEmailDelegate}"
+                     flowable:async="true"/>
+        <sequenceFlow id="flow_cf9" sourceRef="cf_4_send_email" targetRef="cf_end_success"/>
+
+        <!--结束节点：证明开具完成-->
+        <endEvent id="cf_end_success" name="证明开具完成"/>
+        <!--结束节点：证明申请驳回-->
+        <endEvent id="cf_end_rejected" name="证明申请驳回"/>
+    </process>
+</definitions>

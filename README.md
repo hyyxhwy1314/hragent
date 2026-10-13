@@ -22,6 +22,14 @@ HR-Agent 是一个**AI 驱动的智能人力资源管理平台**，后端采用 
 
 自然语言驱动的 HR 操作助手，支持对话式查询员工、简历、审批进度等，动态工具加载节省 Token
 
+### 📚 知识库智能问答（RAG）
+
+基于向量库的知识检索增强问答，覆盖考勤、请假、转正、绩效、薪酬、行为规范等制度条款，回答附带来源文档引用，并按可见范围（全员 / HR）做权限过滤
+
+### 🗂️ 员工自助服务
+
+员工可自助发起请假、在职证明等申请，减少线下流转
+
 ### 👤 员工管理
 
 员工信息 CRUD，支持多角色权限体系（员工/主管/HR/HRBP/管理员）
@@ -32,7 +40,7 @@ HR-Agent 是一个**AI 驱动的智能人力资源管理平台**，后端采用 
 
 ### 📋 流程审批
 
-Flowable 工作流引擎驱动入职/转正/调岗/离职四类审批流程，全程轨迹追踪
+Flowable 工作流引擎驱动入职/转正/调岗/离职四类审批流程，并支持请假、证明、会签等增强流程，全程轨迹追踪
 
 ### 📊 绩效管理
 
@@ -53,9 +61,9 @@ Flowable 工作流引擎驱动入职/转正/调岗/离职四类审批流程，�
 |------|------|
 | **后端** | Java 17、Spring Boot 3.3、MyBatis-Plus 3.5、Flowable 7.0、Redis + Redisson |
 | **前端** | Vue 3.5、TypeScript 5.6、Ant Design Vue 4、ECharts 6、Pinia |
-| **数据库** | MySQL 5.7+、Redis 6.2+ |
-| **AI** | 对接阿里云 MaaS / OpenRouter 大模型 API，SSE 流式对话 |
-| **构建** | Maven、Vite、Docker Compose |
+| **数据库** | MySQL 5.7+、Redis 6.2+、Qdrant |
+| **AI** | 对接阿里云 MaaS / OpenRouter 大模型 API，SSE 流式对话、LangChain4j、Qdrant 向量库、text-embedding-v3 向量化 |
+| **构建** | Maven、Vite、Docker |
 | **其他** | JWT 鉴权、AOP 切面、阿里云 OCR、邮件通知 |
 
 ## 快速开始
@@ -64,13 +72,23 @@ Flowable 工作流引擎驱动入职/转正/调岗/离职四类审批流程，�
 
 - JDK 17+
 - Node.js 22+
-- Docker & Docker Compose
+- Docker（用于启动 MySQL、Redis、Qdrant 容器）
 - Maven 3.8+
 
 ### 启动基础设施
 
+本项目不含 `docker-compose` 文件，基础设施由以下三个容器提供：
+
+| 容器 | 镜像 | 宿主机端口 |
+|------|------|-----------|
+| douban-mysql | mysql:8.0 | 13306 → 3306 |
+| douban-redis | redis:7-alpine | 16379 → 6379（密码 `123`） |
+| douban-qdrant | qdrant/qdrant | 6333（REST） / 6334（gRPC） |
+
+`douban-mysql`、`douban-redis` 按项目现有容器启动；Qdrant 向量库可使用：
+
 ```bash
-docker-compose up -d
+docker run -d --name douban-qdrant -p 6333:6333 -p 6334:6334 qdrant/qdrant:latest
 ```
 
 ### 启动后端
@@ -99,7 +117,7 @@ npm run dev
 ```
 hr-agent/
 ├── src/main/java/org/example/hragent/
-│   ├── agent/          # AI 智能体（模型调用、工具管理、对话）
+│   ├── agent/          # AI 智能体（模型调用、工具管理、对话，含 rag/ 向量检索与 routing/ 工具路由）
 │   ├── controller/     # REST API 控制器
 │   ├── service/        # 业务逻辑层
 │   ├── mapper/         # MyBatis 数据访问
@@ -170,6 +188,9 @@ hr-agent/
 | `AI_API_KEY` | 是 | — | AI 模型 API 密钥 |
 | `AI_BASE_URL` | 否 | 阿里云 MaaS 地址 | AI 服务地址 |
 | `AI_MODEL_NAME` | 否 | qwen3.7-flash | 模型名称 |
+| `AI_EMBEDDING_MODEL_NAME` | 否 | text-embedding-v3 | 向量化模型名（与对话模型共用 `ai.base-url` / `ai.api-key`） |
+| `FEISHU_MCP_APP_ID` | 否 | — | 飞书远程 MCP 应用 ID |
+| `FEISHU_MCP_APP_SECRET` | 否 | — | 飞书远程 MCP 应用密钥 |
 | `MAIL_PASSWORD` | 否 | — | QQ SMTP 授权码 |
 | `COS_ACCESS_KEY` | 否 | — | 对象存储密钥 |
 
@@ -179,4 +200,4 @@ hr-agent/
 
 ---
 
-> 文档自动生成于 2026-09-18 | [OpenWiki](https://hyyxhwy1314.github.io/hragent/) 驱动
+> 文档自动生成于 2026-10-13 | [OpenWiki](https://hyyxhwy1314.github.io/hragent/) 驱动

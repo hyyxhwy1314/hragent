@@ -35,6 +35,10 @@ public class HrAgentState extends AgentState {
     public static final String OUTPUT_TOKENS_KEY = "outputTokens";
     /** 本回合累计工具调用次数，last-wins 覆盖 */
     public static final String TOOL_CALL_COUNT_KEY = "toolCallCount";
+    /** 登录用户快照（异步 stream 模式下节点在内部线程执行，据此重建 ThreadLocal 登录态） */
+    public static final String CURRENT_USER_KEY = "currentUser";
+    /** 本轮路由允许调用的工具名（模型节点下发，工具执行节点据此拒绝候选外调用） */
+    public static final String ROUTED_TOOLS_KEY = "routedTools";
     
     /** 用户消息前缀 */
     public static final String USER_PREFIX = "[user] ";
@@ -55,7 +59,11 @@ public class HrAgentState extends AgentState {
             // 累计统计：last-wins，节点在写入时会基于已有值做累加
             Map.entry(INPUT_TOKENS_KEY, Channels.base((Integer prev, Integer next) -> next)),
             Map.entry(OUTPUT_TOKENS_KEY, Channels.base((Integer prev, Integer next) -> next)),
-            Map.entry(TOOL_CALL_COUNT_KEY, Channels.base((Integer prev, Integer next) -> next))
+            Map.entry(TOOL_CALL_COUNT_KEY, Channels.base((Integer prev, Integer next) -> next)),
+            // 登录用户快照：last-wins，仅透传不参与合并
+            Map.entry(CURRENT_USER_KEY, Channels.base((Object prev, Object next) -> next)),
+            // 本轮路由候选工具名：last-wins，每轮模型推理时覆盖
+            Map.entry(ROUTED_TOOLS_KEY, Channels.base((Object prev, Object next) -> next))
     );
     
     public HrAgentState(Map<String, Object> initData) {
@@ -129,6 +137,12 @@ public class HrAgentState extends AgentState {
     /** 本回合累计工具调用次数 */
     public int toolCallCount() {
         return this.<Integer>value(TOOL_CALL_COUNT_KEY).orElse(0);
+    }
+
+    /** 本轮路由允许调用的工具名列表（未设置时返回空列表） */
+    @SuppressWarnings("unchecked")
+    public List<String> routedToolNames() {
+        return this.<List<String>>value(ROUTED_TOOLS_KEY).orElse(List.of());
     }
     
     // 状态判断辅助方法

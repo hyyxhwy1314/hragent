@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL http://www.omg.org/spec/BPMN/2.0/20100501/BPMN20.xsd"
+             id="Definitions_multi_sign"
+             targetNamespace="http://flowable.org/bpmn">
+
+    <!--多人会签/或签流程：演示 Flowable 多实例 userTask 的两种模式
+        - 会签：signerList 中所有人均需处理，全部完成后流转（默认多实例语义）
+        - 或签：orSignerList 中任一人处理即完成（completionCondition nrOfCompletedInstances >= 1）
+        审批人列表由发起流程时 bizJson 传入，如 {"signerList":["1001","1002"],"orSignerList":["1003","1004"]}-->
+    <process id="multi-sign-process" name="多人会签/或签流程" isExecutable="true">
+        <startEvent id="ms_start" name="发起"/>
+        <sequenceFlow id="ms_f1" sourceRef="ms_start" targetRef="ms_countersign"/>
+
+        <!--会签节点：多实例并行，全部审批人处理完成才流转-->
+        <userTask id="ms_countersign" name="多人会签" flowable:assignee="${signer}">
+            <multiInstanceLoopCharacteristics isSequential="false"
+                                              flowable:collection="${signerList}"
+                                              flowable:elementVariable="signer"/>
+        </userTask>
+        <sequenceFlow id="ms_f2" sourceRef="ms_countersign" targetRef="ms_orsign"/>
+
+        <!--或签节点：多实例并行，任一人处理即完成-->
+        <userTask id="ms_orsign" name="或签（一人处理即可）" flowable:assignee="${orSigner}">
+            <multiInstanceLoopCharacteristics isSequential="false"
+                                              flowable:collection="${orSignerList}"
+                                              flowable:elementVariable="orSigner">
+                <completionCondition xsi:type="tFormalExpression">${nrOfCompletedInstances &gt;= 1}</completionCondition>
+            </multiInstanceLoopCharacteristics>
+        </userTask>
+        <sequenceFlow id="ms_f3" sourceRef="ms_orsign" targetRef="ms_end"/>
+
+        <endEvent id="ms_end" name="完成"/>
+    </process>
+</definitions>

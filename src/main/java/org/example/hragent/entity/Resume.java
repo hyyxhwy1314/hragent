@@ -148,6 +148,12 @@ public class Resume extends BaseEntity {
     private String screeningOpinion;
 
     /**
+     * AI深度评分明细(ResumeDeepAnalysisVO JSON),用于随时回看
+     */
+    @TableField("score_detail")
+    private String scoreDetail;
+
+    /**
      * 负责HR t_employee.id
      */
     @TableField("owner_emp_id")

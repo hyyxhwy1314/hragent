@@ -21,4 +21,8 @@ public class ResumeDeepAnalysisVO {
     private String matchAnalysis;
     /** 招聘/面试建议 */
     private List<String> suggestions;
+    /** 综合评分（0-100），基于系统技能标签库匹配得出 */
+    private Integer score;
+    /** 各分类技能标签匹配明细 */
+    private List<ResumeTagMatchVO> tagMatch;
 }

@@ -10,6 +10,8 @@ import org.example.hragent.agent.state.ToolCallRecord;
 import org.example.hragent.agent.tools.HrAgentAiServiceFactory;
 import org.example.hragent.entity.agent.AgentInteractLog;
 import org.example.hragent.mapper.agent.AgentInteractLogMapper;
+import org.example.hragent.utils.CurrentUserService;
+import org.example.hragent.utils.CurrentUserService.CurrentUser;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -58,7 +60,7 @@ public class AgentScheduler {
     }
 
     /**
-     * 通过 Agent 工作流处理用户消息
+     * 通过 Agent 工作流处理用户消息（同步模式）
      * 
      * @param userMessage 用户输入的消息
      * @param userId 用户 ID（可选，用于个性化）
@@ -66,55 +68,117 @@ public class AgentScheduler {
      * @return Agent 的响应（含思考过程）
      */
     public ChatResponse processMessage(String userMessage, String userId, String sessionId) {
-        long startMs = System.currentTimeMillis();
         try {
-            // 若未提供会话 ID，则自动生成
-            if (sessionId == null || sessionId.isEmpty()) {
-                sessionId = UUID.randomUUID().toString();
-            }
-            
-            boolean isNewSession = !persistenceService.hasState(sessionId);
-            
-            // 生成稳定的 numeric ChatMemory ID（LangChain4j ChatMemory 要求 Long 类型）
-            Long chatMemoryId = generateChatMemoryId(sessionId);
-            
-            // 加载已有状态或创建新状态
-            Map<String, Object> stateData = loadOrCreateStateData(sessionId, userId, chatMemoryId);
-            
-            // 记录执行前的消息数量（用于增量持久化）
-            int preMessageCount = getPreExecutionMessageCount(stateData);
-            
-            // 将用户消息添加到状态（ModelThinkNode 会从中提取）
-            addUserMessage(stateData, userMessage);
-            
-            // 执行 Agent 工作流
+            return executeTask(userMessage, userId, sessionId, null);
+        } catch (Exception e) {
+            return new ChatResponse("处理您的请求时出错：" + e.getMessage(), sessionId);
+        }
+    }
+
+    /**
+     * 任务进度监听器：工作流图中每个节点执行完成后回调一次。
+     * <p>
+     * {@code node} 为节点名（model=模型推理 / action=工具执行），{@code state}
+     * 为该节点执行完后的状态快照，可用于生成"思考中 / 正在调用工具"等进度描述。
+     */
+    public interface ProgressListener {
+        void onProgress(String node, HrAgentState state);
+    }
+
+    /**
+     * 执行一次 Agent 工作流回合（同步阻塞，供任务调度器在后台线程调用）
+     * <p>
+     * 与 {@link #processMessage} 的差异：
+     * <ul>
+     *     <li>不吞异常：工作流失败时异常向上抛出，由任务层标记 FAILED</li>
+     *     <li>可携带 {@link ProgressListener}：非空时改用 stream 执行，逐节点推送进度</li>
+     * </ul>
+     *
+     * @param userMessage 用户输入的消息
+     * @param userId 用户 ID（可选，用于个性化）
+     * @param sessionId 会话 ID（为空时自动生成）
+     * @param listener   进度监听器（可为 null，此时按同步 invoke 执行）
+     * @return Agent 的响应（含思考过程）
+     */
+    public ChatResponse executeTask(String userMessage, String userId, String sessionId, ProgressListener listener) {
+        long startMs = System.currentTimeMillis();
+        // 若未提供会话 ID，则自动生成
+        if (sessionId == null || sessionId.isEmpty()) {
+            sessionId = UUID.randomUUID().toString();
+        }
+
+        boolean isNewSession = !persistenceService.hasState(sessionId);
+
+        // 生成稳定的 numeric ChatMemory ID（LangChain4j ChatMemory 要求 Long 类型）
+        Long chatMemoryId = generateChatMemoryId(sessionId);
+
+        // 加载已有状态或创建新状态
+        Map<String, Object> stateData = loadOrCreateStateData(sessionId, userId, chatMemoryId);
+
+        // 记录执行前的消息数量（用于增量持久化）
+        int preMessageCount = getPreExecutionMessageCount(stateData);
+
+        // 将用户消息添加到状态（ModelThinkNode 会从中提取）
+        addUserMessage(stateData, userMessage);
+
+        // 登录用户快照写入状态：stream 模式下图节点在 langgraph4j 内部线程执行，
+        // ThreadLocal 登录态不会自动传递，工具节点据此在节点线程重建上下文
+        CurrentUser loginUser = CurrentUserService.get();
+        if (loginUser != null) {
+            stateData.put(HrAgentState.CURRENT_USER_KEY, loginUser);
+        }
+
+        // 执行 Agent 工作流（有监听器时走 stream 逐节点回调，否则同步 invoke）
+        HrAgentState finalState = executeGraph(stateData, listener);
+
+        // 保存最终状态到 Redis
+        persistenceService.saveState(sessionId, finalState);
+
+        // 持久化增量消息到 MySQL
+        persistToDatabase(sessionId, userId, userMessage, isNewSession, finalState, preMessageCount);
+
+        // 提取最终响应和思考过程
+        String response = extractFinalResponse(finalState);
+        String thinking = extractThinking(finalState);
+        List<ToolCallStep> toolSteps = extractToolSteps(finalState);
+        int inputTokens = finalState.inputTokens();
+        int outputTokens = finalState.outputTokens();
+
+        // 记录本回合交互统计
+        saveInteractLog(sessionId, userId, userMessage, response, finalState, startMs);
+
+        return new ChatResponse(response, thinking, toolSteps, sessionId, inputTokens, outputTokens);
+    }
+
+    /**
+     * 执行工作流图：有进度监听器时使用 stream 模式逐节点回调并收集最终状态；
+     * 否则走同步 invoke（与旧行为一致）。
+     */
+    private HrAgentState executeGraph(Map<String, Object> stateData, ProgressListener listener) {
+        if (listener == null) {
             var finalStateOpt = compiledGraph.invoke(stateData);
             if (finalStateOpt.isEmpty()) {
                 throw new RuntimeException("Agent 工作流返回空状态");
             }
-            
-            // 保存最终状态到 Redis
-            HrAgentState finalState = finalStateOpt.get();
-            persistenceService.saveState(sessionId, finalState);
-            
-            // 持久化增量消息到 MySQL
-            persistToDatabase(sessionId, userId, userMessage, isNewSession, finalState, preMessageCount);
-            
-            // 提取最终响应和思考过程
-            String response = extractFinalResponse(finalState);
-            String thinking = extractThinking(finalState);
-            List<ToolCallStep> toolSteps = extractToolSteps(finalState);
-            int inputTokens = finalState.inputTokens();
-            int outputTokens = finalState.outputTokens();
-
-            // 记录本回合交互统计
-            saveInteractLog(sessionId, userId, userMessage, response, finalState, startMs);
-
-            return new ChatResponse(response, thinking, toolSteps, sessionId, inputTokens, outputTokens);
-            
-        } catch (Exception e) {
-            return new ChatResponse("处理您的请求时出错：" + e.getMessage(), sessionId);
+            return finalStateOpt.get();
         }
+
+        // 收集最后一个非空状态（END 节点携带的即最终状态）
+        HrAgentState[] last = new HrAgentState[1];
+        try {
+            compiledGraph.stream(stateData).forEachAsync(output -> {
+                if (!output.isSTART() && !output.isEND() && output.state() != null) {
+                    listener.onProgress(output.node(), output.state());
+                    last[0] = output.state();
+                }
+            }).get();
+        } catch (Exception e) {
+            throw new RuntimeException("Agent 工作流执行失败", e);
+        }
+        if (last[0] == null) {
+            throw new RuntimeException("Agent 工作流返回空状态");
+        }
+        return last[0];
     }
 
     /**

@@ -9,7 +9,6 @@ import org.example.hragent.service.FileService;
 import org.example.hragent.service.ResumeParserService;
 import org.example.hragent.service.ResumeService;
 import org.example.hragent.vo.FileVO;
-import org.example.hragent.vo.ResumeParsedData;
 import org.example.hragent.vo.ResumeUploadVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;

@@ -1,9 +1,9 @@
 package org.example.hragent.controller;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.hragent.annotation.DistributedLock;
+import org.example.hragent.annotation.LogAction;
 import org.example.hragent.annotation.RateLimit;
 import org.example.hragent.annotation.RepeatSubmit;
 import org.example.hragent.dto.FlowStartDto;
@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +59,7 @@ public class FlowProcessController {
      * 同名流程会自动升级版本号。
      */
     @PostMapping("/deploy")
+    @LogAction(module = "流程审批", action = "部署流程")
     @RateLimit(rate = 5, rateInterval = 3, rateIntervalUnit = TimeUnit.SECONDS, message = "部署过于频繁，请稍后再试")
     public R<Map<String, Object>> deploy(@RequestParam("file") MultipartFile file) throws IOException {
         String name = file.getOriginalFilename();
@@ -96,12 +99,35 @@ public class FlowProcessController {
     }
 
     /**
+     * 查询指定流程定义（最新版本）的 BPMN XML 内容，供前端设计器加载编辑
+     */
+    @GetMapping("/definitions/{processKey}/xml")
+    public R<Map<String, Object>> getDefinitionXml(@PathVariable String processKey) throws IOException {
+        ProcessDefinition def = repositoryService.createProcessDefinitionQuery()
+                .processDefinitionKey(processKey)
+                .latestVersion()
+                .singleResult();
+        BusinessException.throwIf(def == null, ErrorCode.FLOW_DEFINITION_NOT_FOUND,
+                "流程定义不存在: " + processKey);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("key", def.getKey());
+        result.put("name", def.getName());
+        result.put("version", def.getVersion());
+        try (InputStream in = repositoryService.getProcessModel(def.getId())) {
+            result.put("bpmnXml", in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8));
+        }
+        return R.ok(result);
+    }
+
+    /**
      * 发起流程实例
      * <p>
      * - {@link RepeatSubmit} 防止用户重复点击多次发起
      * - {@link DistributedLock} 防止同业务ID并发发起（避免重复流程实例）
      */
     @PostMapping("/start")
+    @LogAction(module = "流程审批", action = "发起流程")
     @RepeatSubmit(interval = 5, unit = TimeUnit.SECONDS, message = "请勿重复发起流程")
     @DistributedLock(key = "#dto.processKey + ':' + #dto.bizId", message = "流程发起中，请稍后")
     public R<FlowInstanceVO> start(@Valid @RequestBody FlowStartDto dto) {
@@ -112,6 +138,7 @@ public class FlowProcessController {
      * 撤回流程（操作人从登录上下文取）
      */
     @PostMapping("/instances/{flowInstanceId}/cancel")
+    @LogAction(module = "流程审批", action = "撤回流程")
     public R<Boolean> cancel(@PathVariable Long flowInstanceId) {
         Long operatorEmpId = CurrentUserService.empId();
         BusinessException.throwIf(operatorEmpId == null, ErrorCode.UNAUTHORIZED);

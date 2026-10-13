@@ -1,7 +1,9 @@
 package org.example.hragent.agent.tools;
 
 import dev.langchain4j.memory.ChatMemory;
-import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import dev.langchain4j.memory.chat.TokenWindowChatMemory;
+import dev.langchain4j.model.Tokenizer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,10 +25,16 @@ public class HrAgentAiServiceFactory {
     /** 每个会话独立的 ChatMemory，key = 会话维度的 Long ID */
     private final ConcurrentHashMap<Long, ChatMemory> chatMemoryMap = new ConcurrentHashMap<>();
 
-    /** 默认保留的最近消息条数（消息轮数一般 = 条数/2） */
-    private static final int MAX_MESSAGES = 40;
+    /** 单次模型推理允许携带的最大历史 token 预算（超出后自动丢弃最旧消息） */
+    private final int maxTokens;
 
-    public HrAgentAiServiceFactory() {
+    /** token 估算器（cl100k 近似编码） */
+    private final Tokenizer tokenizer;
+
+    public HrAgentAiServiceFactory(@Value("${hragent.agent.memory.max-tokens:6000}") int maxTokens,
+                                   Tokenizer tokenizer) {
+        this.maxTokens = maxTokens;
+        this.tokenizer = tokenizer;
     }
 
     /**
@@ -45,8 +53,8 @@ public class HrAgentAiServiceFactory {
     private ChatMemory getOrCreateChatMemory(Object memoryId) {
         Long id = memoryId instanceof Long l ? l : (long) String.valueOf(memoryId).hashCode();
         return chatMemoryMap.computeIfAbsent(id, key ->
-                MessageWindowChatMemory.builder()
-                        .maxMessages(MAX_MESSAGES)
+                TokenWindowChatMemory.builder()
+                        .maxTokens(maxTokens, tokenizer)
                         .build()
         );
     }

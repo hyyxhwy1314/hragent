@@ -31,5 +31,13 @@ public class EmployeeUpdateDto {
     private Integer empStatus;
     private String baseSalary;
     private String workCity;
+    /**
+     * 角色：EMPLOYEE/DEPT_LEADER/HR/HRBP/ADMIN
+     */
+    private String role;
+    /**
+     * 直属上级ID（t_employee.id）
+     */
+    private Long leaderId;
     private String remark;
 }
