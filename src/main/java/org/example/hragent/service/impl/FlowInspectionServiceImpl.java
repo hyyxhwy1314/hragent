@@ -3,11 +3,10 @@ package org.example.hragent.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;
 import org.example.hragent.constant.FlowConstants;
-import org.example.hragent.entity.Employee;
 import org.example.hragent.entity.FlowInstance;
-import org.example.hragent.mapper.EmployeeMapper;
 import org.example.hragent.mapper.FlowInstanceMapper;
 import org.example.hragent.service.FlowInspectionService;
+import org.example.hragent.utils.FlowableUtils;
 import org.example.hragent.vo.StuckFlowVO;
 import org.flowable.task.api.Task;
 import org.springframework.stereotype.Service;
@@ -38,14 +37,14 @@ public class FlowInspectionServiceImpl implements FlowInspectionService {
     private static final int PAGE_SIZE = 200;
 
     private final FlowInstanceMapper flowInstanceMapper;
-    private final EmployeeMapper employeeMapper;
+    private final EmployeeNameResolver employeeNameResolver;
     private final org.flowable.engine.TaskService taskService;
 
     public FlowInspectionServiceImpl(FlowInstanceMapper flowInstanceMapper,
-                                     EmployeeMapper employeeMapper,
+                                     EmployeeNameResolver employeeNameResolver,
                                      org.flowable.engine.TaskService taskService) {
         this.flowInstanceMapper = flowInstanceMapper;
-        this.employeeMapper = employeeMapper;
+        this.employeeNameResolver = employeeNameResolver;
         this.taskService = taskService;
     }
 
@@ -113,7 +112,7 @@ public class FlowInspectionServiceImpl implements FlowInspectionService {
                 .filter(n -> n != null && !n.isBlank())
                 .distinct()
                 .collect(Collectors.joining("、")));
-        vo.setAssigneeEmpId(parseEmpId(earliest.getAssignee()));
+        vo.setAssigneeEmpId(FlowableUtils.parseEmpId(earliest.getAssignee()));
         return vo;
     }
 
@@ -125,28 +124,11 @@ public class FlowInspectionServiceImpl implements FlowInspectionService {
         List<Long> empIds = list.stream()
                 .flatMap(v -> java.util.stream.Stream.of(v.getApplyEmpId(), v.getAssigneeEmpId()))
                 .filter(java.util.Objects::nonNull)
-                .distinct()
                 .collect(Collectors.toList());
-        if (empIds.isEmpty()) {
-            return;
-        }
-        Map<Long, String> nameMap = employeeMapper.selectBatchIds(empIds).stream()
-                .collect(Collectors.toMap(Employee::getId, Employee::getEmpName, (a, b) -> a));
+        Map<Long, String> nameMap = employeeNameResolver.resolveNames(empIds);
         list.forEach(v -> {
             v.setApplyEmpName(nameMap.getOrDefault(v.getApplyEmpId(), ""));
             v.setAssigneeName(nameMap.getOrDefault(v.getAssigneeEmpId(), ""));
         });
-    }
-
-    /** Flowable 处理人（员工ID字符串）→ Long，解析失败返回 null */
-    private Long parseEmpId(String assignee) {
-        if (assignee == null || assignee.isBlank()) {
-            return null;
-        }
-        try {
-            return Long.parseLong(assignee);
-        } catch (NumberFormatException e) {
-            return null;
-        }
     }
 }

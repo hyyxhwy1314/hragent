@@ -19,3 +19,7 @@ Thumbs.db
 
 # 前端构建缓存
 *.tsbuildinfo
+
+# 本地私有配置（飞书 MCP 等凭据，禁止入库）
+**/application-local.yaml
+**/application-local.properties

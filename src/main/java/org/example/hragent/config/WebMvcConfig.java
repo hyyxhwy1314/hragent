@@ -2,6 +2,7 @@ package org.example.hragent.config;
 
 import org.example.hragent.interceptor.AuthInterceptor;
 import org.example.hragent.interceptor.BehaviorLogInterceptor;
+import org.example.hragent.interceptor.RoleInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -16,10 +17,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
+    private final RoleInterceptor roleInterceptor;
     private final BehaviorLogInterceptor behaviorLogInterceptor;
 
-    public WebMvcConfig(AuthInterceptor authInterceptor, BehaviorLogInterceptor behaviorLogInterceptor) {
+    public WebMvcConfig(AuthInterceptor authInterceptor, RoleInterceptor roleInterceptor,
+                        BehaviorLogInterceptor behaviorLogInterceptor) {
         this.authInterceptor = authInterceptor;
+        this.roleInterceptor = roleInterceptor;
         this.behaviorLogInterceptor = behaviorLogInterceptor;
     }
 
@@ -38,6 +42,15 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/*.css",
                         "/*.html",
                         "/*.ico"
+                );
+
+        // 角色授权：必须在鉴权之后执行，以便取到当前登录人的角色
+        registry.addInterceptor(roleInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns(
+                        "/auth/login",
+                        "/error",
+                        "/favicon.ico"
                 );
 
         // 行为日志采集（必须在鉴权之后执行，以便能取到当前登录用户）

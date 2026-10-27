@@ -246,6 +246,12 @@
             <artifactId>langgraph4j-core</artifactId>
             <version>1.8.21</version>
         </dependency>
+        <!-- 飞书开放平台官方 Java SDK：长连接接收卡片回调（card.action.trigger） -->
+        <dependency>
+            <groupId>com.larksuite.oapi</groupId>
+            <artifactId>oapi-sdk</artifactId>
+            <version>2.4.0</version>
+        </dependency>
     </dependencies>
 
     <build>

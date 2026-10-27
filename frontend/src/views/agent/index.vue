@@ -66,6 +66,14 @@ const route = useRoute()
 // 打字动画定时器
 let typingTimer: ReturnType<typeof setInterval> | null = null
 
+// 每次发送的唯一序号：切换会话/新建对话时自增，用于作废在途请求，
+// 避免请求返回后写入已被清空的消息数组（下标越界）
+let activeSendId = 0
+// 历史消息加载中（与 sending 解耦，避免会话切换与发送互相覆盖发送锁）
+const loadingHistory = ref(false)
+// 输入区是否忙碌：发送中或历史加载中
+const busy = computed(() => sending.value || loadingHistory.value)
+
 const quickSuggests = [
   { label: '查员工信息', text: '查询员工张三的信息' },
   { label: '发起入职流程', text: '帮我发起一名新员工的入职流程' },
@@ -83,7 +91,7 @@ const capabilities = [
   { icon: BookOutlined, label: '培训课程', text: '查询最近的培训课程' }
 ]
 
-const showWelcome = computed(() => messages.value.length <= 1 && !sending.value)
+const showWelcome = computed(() => messages.value.length <= 1 && !busy.value)
 
 onMounted(() => {
   loadSessions()
@@ -134,10 +142,28 @@ function formatDate(dt: string): string {
   return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
 }
 
-function scrollToBottom() {
+// 是否跟随底部：由用户手动滚动意图决定，而非每次按瞬时距离判断。
+// 若按瞬时距离判断，进度时间线/长表格一次性追加时会被误判为「用户已上滑」而停止跟随。
+const followBottom = ref(true)
+
+/** 用户滚动消息区时更新跟随意图 */
+function onMessagesScroll() {
+  const container = messagesRef.value
+  if (!container) return
+  followBottom.value = container.scrollHeight - container.scrollTop - container.clientHeight < 80
+}
+
+/**
+ * 滚动到底部。
+ * 默认仅在用户仍处于「跟随底部」状态时自动跟随，避免打字动画期间用户上滑回看被强行拽回底部；
+ * force=true 用于发送新消息、切换会话等必须定位到底部的场景。
+ */
+function scrollToBottom(force = false) {
+  if (force) followBottom.value = true
   nextTick(() => {
     const container = messagesRef.value
-    if (container) container.scrollTop = container.scrollHeight
+    if (!container || !followBottom.value) return
+    container.scrollTop = container.scrollHeight
   })
 }
 
@@ -156,10 +182,12 @@ function formatArgs(args: string): string {
 
 async function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || sending.value) return
+  if (!text || busy.value) return
 
   inputText.value = ''
   sending.value = true
+  // 本次发送的唯一序号：会话切换/新建对话时自增，据此作废在途结果
+  const mySend = ++activeSendId
   if (typingTimer) { clearInterval(typingTimer); typingTimer = null }
 
   messages.value.push({
@@ -177,10 +205,11 @@ async function sendMessage() {
     inputTokens: 0,
     outputTokens: 0
   })
-  scrollToBottom()
+  scrollToBottom(true)
 
-  const aiMsgIndex = messages.value.length
-  messages.value.push({
+  // 用对象引用而非数组下标持有「进行中」的助手消息：
+  // 即使用户中途清空 messages，也不会出现下标越界
+  const aiMsg: Message = {
     role: 'assistant',
     content: '',
     typingContent: '',
@@ -195,8 +224,9 @@ async function sendMessage() {
     typingDone: false,
     inputTokens: 0,
     outputTokens: 0
-  })
-  scrollToBottom()
+  }
+  messages.value.push(aiMsg)
+  scrollToBottom(true)
 
   try {
     // 异步提交任务，立即拿到 taskId，不再长时间占用 HTTP 连接
@@ -204,50 +234,56 @@ async function sendMessage() {
       message: text,
       sessionId: sessionId.value || undefined
     })
+    if (mySend !== activeSendId) return // 会话已被切换，丢弃本次结果
     sessionId.value = submitted.sessionId
 
     // 轮询任务直至终态，期间实时刷新进度步骤
-    const task = await pollTask(submitted.taskId)
+    const task = await pollTask(submitted.taskId, aiMsg, mySend)
+    if (!task || mySend !== activeSendId) return // 在途请求已被作废
 
-    const msg = messages.value[aiMsgIndex]
-    msg.loading = false
-    msg.progressSteps = task.steps || []
+    aiMsg.loading = false
+    aiMsg.progressSteps = task.steps || []
 
     const result = task.result
     if (task.status !== 'SUCCEEDED' || !result) {
       throw new Error(task.error || '任务处理失败')
     }
 
-    msg.content = result.response
-    msg.thinking = result.thinking || null
-    msg.thinkingVisible = !!result.thinking
-    msg.toolSteps = result.toolSteps || null
-    msg.toolOpen = (result.toolSteps || []).map(() => false)
-    msg.inputTokens = result.inputTokens || 0
-    msg.outputTokens = result.outputTokens || 0
+    aiMsg.content = result.response
+    aiMsg.thinking = result.thinking || null
+    aiMsg.thinkingVisible = !!result.thinking
+    aiMsg.toolSteps = result.toolSteps || null
+    aiMsg.toolOpen = (result.toolSteps || []).map(() => false)
+    aiMsg.inputTokens = result.inputTokens || 0
+    aiMsg.outputTokens = result.outputTokens || 0
 
     // 思考过程默认折叠，用户点击展开
 
     // 启动打字动画
-    startTyping(aiMsgIndex)
+    startTyping(aiMsg)
     loadSessions()
   } catch (e: any) {
-    messages.value[aiMsgIndex].loading = false
-    messages.value[aiMsgIndex].content = '抱歉，请求处理失败：' + (e?.message || '未知错误')
-    messages.value[aiMsgIndex].typingDone = true
+    if (mySend !== activeSendId) return
+    aiMsg.loading = false
+    aiMsg.content = '抱歉，请求处理失败：' + (e?.message || '未知错误')
+    aiMsg.typingDone = true
   } finally {
-    sending.value = false
+    if (mySend === activeSendId) sending.value = false
   }
 }
 
-/** 轮询异步任务直至终态，每轮刷新进行中消息的进度步骤 */
-async function pollTask(taskId: string, maxPoll = 400): Promise<AgentTaskRecord> {
+/**
+ * 轮询异步任务直至终态，每轮刷新进行中消息的进度步骤。
+ * 传入消息对象引用而非下标；会话被切换时提前返回 null 作废本次轮询。
+ */
+async function pollTask(taskId: string, aiMsg: Message, mySend: number, maxPoll = 400): Promise<AgentTaskRecord | null> {
   for (let i = 0; i < maxPoll; i++) {
     await sleep(900)
+    if (mySend !== activeSendId) return null // 会话已切换，停止轮询
     const task = await getAgentTask(taskId)
-    const lastMsg = messages.value[messages.value.length - 1]
-    if (lastMsg?.role === 'assistant' && lastMsg.loading && task.steps?.length) {
-      lastMsg.progressSteps = task.steps
+    if (mySend !== activeSendId) return null
+    if (aiMsg.loading && task.steps?.length) {
+      aiMsg.progressSteps = task.steps
       scrollToBottom()
     }
     if (task.status !== 'RUNNING') return task
@@ -260,14 +296,12 @@ function sleep(ms: number) {
 }
 
 /** 打字动画：逐字显示回答内容 */
-function startTyping(msgIndex: number) {
-  const msg = messages.value[msgIndex]
+function startTyping(msg: Message) {
+  if (typingTimer) clearInterval(typingTimer)
   if (!msg.content) {
     msg.typingDone = true
     return
   }
-
-  if (typingTimer) clearInterval(typingTimer)
 
   let idx = 0
   msg.typingContent = ''
@@ -314,6 +348,9 @@ function suggest(text: string) {
 
 async function newConversation() {
   if (typingTimer) { clearInterval(typingTimer); typingTimer = null }
+  activeSendId++ // 作废在途发送/历史加载，避免其写回已清空的消息数组
+  sending.value = false // 释放发送锁（在途请求的 finally 因序号不匹配而不再生效）
+  loadingHistory.value = false
   sessionId.value = null
   messages.value = []
   addWelcomeMessage()
@@ -323,12 +360,15 @@ async function newConversation() {
 async function selectSession(session: AgentSession) {
   if (sessionId.value === session.sessionId) return
   if (typingTimer) { clearInterval(typingTimer); typingTimer = null }
+  const myLoad = ++activeSendId // 作废在途发送/历史加载
+  sending.value = false
   sessionId.value = session.sessionId
   messages.value = []
-  sending.value = true
+  loadingHistory.value = true
 
   try {
     const msgs = await getSessionMessages(session.sessionId)
+    if (myLoad !== activeSendId) return // 期间已切换会话/新建对话，丢弃本次结果
     for (const m of msgs) {
       if (m.role === 'user' || m.role === 'assistant') {
         messages.value.push({
@@ -349,12 +389,13 @@ async function selectSession(session: AgentSession) {
       }
     }
   } catch {
+    if (myLoad !== activeSendId) return
     message.error('加载历史消息失败')
     addWelcomeMessage()
   } finally {
-    sending.value = false
+    if (myLoad === activeSendId) loadingHistory.value = false
     drawerOpen.value = false
-    scrollToBottom()
+    scrollToBottom(true)
   }
 }
 
@@ -446,7 +487,7 @@ function handleKeydown(e: KeyboardEvent) {
       </div>
 
       <!-- 消息区域（居中列） -->
-      <div class="chat-messages" ref="messagesRef">
+      <div class="chat-messages" ref="messagesRef" @scroll.passive="onMessagesScroll">
         <div class="chat-column">
           <!-- 欢迎页 -->
           <div v-if="showWelcome" class="welcome-hero">
@@ -571,7 +612,7 @@ function handleKeydown(e: KeyboardEvent) {
               v-model:value="inputText"
               :rows="2"
               placeholder="输入您的问题，例如：查询员工张三的信息"
-              :disabled="sending"
+              :disabled="busy"
               @keydown="handleKeydown"
               class="chat-input"
             />
@@ -580,7 +621,7 @@ function handleKeydown(e: KeyboardEvent) {
               shape="circle"
               size="large"
               :loading="sending"
-              :disabled="!inputText.trim() || sending"
+              :disabled="!inputText.trim() || busy"
               @click="sendMessage"
               class="send-btn"
             >
@@ -620,8 +661,8 @@ function handleKeydown(e: KeyboardEvent) {
 @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.7); } }
 
 /* 消息区域（居中列） */
-.chat-messages { flex: 1; overflow-y: auto; padding: 20px 24px 0; display: flex; scroll-behavior: smooth; }
-.chat-column { max-width: 820px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+.chat-messages { flex: 1; min-height: 0; overflow-y: auto; padding: 20px 24px 0; display: flex; flex-direction: column; }
+.chat-column { max-width: 820px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
 .message-row { display: flex; gap: 10px; }
 .message-row.user { flex-direction: row-reverse; }
 .message-row.assistant { align-self: flex-start; }

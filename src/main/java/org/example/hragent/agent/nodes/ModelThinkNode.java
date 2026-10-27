@@ -8,6 +8,7 @@ import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.output.Response;
 import org.bsc.langgraph4j.action.NodeAction;
+import org.example.hragent.agent.routing.ToolPlanningStrategy;
 import org.example.hragent.agent.routing.ToolRouter;
 import org.example.hragent.agent.routing.ToolRoutingProperties;
 import org.example.hragent.agent.state.HrAgentState;
@@ -15,12 +16,15 @@ import org.example.hragent.agent.state.ToolCallRecord;
 import org.example.hragent.agent.tools.HrAgentAiServiceFactory;
 import org.example.hragent.utils.CurrentUserService;
 import org.example.hragent.utils.CurrentUserService.CurrentUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * 模型推理节点（Think）
@@ -40,6 +44,8 @@ public class ModelThinkNode implements NodeAction<HrAgentState> {
     /** 单轮任务最多允许的工具调用轮次 */
     private static final int MAX_TOOL_CALLS = 8;
 
+    private static final Logger log = LoggerFactory.getLogger(ModelThinkNode.class);
+
     private static final String SYSTEM_PROMPT = """
             你是一个专业的 HR 人力资源智能助手。负责：查询员工/岗位/简历/绩效/培训课程等；
             登记简历、发起入职/离职/调岗审批；查询流程实例与审批轨迹；处理待办审批；回答 HR 政策问题。
@@ -50,6 +56,10 @@ public class ModelThinkNode implements NodeAction<HrAgentState> {
             信息不足时才向用户询问，得到一个关键答案后应继续推进任务，不要重复提问。
             多步骤流程（如发起入职需要先确认候选人有简历且状态为录用）应依据工具返回的提示自主补全。
             若用户问题无需调用工具（如闲聊），直接简洁作答即可。回答一律使用中文。
+            涉及公司政策、制度、考勤休假、薪酬福利、合规廉洁、举报与奖惩等咨询时，必须先调用
+            hrKnowledgeQA 检索制度原文，再依据返回条款作答；未检索到相关条款时应明确说明，
+            不得凭常识编造。只有用户打招呼或询问“你能做什么”时，才输出欢迎引导语，
+            用户提出具体问题时不得用引导菜单代替回答。
             若用户要求把内容沉淀为飞书云文档、读取/搜索/评论飞书云文档（工具名称形如 create-doc、
             fetch-doc、update-doc、list-docs、get-comments、add-comments），仅当用户明确提到
             飞书/云文档/知识库场景时才调用这些飞书 MCP 工具。
@@ -58,15 +68,18 @@ public class ModelThinkNode implements NodeAction<HrAgentState> {
     private final ChatLanguageModel chatModel;
     private final HrAgentAiServiceFactory chatMemoryFactory;
     private final ToolRouter toolRouter;
+    private final ToolPlanningStrategy toolPlanning;
     private final ToolRoutingProperties routingProperties;
 
     public ModelThinkNode(ChatLanguageModel chatModel,
                           HrAgentAiServiceFactory chatMemoryFactory,
                           ToolRouter toolRouter,
+                          ToolPlanningStrategy toolPlanning,
                           ToolRoutingProperties routingProperties) {
         this.chatModel = chatModel;
         this.chatMemoryFactory = chatMemoryFactory;
         this.toolRouter = toolRouter;
+        this.toolPlanning = toolPlanning;
         this.routingProperties = routingProperties;
     }
 
@@ -87,47 +100,82 @@ public class ModelThinkNode implements NodeAction<HrAgentState> {
                 memory.add(UserMessage.userMessage(userQuery));
             }
 
-            // [系统提示词 + 会话历史] ->模型，仅注入分层路由筛选出的少量候选工具 Schema
-            List<ChatMessage> prompt = new ArrayList<>();
-            prompt.add(new SystemMessage(SYSTEM_PROMPT));
-            prompt.addAll(memory.messages());
             ToolRouter.Result routeResult = toolRouter.route(userQuery, routeContext(state));
-            Response<AiMessage> response = chatModel.generate(prompt, routeResult.specifications());
-            AiMessage aiMessage = response.content();
-            // 模型输出写入记忆，保证多轮/工具循环上下文连续
-            memory.add(aiMessage);
-
-            // 累计本帧 token 消耗（多帧工具循环时累加）
-            int frameIn = usageInt(response, true);
-            int frameOut = usageInt(response, false);
-            int inputTokens = state.inputTokens() + frameIn;
-            int outputTokens = state.outputTokens() + frameOut;
-
-            if (aiMessage.hasToolExecutionRequests()) {
-                if (iteration >= MAX_TOOL_CALLS) {
-                    // 达到轮次上限，强制收尾
-                    String finalText = "我已经进行了多轮工具查询，但仍无法获取完整信息，请提供更明确的条件（如精确姓名、工号或简历ID）后重试。";
-                    memory.add(AiMessage.from(finalText));
-                    return routeAnswer(state, finalText, iteration, inputTokens, outputTokens);
-                }
-                // 路由到 action 去执行工具
-                Map<String, Object> updates = new HashMap<>();
-                updates.put(HrAgentState.ITERATION_KEY, iteration + 1);
-                updates.put(HrAgentState.INPUT_TOKENS_KEY, inputTokens);
-                updates.put(HrAgentState.OUTPUT_TOKENS_KEY, outputTokens);
-                // 下发本轮候选工具名，执行节点据此拒绝候选外调用
-                updates.put(HrAgentState.ROUTED_TOOLS_KEY, routeResult.toolNames());
-                updates.put(HrAgentState.TOOL_CALLS_KEY, aiMessage.toolExecutionRequests().stream()
-                        .map(ToolCallRecord::from)
-                        .toList());
-                return updates;
-            }
-
-            String finalText = aiMessage.text() == null ? "已处理完成。" : aiMessage.text();
-            return routeAnswer(state, finalText, iteration, inputTokens, outputTokens);
+            // 本地只读规划命中则跳过远程首跳，否则交回远程模型（Optional 链式，无运行时条件分支）
+            return localPlan(iteration, userQuery, routeResult)
+                    .map(planned -> planToolCallPath(state, memory, iteration, planned, routeResult))
+                    .orElseGet(() -> remoteThinkPath(state, memory, iteration, routeResult));
         } catch (Exception e) {
             return error("AI 推理失败：" + e.getMessage(), memoryId);
         }
+    }
+
+    /**
+     * 首轮尝试由本地轻量模型对只读候选工具做规划（分层第 4 层「模型精选」的本地实现）。
+     * 仅首轮生效——后续轮次需依据工具结果继续决策，本地规划器拿不到该上下文；
+     * 策略内部已对异常/超时/输出非法/候选外/空规划做兜底，此处只做「仅首轮」过滤。
+     */
+    private Optional<List<ToolCallRecord>> localPlan(int iteration, String userQuery, ToolRouter.Result routeResult) {
+        return Optional.of(iteration)
+                .filter(i -> i == 0)
+                .flatMap(i -> toolPlanning.plan(userQuery, routeResult.cards(), routeResult.domains()))
+                .filter(planned -> !planned.isEmpty());
+    }
+
+    /**
+     * 本地规划命中：构造与「模型下发工具调用」等价的 AiMessage 写入会话记忆，
+     * 使随后回填的 {@code ToolExecutionResultMessage} 能与之配对成合法的工具消息对；
+     * 直接下发 TOOL_CALLS/ROUTED_TOOLS 跳过远程首跳。本帧未发生远程调用，token 用量保持不变。
+     */
+    private Map<String, Object> planToolCallPath(HrAgentState state, ChatMemory memory, int iteration,
+                                                 List<ToolCallRecord> planned, ToolRouter.Result routeResult) {
+        memory.add(AiMessage.from(planned.stream().map(ToolCallRecord::toRequest).toList()));
+        log.debug("本地只读规划命中，跳过远程首跳 工具={}", planned.stream().map(ToolCallRecord::name).toList());
+        Map<String, Object> updates = new HashMap<>();
+        updates.put(HrAgentState.ITERATION_KEY, iteration + 1);
+        // 下发本轮候选工具名，执行节点据此拒绝候选外调用
+        updates.put(HrAgentState.ROUTED_TOOLS_KEY, routeResult.toolNames());
+        updates.put(HrAgentState.TOOL_CALLS_KEY, planned);
+        return updates;
+    }
+
+    /** 远程模型路径：按候选 Schema 自选工具或给出最终回答（原有行为不变） */
+    private Map<String, Object> remoteThinkPath(HrAgentState state, ChatMemory memory, int iteration,
+                                                ToolRouter.Result routeResult) {
+        // [系统提示词 + 会话历史] ->模型，仅注入分层路由筛选出的少量候选工具 Schema
+        List<ChatMessage> prompt = new ArrayList<>();
+        prompt.add(new SystemMessage(SYSTEM_PROMPT));
+        prompt.addAll(memory.messages());
+        Response<AiMessage> response = chatModel.generate(prompt, routeResult.specifications());
+        AiMessage aiMessage = response.content();
+        // 模型输出写入记忆，保证多轮/工具循环上下文连续
+        memory.add(aiMessage);
+
+        // 累计本帧 token 消耗（多帧工具循环时累加）
+        int inputTokens = state.inputTokens() + usageInt(response, true);
+        int outputTokens = state.outputTokens() + usageInt(response, false);
+
+        if (!aiMessage.hasToolExecutionRequests()) {
+            String finalText = aiMessage.text() == null ? "已处理完成。" : aiMessage.text();
+            return routeAnswer(state, finalText, iteration, inputTokens, outputTokens);
+        }
+        if (iteration >= MAX_TOOL_CALLS) {
+            // 达到轮次上限，强制收尾
+            String finalText = "我已经进行了多轮工具查询，但仍无法获取完整信息，请提供更明确的条件（如精确姓名、工号或简历ID）后重试。";
+            memory.add(AiMessage.from(finalText));
+            return routeAnswer(state, finalText, iteration, inputTokens, outputTokens);
+        }
+        // 路由到 action 去执行工具
+        Map<String, Object> updates = new HashMap<>();
+        updates.put(HrAgentState.ITERATION_KEY, iteration + 1);
+        updates.put(HrAgentState.INPUT_TOKENS_KEY, inputTokens);
+        updates.put(HrAgentState.OUTPUT_TOKENS_KEY, outputTokens);
+        // 下发本轮候选工具名，执行节点据此拒绝候选外调用
+        updates.put(HrAgentState.ROUTED_TOOLS_KEY, routeResult.toolNames());
+        updates.put(HrAgentState.TOOL_CALLS_KEY, aiMessage.toolExecutionRequests().stream()
+                .map(ToolCallRecord::from)
+                .toList());
+        return updates;
     }
 
     /**

@@ -1,6 +1,7 @@
 package org.example.hragent.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.example.hragent.annotation.RequireRole;
 import org.example.hragent.converter.ResumeAbilityRelConverter;
 import org.example.hragent.dto.ResumeAbilityRelQueryDto;
 import org.example.hragent.dto.ResumeAbilityRelSaveDto;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/resume-ability-rels")
+@RequireRole({"HR", "ADMIN"})
 public class ResumeAbilityRelController extends BaseCrudController<ResumeAbilityRel, ResumeAbilityRelVO, ResumeAbilityRelQueryDto, ResumeAbilityRelSaveDto, ResumeAbilityRelUpdateDto> {
 
     @Autowired

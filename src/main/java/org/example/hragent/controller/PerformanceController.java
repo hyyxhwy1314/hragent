@@ -1,6 +1,7 @@
 package org.example.hragent.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.example.hragent.annotation.RequireRole;
 import org.example.hragent.converter.PerformanceConverter;
 import org.example.hragent.dto.PerformanceQueryDto;
 import org.example.hragent.dto.PerformanceSaveDto;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/performances")
+@RequireRole({"DEPT_LEADER", "HR", "HRBP", "ADMIN"})
 public class PerformanceController extends BaseCrudController<Performance, PerformanceVO, PerformanceQueryDto, PerformanceSaveDto, PerformanceUpdateDto> {
 
     @Autowired

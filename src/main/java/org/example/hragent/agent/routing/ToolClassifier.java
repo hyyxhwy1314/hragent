@@ -5,18 +5,20 @@ import org.springframework.stereotype.Component;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * 工具粗分类器（分层 Tool Routing 第 3 层）。
+ * 工具粗分类器（分层 Tool Routing 第 3 层的规则实现，默认启用）。
  * <p>
  * 用规则把用户请求映射到业务域，缩小后续 BM25 召回的候选范围；
  * 偏向高召回——命中多个域时全部保留，未命中任何域时返回空集，
  * 由路由层跳过域收缩、直接在可见工具全集中召回。
  * <p>
  * 规则以有序列表声明，避免层层嵌套的条件分支。
+ * 启用本地决策模型时，本实现作为 {@link LocalModelDomainDecisionStrategy} 的兜底。
  */
 @Component
-public class ToolClassifier {
+public class ToolClassifier implements DomainDecisionStrategy {
 
     /** 业务域 → 触发关键词 */
     private record DomainRule(String domain, Set<String> keywords) {
@@ -29,7 +31,8 @@ public class ToolClassifier {
             new DomainRule("岗位", Set.of("岗位", "职位", "招聘", "招人", "发布")),
             new DomainRule("绩效", Set.of("绩效", "考核", "评分", "报告")),
             new DomainRule("培训", Set.of("培训", "课程", "学习", "技能")),
-            new DomainRule("知识", Set.of("政策", "制度", "规定", "规则", "知识", "手册", "规章")),
+            new DomainRule("知识", Set.of("政策", "制度", "规定", "规则", "知识", "手册", "规章", "准则",
+                    "合规", "廉洁", "礼品", "招待", "举报", "利益冲突", "关联交易")),
             new DomainRule("自助", Set.of("请假", "假期", "年假", "余额", "证明", "合同", "到期", "提醒")),
             new DomainRule("文档", Set.of("excel", "表格", "导出", "花名册", "工资表", "xlsx",
                     "word", "文档", "通知书", "docx", "离职证明")),
@@ -37,11 +40,22 @@ public class ToolClassifier {
             new DomainRule("沟通", Set.of("通知", "公告", "话术", "文案", "邮件", "祝福")));
 
     /**
+     * 支持的业务域标签（有序），供本地决策模型的提示词与输出校验共用，
+     * 避免两处维护常量导致标签漂移。
+     */
+    public static Set<String> supportedDomains() {
+        return RULES.stream()
+                .map(DomainRule::domain)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    /**
      * 识别请求命中的业务域集合。
      *
      * @return 命中的业务域；未命中任何规则时返回空集（表示「不确定」，交由召回层处理）
      */
-    public Set<String> classify(String query) {
+    @Override
+    public Set<String> decide(String query) {
         if (query == null || query.isBlank()) {
             return Set.of();
         }

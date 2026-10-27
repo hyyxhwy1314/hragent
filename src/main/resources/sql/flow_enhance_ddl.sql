@@ -30,3 +30,6 @@ ALTER TABLE `t_flow_cc` ADD INDEX `idx_cc_emp_read` (`cc_emp_id`, `read_flag`);
 
 -- 4. 异常巡检游标分页索引：按状态筛选、按 id 递增遍历
 ALTER TABLE `t_flow_instance` ADD INDEX `idx_status_id` (`flow_status`, `id`);
+
+-- 5. 业务对象类型：区分 biz_id 指向员工/简历/请假单，供流程列表、待办正确显示业务对象名称
+ALTER TABLE `t_flow_instance` ADD COLUMN `biz_type` VARCHAR(16) DEFAULT NULL COMMENT '业务对象类型: EMPLOYEE/RESUME/LEAVE_REQUEST' AFTER `biz_id`;

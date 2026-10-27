@@ -28,6 +28,10 @@ public class EmployeeVO {
     private String workCity;
     private String role;
     private Long leaderId;
+    /**
+     * 直属上级姓名（后端回填，避免前端全量拉取员工表映射）
+     */
+    private String leaderName;
     private String remark;
     private String createTime;
     private String updateTime;

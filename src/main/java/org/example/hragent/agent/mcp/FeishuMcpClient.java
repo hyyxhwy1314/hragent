@@ -3,6 +3,7 @@ package org.example.hragent.agent.mcp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.hragent.config.FeishuMcpProperties;
+import org.example.hragent.feishu.FeishuTokenProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -37,16 +38,16 @@ public class FeishuMcpClient {
     private static final Logger log = LoggerFactory.getLogger(FeishuMcpClient.class);
 
     private final FeishuMcpProperties props;
+    private final FeishuTokenProvider tokenProvider;
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
     private final AtomicLong requestId = new AtomicLong(0);
 
-    /** TAT 缓存（tenant_access_token 有效期为 2 小时） */
-    private volatile String tenantAccessToken;
-    private volatile long tokenExpireAt;
-
-    public FeishuMcpClient(FeishuMcpProperties props, ObjectMapper objectMapper) {
+    public FeishuMcpClient(FeishuMcpProperties props,
+                           FeishuTokenProvider tokenProvider,
+                           ObjectMapper objectMapper) {
         this.props = props;
+        this.tokenProvider = tokenProvider;
         this.objectMapper = objectMapper;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
@@ -54,24 +55,10 @@ public class FeishuMcpClient {
     }
 
     /**
-     * 获取应用身份令牌（tenant_access_token），未过期时直接复用缓存
+     * 获取应用身份令牌（tenant_access_token），复用统一的令牌缓存
      */
-    public synchronized String tenantAccessToken() {
-        if (tenantAccessToken != null && System.currentTimeMillis() < tokenExpireAt - 60_000) {
-            return tenantAccessToken;
-        }
-        String json = postJson(props.getTokenEndpoint(),
-                json(Map.of("app_id", props.getAppId(), "app_secret", props.getAppSecret())),
-                Map.of());
-        JsonNode node = parseBody(json);
-        if (node == null || node.path("code").asInt(-1) != 0) {
-            String msg = node == null ? "响应为空" : node.path("msg").asText("未知错误");
-            throw new IllegalStateException("获取飞书 tenant_access_token 失败: " + msg);
-        }
-        tenantAccessToken = node.path("tenant_access_token").asText();
-        long expire = node.path("expire").asLong(7200);
-        tokenExpireAt = System.currentTimeMillis() + expire * 1000;
-        return tenantAccessToken;
+    public String tenantAccessToken() {
+        return tokenProvider.token(props.getAppId(), props.getAppSecret(), props.getTokenEndpoint());
     }
 
     /**

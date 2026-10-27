@@ -34,9 +34,14 @@ async function render(id: number) {
     const xml = await ensureBpmnDiagram(data.bpmnXml)
     await viewer.importXML(xml)
     const canvas = viewer.get('canvas')
+    const elementRegistry = viewer.get('elementRegistry')
     canvas.zoom('fit-viewport')
-    ;(data.finishedActivityIds || []).forEach(a => canvas.addMarker(a, 'flow-node-finished'))
-    ;(data.activeActivityIds || []).forEach(a => canvas.addMarker(a, 'flow-node-active'))
+    // 高亮 id 来自后端历史活动，其中包含连线（sequenceFlow）等非节点；仅对图中确实存在的元素打标
+    const markNode = (id: string, cls: string) => {
+      if (elementRegistry.get(id)) canvas.addMarker(id, cls)
+    }
+    ;(data.finishedActivityIds || []).forEach(a => markNode(a, 'flow-node-finished'))
+    ;(data.activeActivityIds || []).forEach(a => markNode(a, 'flow-node-active'))
     hasDiagram.value = true
   } catch (e) {
     console.error('流程图渲染失败', e)
@@ -52,13 +57,16 @@ watch(() => props.open, (v) => {
 </script>
 
 <template>
-  <Modal :open="open" :title="title || '流程图'" :footer="null" width="900px"
+  <Modal :open="open" :title="title || '流程图'" :footer="null" width="900px" force-render
     @cancel="emit('update:open', false)">
     <div class="diagram-body">
-      <div v-if="loading" class="diagram-loading"><Spin /></div>
-      <div v-show="!loading" ref="containerRef" class="flow-diagram-canvas"></div>
-      <div v-if="!loading && !hasDiagram" class="diagram-empty">
-        <Empty description="暂无流程图" />
+      <!-- 画布始终渲染且可见：bpmn-js 必须导入到有实际尺寸的容器，否则会渲染为空白 -->
+      <div class="diagram-frame">
+        <div ref="containerRef" class="flow-diagram-canvas"></div>
+        <div v-if="loading" class="diagram-mask"><Spin /></div>
+        <div v-else-if="!hasDiagram" class="diagram-mask">
+          <Empty description="暂无流程图" />
+        </div>
       </div>
       <div class="diagram-legend">
         <span><i class="dot dot-finished"></i>已完成</span>
@@ -81,7 +89,7 @@ watch(() => props.open, (v) => {
 </style>
 
 <style scoped>
-.diagram-body {
+.diagram-frame {
   position: relative;
 }
 .flow-diagram-canvas {
@@ -92,18 +100,14 @@ watch(() => props.open, (v) => {
   background: #fff;
   overflow: hidden;
 }
-.diagram-loading {
-  height: 460px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.diagram-empty {
+.diagram-mask {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #fff;
+  border-radius: 8px;
 }
 .diagram-legend {
   margin-top: 12px;

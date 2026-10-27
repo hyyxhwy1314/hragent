@@ -8,17 +8,17 @@ import org.example.hragent.dto.FlowStartDto;
 import org.example.hragent.dto.TaskCompleteDto;
 import org.example.hragent.entity.Employee;
 import org.example.hragent.entity.FlowApproval;
-import org.example.hragent.entity.FlowCc;
 import org.example.hragent.entity.FlowInstance;
 import org.example.hragent.exception.BusinessException;
 import org.example.hragent.exception.ErrorCode;
 import org.example.hragent.mapper.EmployeeMapper;
 import org.example.hragent.mapper.FlowApprovalMapper;
-import org.example.hragent.mapper.FlowCcMapper;
 import org.example.hragent.mapper.FlowInstanceMapper;
 import org.example.hragent.service.AssigneeResolver;
 import org.example.hragent.service.FlowOrchestratorService;
 import org.example.hragent.utils.CurrentUserService;
+import org.example.hragent.utils.FlowNoGenerator;
+import org.example.hragent.utils.FlowableUtils;
 import org.example.hragent.vo.FlowCcVO;
 import org.example.hragent.vo.FlowDiagramVO;
 import org.example.hragent.vo.FlowInstanceVO;
@@ -28,12 +28,9 @@ import org.flowable.engine.HistoryService;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
-import org.flowable.engine.history.HistoricActivityInstance;
-import org.flowable.engine.history.HistoricProcessInstance;
 import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.engine.runtime.ProcessInstance;
 import org.flowable.task.api.Task;
-import org.flowable.task.api.TaskInfo;
 import org.flowable.task.api.history.HistoricTaskInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -42,16 +39,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -64,6 +56,8 @@ import java.util.stream.Collectors;
  *   <li>每次审批写入 t_flow_approval 留痕，轨迹查询按 task_id 精确匹配</li>
  *   <li>错误统一抛 {@link BusinessException}，由全局异常处理器转 JSON</li>
  * </ul>
+ * 视图装配（任务/抄送/流程图）与权限校验下沉至 {@link FlowTaskViewAssembler}、
+ * {@link FlowCcSupport}、{@link FlowDiagramSupport}、{@link FlowAccessGuard}，本类只保留发起/审批/撤回/轨迹编排。
  */
 @Slf4j
 @Service
@@ -76,21 +70,25 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
     @Autowired private AssigneeResolver assigneeResolver;
     @Autowired private FlowInstanceMapper flowInstanceMapper;
     @Autowired private FlowApprovalMapper flowApprovalMapper;
-    @Autowired private FlowCcMapper flowCcMapper;
     @Autowired private EmployeeMapper employeeMapper;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private FlowInstanceConverter flowInstanceConverter;
+    @Autowired private EmployeeNameResolver employeeNameResolver;
+    @Autowired private FlowTaskViewAssembler flowTaskViewAssembler;
+    @Autowired private FlowCcSupport flowCcSupport;
+    @Autowired private FlowDiagramSupport flowDiagramSupport;
+    @Autowired private FlowAccessGuard flowAccessGuard;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public FlowInstanceVO start(FlowStartDto dto) {
-        Long applyEmpId = CurrentUserService.empId();
-        BusinessException.throwIf(applyEmpId == null, ErrorCode.UNAUTHORIZED);
+        Long applyEmpId = CurrentUserService.requireEmpId();
 
         // 业务幂等：同一业务对象已存在进行中流程时拒绝重复发起，避免并发/重复点击产生多实例
+        // 不关联业务对象（bizId 为空）时以哨兵值 -1 参与匹配（-1 非合法主键，等价于跳过该项校验）
         long runningCount = flowInstanceMapper.selectCount(new LambdaQueryWrapper<FlowInstance>()
                 .eq(FlowInstance::getFlowType, FlowConstants.flowTypeOf(dto.getProcessKey()))
-                .eq(FlowInstance::getBizId, dto.getBizId())
+                .eq(FlowInstance::getBizId, dto.getBizId() == null ? -1L : dto.getBizId())
                 .eq(FlowInstance::getFlowStatus, FlowConstants.STATUS_RUNNING));
         BusinessException.throwIf(runningCount > 0, ErrorCode.FLOW_DUPLICATE_START);
 
@@ -111,11 +109,12 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
         variables.putAll(assigneeResolver.resolve(dto.getProcessKey(), dto.getBizId(), applyEmpId));
 
         // 解析 bizJson 平铺为流程变量（HR 发起时可通过 bizJson 指定 targetLeaderId 等业务参数）
+        // 仅补充服务端未设置的变量，防止客户端覆盖 bizId/applyEmpId/flowType/审批人等关键变量
         if (dto.getBizJson() != null && !dto.getBizJson().isBlank()) {
             try {
                 Map<String, Object> bizVars = objectMapper.readValue(dto.getBizJson(),
                         new TypeReference<Map<String, Object>>() {});
-                variables.putAll(bizVars);
+                bizVars.forEach(variables::putIfAbsent);
             } catch (Exception e) {
                 log.warn("bizJson 解析失败，已忽略: {}", dto.getBizJson(), e);
             }
@@ -132,9 +131,12 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
 
         // 写业务流程实例表
         FlowInstance flowInstance = new FlowInstance();
-        flowInstance.setFlowNo(generateFlowNo());
+        flowInstance.setFlowNo(FlowNoGenerator.generate());
         flowInstance.setFlowType(FlowConstants.flowTypeOf(dto.getProcessKey()));
         flowInstance.setBizId(dto.getBizId());
+        // 业务对象类型：自定义流程由前端指定；内置流程按 processKey 推断
+        flowInstance.setBizType(dto.getBizType() != null ? dto.getBizType()
+                : FlowConstants.bizTypeOf(dto.getProcessKey()));
         flowInstance.setApplyEmpId(applyEmpId);
         flowInstance.setFlowStatus(FlowConstants.STATUS_RUNNING);
         flowInstance.setFlowableProcInstId(procInst.getId());
@@ -149,9 +151,35 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean completeTask(String taskId, TaskCompleteDto dto) {
-        Long approverEmpId = CurrentUserService.empId();
-        BusinessException.throwIf(approverEmpId == null, ErrorCode.UNAUTHORIZED);
-        Task task = loadAndCheckTask(taskId, approverEmpId);
+        return doComplete(taskId, CurrentUserService.requireEmpId(), dto);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean completeTaskAs(String taskId, Long approverEmpId, TaskCompleteDto dto) {
+        // 无登录态入口（如飞书卡片回调）：审批人由调用方显式传入，后续仍需归属校验
+        BusinessException.throwIf(approverEmpId == null, ErrorCode.PARAM_ERROR, "审批人不能为空");
+        return doComplete(taskId, approverEmpId, dto);
+    }
+
+    @Override
+    public boolean isTaskPending(String taskId) {
+        // 任务存在且未处理 → 待处理；任务不存在（已处理/已结束）→ 返回 false
+        return taskService.createTaskQuery().taskId(taskId).count() > 0;
+    }
+
+    /** 完成任务核心逻辑：任务归属校验 → 写入审批变量与意见 → 完成 → 写审批记录与状态同步 */
+    private boolean doComplete(String taskId, Long approverEmpId, TaskCompleteDto dto) {
+        // 幂等：任务已被处理（重复点击/并发双提交/网络重试）时直接返回成功，不重复写审批记录、不二次流转
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if (task == null) {
+            boolean handled = historyService.createHistoricTaskInstanceQuery().taskId(taskId).count() > 0;
+            BusinessException.throwIf(!handled, ErrorCode.FLOW_TASK_NOT_FOUND);
+            log.info("审批重复提交，任务已处理完毕，幂等返回 taskId={}, operator={}", taskId, approverEmpId);
+            return true;
+        }
+        BusinessException.throwIf(!String.valueOf(approverEmpId).equals(task.getAssignee()),
+                ErrorCode.FLOW_TASK_NOT_ASSIGNEE);
 
         // 写入审批结果变量，供 BPMN 网关判断 approved
         Map<String, Object> vars = new HashMap<>();
@@ -178,7 +206,7 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
             flowApprovalMapper.insert(approval);
 
             // 抄送：本节点审批完成时写入抄送记录（仅知悉，不参与流转）
-            saveCcRecords(flowInst.getId(), task.getName(), dto.getCcEmpIds());
+            flowCcSupport.saveRecords(flowInst.getId(), task.getName(), dto.getCcEmpIds());
 
             // 同步业务表状态：查 Flowable 实例是否还活着
             // 死了=流程结束，按本次 approved 判断 APPROVED/REJECTED
@@ -207,9 +235,18 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean delegateTask(String taskId, TaskCompleteDto dto) {
-        Long approverEmpId = CurrentUserService.empId();
-        BusinessException.throwIf(approverEmpId == null, ErrorCode.UNAUTHORIZED);
-        loadAndCheckTask(taskId, approverEmpId);
+        Long approverEmpId = CurrentUserService.requireEmpId();
+
+        // 幂等：任务已结束则无需转办，直接返回成功
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if (task == null) {
+            boolean handled = historyService.createHistoricTaskInstanceQuery().taskId(taskId).count() > 0;
+            BusinessException.throwIf(!handled, ErrorCode.FLOW_TASK_NOT_FOUND);
+            log.info("任务转办重复提交，任务已处理完毕，幂等返回 taskId={}", taskId);
+            return true;
+        }
+        BusinessException.throwIf(!String.valueOf(approverEmpId).equals(task.getAssignee()),
+                ErrorCode.FLOW_TASK_NOT_ASSIGNEE);
         BusinessException.throwIf(dto.getDelegateToEmpId() == null, ErrorCode.PARAM_ERROR, "转办目标员工不能为空");
 
         Employee target = employeeMapper.selectById(dto.getDelegateToEmpId());
@@ -229,7 +266,7 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
                 .taskAssignee(String.valueOf(assigneeEmpId))
                 .orderByTaskCreateTime().desc()
                 .list();
-        return tasks.stream().map(t -> toTaskVO(t, assigneeEmpId)).collect(Collectors.toList());
+        return flowTaskViewAssembler.toTaskVOs(tasks, assigneeEmpId);
     }
 
     @Override
@@ -239,13 +276,14 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
                 .finished()
                 .orderByHistoricTaskInstanceEndTime().desc()
                 .list();
-        return tasks.stream().map(t -> toTaskVO(t, assigneeEmpId)).collect(Collectors.toList());
+        return flowTaskViewAssembler.toTaskVOs(tasks, assigneeEmpId);
     }
 
     @Override
     public List<FlowTraceVO> getTrace(Long flowInstanceId) {
         FlowInstance flowInstance = flowInstanceMapper.selectById(flowInstanceId);
         BusinessException.throwIf(flowInstance == null, ErrorCode.FLOW_INSTANCE_NOT_FOUND);
+        flowAccessGuard.assertAccess(flowInstance, CurrentUserService.empId());
 
         String procInstId = flowInstance.getFlowableProcInstId();
 
@@ -261,12 +299,19 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
                                 .eq(FlowApproval::getFlowInstanceId, flowInstanceId))
                 .stream().collect(Collectors.toMap(FlowApproval::getTaskId, a -> a, (a, b) -> b));
 
+        // 批量解析处理人姓名，避免逐条查询（N+1）
+        Set<Long> assigneeIds = historyTasks.stream()
+                .map(t -> FlowableUtils.parseEmpId(t.getAssignee()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> assigneeNames = employeeNameResolver.resolveNames(assigneeIds);
+
         return historyTasks.stream().map(t -> {
             FlowTraceVO vo = new FlowTraceVO();
             vo.setNodeName(t.getName());
-            vo.setAssigneeName(resolveEmpName(t.getAssignee()));
-            vo.setStartTime(toLocalDateTime(t.getStartTime()));
-            vo.setEndTime(toLocalDateTime(t.getEndTime()));
+            vo.setAssigneeName(assigneeNames.get(FlowableUtils.parseEmpId(t.getAssignee())));
+            vo.setStartTime(FlowableUtils.toLocalDateTime(t.getStartTime()));
+            vo.setEndTime(FlowableUtils.toLocalDateTime(t.getEndTime()));
             FlowApproval ap = approvalMap.get(t.getId());
             if (t.getEndTime() == null) {
                 vo.setStatus("待处理");
@@ -294,6 +339,8 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
         BusinessException.throwIf(flowInstance == null, ErrorCode.FLOW_INSTANCE_NOT_FOUND);
         BusinessException.throwIf(flowInstance.getFlowStatus() != FlowConstants.STATUS_RUNNING,
                 ErrorCode.FLOW_ALREADY_FINISHED);
+        // 仅申请人本人或 HR/HRBP/ADMIN 可撤回
+        flowAccessGuard.assertAccess(flowInstance, operatorEmpId);
 
         String procInstId = flowInstance.getFlowableProcInstId();
         // 先查 Flowable 实例是否还活着（可能已结束但业务表状态未更新）
@@ -312,176 +359,26 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
 
     @Override
     public List<FlowCcVO> listMyCc(Long empId) {
-        List<FlowCc> ccs = flowCcMapper.selectList(new LambdaQueryWrapper<FlowCc>()
-                .eq(FlowCc::getCcEmpId, empId)
-                .orderByDesc(FlowCc::getId));
-        return ccs.stream().map(this::toCcVO).collect(Collectors.toList());
+        return flowCcSupport.listMyCc(empId);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean markCcRead(Long ccId, Long empId) {
-        FlowCc cc = flowCcMapper.selectById(ccId);
-        BusinessException.throwIf(cc == null, ErrorCode.DATA_NOT_FOUND, "抄送记录不存在");
-        BusinessException.throwIf(!empId.equals(cc.getCcEmpId()), ErrorCode.NO_PERMISSION, "无权操作他人抄送记录");
-        cc.setReadFlag(1);
-        flowCcMapper.updateById(cc);
-        return true;
+        return flowCcSupport.markCcRead(ccId, empId);
     }
 
     @Override
     public FlowDiagramVO getDiagram(Long flowInstanceId) {
-        FlowInstance flowInstance = flowInstanceMapper.selectById(flowInstanceId);
-        BusinessException.throwIf(flowInstance == null, ErrorCode.FLOW_INSTANCE_NOT_FOUND);
-
-        String procInstId = flowInstance.getFlowableProcInstId();
-        FlowDiagramVO vo = new FlowDiagramVO();
-        vo.setActiveActivityIds(new ArrayList<>());
-        vo.setFinishedActivityIds(new ArrayList<>());
-        if (procInstId == null) {
-            return vo;
-        }
-
-        // 解析流程定义ID：运行中取运行时实例，已结束取历史实例
-        ProcessInstance running = runtimeService.createProcessInstanceQuery()
-                .processInstanceId(procInstId).singleResult();
-        String procDefId = resolveProcDefId(procInstId, running);
-        if (procDefId == null) {
-            return vo;
-        }
-
-        // BPMN XML 原始内容
-        try (InputStream in = repositoryService.getProcessModel(procDefId)) {
-            vo.setBpmnXml(in == null ? null : new String(in.readAllBytes(), StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            log.warn("读取流程模型失败 procDefId={}", procDefId, e);
-        }
-
-        // 运行中节点
-        if (running != null) {
-            vo.setActiveActivityIds(runtimeService.getActiveActivityIds(procInstId));
-        }
-
-        // 已完成历史节点（去重，排除连线/网关等非节点可由前端自行忽略）
-        List<HistoricActivityInstance> finished = historyService.createHistoricActivityInstanceQuery()
-                .processInstanceId(procInstId)
-                .finished()
-                .list();
-        vo.setFinishedActivityIds(finished.stream()
-                .map(HistoricActivityInstance::getActivityId)
-                .distinct()
-                .collect(Collectors.toList()));
-        return vo;
+        return flowDiagramSupport.getDiagram(flowInstanceId);
     }
 
     // ========================= 辅助方法 =========================
-
-    /** 批量写入抄送记录（去重、跳过空值） */
-    private void saveCcRecords(Long flowInstanceId, String nodeName, List<Long> ccEmpIds) {
-        if (ccEmpIds == null || ccEmpIds.isEmpty()) {
-            return;
-        }
-        ccEmpIds.stream()
-                .filter(java.util.Objects::nonNull)
-                .distinct()
-                .forEach(empId -> {
-                    FlowCc cc = new FlowCc();
-                    cc.setFlowInstanceId(flowInstanceId);
-                    cc.setNodeName(nodeName);
-                    cc.setCcEmpId(empId);
-                    cc.setReadFlag(0);
-                    flowCcMapper.insert(cc);
-                });
-    }
-
-    /** 抄送记录 → 视图（并联业务流程实例信息） */
-    private FlowCcVO toCcVO(FlowCc cc) {
-        FlowCcVO vo = new FlowCcVO();
-        vo.setId(cc.getId());
-        vo.setFlowInstanceId(cc.getFlowInstanceId());
-        vo.setNodeName(cc.getNodeName());
-        vo.setReadFlag(cc.getReadFlag() != null && cc.getReadFlag() == 1);
-        vo.setCreateTime(cc.getCreateTime());
-        FlowInstance fi = flowInstanceMapper.selectById(cc.getFlowInstanceId());
-        if (fi != null) {
-            vo.setFlowNo(fi.getFlowNo());
-            vo.setFlowType(fi.getFlowType());
-            vo.setBizId(fi.getBizId());
-            vo.setApplyEmpId(fi.getApplyEmpId());
-            vo.setFlowStatus(fi.getFlowStatus());
-        }
-        return vo;
-    }
-
-    /** 解析流程定义ID：优先运行时实例，其次历史实例 */
-    private String resolveProcDefId(String procInstId, ProcessInstance running) {
-        if (running != null) {
-            return running.getProcessDefinitionId();
-        }
-        HistoricProcessInstance his = historyService.createHistoricProcessInstanceQuery()
-                .processInstanceId(procInstId).singleResult();
-        return his == null ? null : his.getProcessDefinitionId();
-    }
-
-    /** 校验任务存在且归属当前审批人 */
-    private Task loadAndCheckTask(String taskId, Long approverEmpId) {
-        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
-        BusinessException.throwIf(task == null, ErrorCode.FLOW_TASK_NOT_FOUND);
-        BusinessException.throwIf(!String.valueOf(approverEmpId).equals(task.getAssignee()),
-                ErrorCode.FLOW_TASK_NOT_ASSIGNEE);
-        return task;
-    }
 
     /** 按 Flowable 流程实例ID 查业务流程实例 */
     private FlowInstance findFlowInstanceByProcInstId(String procInstId) {
         if (procInstId == null) return null;
         return flowInstanceMapper.selectOne(new LambdaQueryWrapper<FlowInstance>()
                 .eq(FlowInstance::getFlowableProcInstId, procInstId));
-    }
-
-    /** 按员工ID字符串解析姓名 */
-    private String resolveEmpName(String assigneeIdStr) {
-        if (assigneeIdStr == null || assigneeIdStr.isBlank()) return null;
-        try {
-            Employee emp = employeeMapper.selectById(Long.parseLong(assigneeIdStr));
-            return emp == null ? null : emp.getEmpName();
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-
-
-    /**
-     * 统一的任务视图转换：Task（待办）与 HistoricTaskInstance（已办）均实现 TaskInfo，
-     * 合并为单一方法避免重复代码。
-     */
-    private TaskVO toTaskVO(TaskInfo task, Long currentEmpId) {
-        TaskVO vo = new TaskVO();
-        vo.setTaskId(task.getId());
-        vo.setProcessInstanceId(task.getProcessInstanceId());
-        vo.setTaskName(task.getName());
-        vo.setAssigneeEmpId(currentEmpId);
-        vo.setAssigneeName(resolveEmpName(task.getAssignee()));
-        vo.setCreateTime(toLocalDateTime(task.getCreateTime()));
-        FlowInstance flowInstance = findFlowInstanceByProcInstId(task.getProcessInstanceId());
-        if (flowInstance != null) {
-            vo.setFlowInstanceId(flowInstance.getId());
-            vo.setFlowType(flowInstance.getFlowType());
-            vo.setBizId(flowInstance.getBizId());
-            vo.setApplyEmpId(flowInstance.getApplyEmpId());
-        }
-        return vo;
-    }
-
-    /** Flowable Date → LocalDateTime 转换（系统时区） */
-    private LocalDateTime toLocalDateTime(Date date) {
-        return date == null ? null : date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-    }
-
-    /** 生成业务流水号 FLyyyyMMddHHmmss + 4 位自增（简化实现） */
-    private String generateFlowNo() {
-        return "FL" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
-                + String.format("%04d", System.currentTimeMillis() % 10000);
     }
 }

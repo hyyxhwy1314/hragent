@@ -39,7 +39,8 @@ public enum ErrorCode {
     FLOW_APPROVER_NOT_FOUND(4006, "审批人未找到"),
     FLOW_START_FAILED(4007, "流程发起失败"),
     FLOW_DUPLICATE_START(4008, "该业务已存在进行中的流程，请勿重复发起"),
-    FLOW_DEPLOY_FAILED(4009, "流程部署失败");
+    FLOW_DEPLOY_FAILED(4009, "流程部署失败"),
+    FLOW_TASK_ALREADY_HANDLED(4010, "任务已被处理，请勿重复提交");
 
 
     private final Integer code;

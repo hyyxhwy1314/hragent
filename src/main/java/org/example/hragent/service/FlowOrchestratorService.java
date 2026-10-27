@@ -42,6 +42,21 @@ public interface FlowOrchestratorService {
      */
     boolean completeTask(String taskId, TaskCompleteDto dto);
 
+    /**
+     * 以指定审批人身份完成任务（供无登录态的入口调用，如飞书卡片回调）。
+     * <p>
+     * 与 {@link #completeTask} 共用同一套处理逻辑，仅审批人来源不同：本方法由调用方显式传入，
+     * 仍需通过「任务归属」校验（显式审批人须为该任务 assignee）。
+     */
+    boolean completeTaskAs(String taskId, Long approverEmpId, TaskCompleteDto dto);
+
+    /**
+     * 判断审批任务是否仍处于待处理状态（供无登录态入口做重复提交拦截，如飞书卡片回调）。
+     *
+     * @return true=任务存在且未处理；false=任务不存在或已被处理
+     */
+    boolean isTaskPending(String taskId);
+
     /** 转办任务 */
     boolean delegateTask(String taskId, TaskCompleteDto dto);
 

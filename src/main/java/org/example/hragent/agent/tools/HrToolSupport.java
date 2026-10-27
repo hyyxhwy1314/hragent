@@ -35,6 +35,10 @@ public class HrToolSupport {
 
     private static final Pattern DATE_PATTERN = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d{1,18}");
+    /** Flowable 任务ID为 UUID 格式（StrongUuidGenerator，如 a5f245be-c708-11f1-8ff9-84ba593f7743） */
+    private static final Pattern UUID_PATTERN = Pattern.compile(
+            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+    /** 兼容纯数字任务ID（历史数据或自定义ID生成器场景） */
     private static final Pattern TASK_ID_PATTERN = Pattern.compile("[0-9]{3,}");
     private static final Pattern PHONE_PATTERN = Pattern.compile("1[3-9]\\d{9}");
     private static final Pattern EMAIL_PATTERN = Pattern.compile("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}");
@@ -123,12 +127,17 @@ public class HrToolSupport {
         }
     }
 
-    /** 从审批查询中提取任务ID（Flowable 任务ID一般为纯数字） */
+    /** 从审批查询中提取任务ID（Flowable 任务ID为 UUID，优先按 UUID 匹配，兼容纯数字） */
     public String extractTaskId(String query) {
         if (query == null) {
             return null;
         }
-        return firstMatch(TASK_ID_PATTERN, query.replaceFirst("^(流程|实例|业务)\\s*\\d+", ""));
+        String cleaned = query.replaceFirst("^(流程|实例|业务)\\s*\\d+", "");
+        String uuid = firstMatch(UUID_PATTERN, cleaned);
+        if (uuid != null) {
+            return uuid;
+        }
+        return firstMatch(TASK_ID_PATTERN, cleaned);
     }
 
     /** 从审批查询中提取审批结果：true=通过，false=拒绝，无法识别返回 null */
@@ -278,16 +287,7 @@ public class HrToolSupport {
         if (flowType == null) {
             return "-";
         }
-        switch (flowType) {
-            case FlowConstants.FLOW_TYPE_ONBOARD: return "入职";
-            case FlowConstants.FLOW_TYPE_REGULAR: return "转正";
-            case FlowConstants.FLOW_TYPE_TRANSFER: return "调岗";
-            case FlowConstants.FLOW_TYPE_LEAVE: return "离职";
-            case FlowConstants.FLOW_TYPE_LEAVE_REQUEST: return "请假";
-            case FlowConstants.FLOW_TYPE_CERTIFICATE: return "证明开具";
-            case FlowConstants.FLOW_TYPE_MULTI_SIGN: return "会签/或签";
-            default: return flowType;
-        }
+        return FlowConstants.flowTypeLabel(flowType);
     }
 
     /** 员工状态文本：0离职 1在职 2试用 */

@@ -42,6 +42,11 @@ HR-Agent 是一个**AI 驱动的智能人力资源管理平台**，后端采用 
 
 Flowable 工作流引擎驱动入职/转正/调岗/离职四类审批流程，并支持请假、证明、会签等增强流程，全程轨迹追踪
 
+### 飞书审批（可选）
+
+审批待办自动推送到审批人的飞书（覆盖全部流程类型），在卡片内点击「同意 / 拒绝」即可直接驱动流程流转；
+回调校验操作人身份、拦截重复点击，并把原卡片替换为结果卡片。未配置飞书凭据时自动降级，流程审批不受影响
+
 ### 📊 绩效管理
 
 员工绩效记录与评估管理
@@ -149,6 +154,7 @@ hr-agent/
 - `dto/`
 - `entity/`
 - `exception/`
+- `feishu/`
 - `interceptor/`
 - `listener/`
 - `mapper/`
@@ -189,8 +195,17 @@ hr-agent/
 | `AI_BASE_URL` | 否 | 阿里云 MaaS 地址 | AI 服务地址 |
 | `AI_MODEL_NAME` | 否 | qwen3.7-flash | 模型名称 |
 | `AI_EMBEDDING_MODEL_NAME` | 否 | text-embedding-v3 | 向量化模型名（与对话模型共用 `ai.base-url` / `ai.api-key`） |
+| `AI_ROUTING_ENABLED` | 否 | false | 是否启用本地决策模型做工具路由的业务域分类 |
+| `AI_ROUTING_BASE_URL` | 否 | http://127.0.0.1:11434/v1 | 本地决策模型地址（本机本地推理服务，部署在 D 盘） |
+| `AI_ROUTING_MODEL_NAME` | 否 | qwen2.5:3b-instruct | 本地决策模型名 |
+| `AI_ROUTING_TIMEOUT_SECONDS` | 否 | 20 | 本地决策模型调用超时秒数 |
+| `AI_ROUTING_PLANNING_ENABLED` | 否 | false | 是否启用本地模型对只读工具做「选工具+生成参数」（命中时跳过远程首跳），需先开启 `AI_ROUTING_ENABLED` |
+| `AI_ROUTING_LOCAL_PRIMARY` | 否 | false | 全量本地化：主模型（最终作答/工具参数生成/简历深度分析/合同审查）切为本地模型；远程 API 模型保留不删，关闭即切回 |
+| `AI_ROUTING_LLM_TIMEOUT_SECONDS` | 否 | 300 | 全量本地化时本地主模型的超时秒数 |
 | `FEISHU_MCP_APP_ID` | 否 | — | 飞书远程 MCP 应用 ID |
 | `FEISHU_MCP_APP_SECRET` | 否 | — | 飞书远程 MCP 应用密钥 |
+| `FEISHU_APP_ID` | 否 | 复用 `FEISHU_MCP_APP_ID` | 飞书审批卡片应用 ID（与 MCP 为同一自建应用时无需重复配置） |
+| `FEISHU_APP_SECRET` | 否 | 复用 `FEISHU_MCP_APP_SECRET` | 飞书审批卡片应用密钥 |
 | `MAIL_PASSWORD` | 否 | — | QQ SMTP 授权码 |
 | `COS_ACCESS_KEY` | 否 | — | 对象存储密钥 |
 

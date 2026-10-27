@@ -41,4 +41,10 @@ public class TaskVO {
 
     /** 申请人ID */
     private Long applyEmpId;
+
+    /** 申请人姓名 */
+    private String applyEmpName;
+
+    /** 业务对象名称（入职流程为简历名，其余为员工姓名） */
+    private String bizName;
 }

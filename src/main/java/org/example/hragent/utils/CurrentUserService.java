@@ -2,6 +2,8 @@ package org.example.hragent.utils;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.hragent.exception.BusinessException;
+import org.example.hragent.exception.ErrorCode;
 
 import java.io.Serializable;
 
@@ -37,6 +39,13 @@ public class CurrentUserService {
     public static Long empId() {
         CurrentUser u = get();
         return u == null ? null : u.getEmpId();
+    }
+
+    /** 当前登录人员工ID，未登录抛 UNAUTHORIZED（需强制取登录人的统一入口） */
+    public static Long requireEmpId() {
+        Long empId = empId();
+        BusinessException.throwIf(empId == null, ErrorCode.UNAUTHORIZED);
+        return empId;
     }
 
     @Data

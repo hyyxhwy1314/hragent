@@ -123,7 +123,7 @@ public class HrProcessTools implements HrToolSet {
             StringBuilder sb = new StringBuilder("共 ").append(instances.size()).append(" 条流程实例：\n");
             for (FlowInstance fi : instances) {
                 sb.append(String.format("- 单号 %s | 类型 %s | 状态 %s | 业务ID %s | 流程实例 %s\n",
-                        fi.getFlowNo(), fi.getFlowType(),
+                        fi.getFlowNo(), support.flowTypeText(fi.getFlowType()),
                         support.flowStatusText(fi.getFlowStatus()), fi.getBizId(), fi.getFlowableProcInstId()));
             }
             return sb.toString();
@@ -173,7 +173,7 @@ public class HrProcessTools implements HrToolSet {
             StringBuilder sb = new StringBuilder("您的待办审批任务（共 ").append(tasks.size()).append(" 条）：\n");
             for (TaskVO t : tasks) {
                 sb.append(String.format("- 任务 %s | %s | 单号 %s | 任务ID %s\n",
-                        support.nvl(t.getTaskName()), support.nvl(t.getFlowType()),
+                        support.nvl(t.getTaskName()), support.flowTypeText(t.getFlowType()),
                         support.nvl(support.flowNoOf(t.getFlowInstanceId())), t.getTaskId()));
             }
             return sb.toString();

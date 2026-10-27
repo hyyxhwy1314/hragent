@@ -1,6 +1,7 @@
 package org.example.hragent.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.hragent.feishu.FlowTaskCreatedPushListener;
 import org.example.hragent.flow.FlowProcessEventListener;
 import org.flowable.engine.RuntimeService;
 import org.flowable.spring.SpringProcessEngineConfiguration;
@@ -37,14 +38,17 @@ public class FlowableConfig {
     }
 
     /**
-     * 注册流程结束事件监听器（应用启动完成后执行，引擎已就绪）
+     * 注册流程事件监听器（应用启动完成后执行，引擎已就绪）：
+     * 流程结束兜底同步 + 审批任务创建时的飞书卡片推送
      */
     @Bean
     public ApplicationRunner flowEventListenerRegistrar(RuntimeService runtimeService,
-                                                        FlowProcessEventListener flowProcessEventListener) {
+                                                        FlowProcessEventListener flowProcessEventListener,
+                                                        FlowTaskCreatedPushListener flowTaskCreatedPushListener) {
         return args -> {
             runtimeService.addEventListener(flowProcessEventListener);
-            log.info("流程结束事件监听器已注册到 Flowable 引擎");
+            runtimeService.addEventListener(flowTaskCreatedPushListener);
+            log.info("流程事件监听器已注册到 Flowable 引擎（流程结束兜底 + 审批卡片推送）");
         };
     }
 

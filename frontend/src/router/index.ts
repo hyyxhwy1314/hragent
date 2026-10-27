@@ -21,11 +21,11 @@ const routes: RouteRecordRaw[] = [
   { path: '/flow-designer', name: 'FlowDesigner', component: () => import('@/views/flowDesigner/index.vue'), meta: { title: '流程设计器', icon: 'ApartmentOutlined', roles: ['HR', 'ADMIN'] } },
   { path: '/employees', name: 'Employee', component: Employee, meta: { title: '员工管理', icon: 'UserOutlined', roles: ['HR', 'ADMIN'] } },
   { path: '/job-posts', name: 'JobPost', component: JobPost, meta: { title: '岗位管理', icon: 'TeamOutlined' } },
-  { path: '/resumes', name: 'Resume', component: Resume, meta: { title: '简历管理', icon: 'FileTextOutlined' } },
-  { path: '/performances', name: 'Performance', component: Performance, meta: { title: '绩效管理', icon: 'TrophyOutlined' } },
-  { path: '/training-courses', name: 'TrainingCourse', component: TrainingCourse, meta: { title: '培训课程', icon: 'BookOutlined' } },
-  { path: '/ability-tags', name: 'AbilityTag', component: AbilityTag, meta: { title: '能力标签', icon: 'TagOutlined' } },
-  { path: '/resume-ability-rels', name: 'ResumeAbilityRel', component: ResumeAbilityRel, meta: { title: '简历能力关联', icon: 'LinkOutlined' } },
+  { path: '/resumes', name: 'Resume', component: Resume, meta: { title: '简历管理', icon: 'FileTextOutlined', roles: ['HR', 'ADMIN'] } },
+  { path: '/performances', name: 'Performance', component: Performance, meta: { title: '绩效管理', icon: 'TrophyOutlined', roles: ['DEPT_LEADER', 'HR', 'HRBP', 'ADMIN'] } },
+  { path: '/training-courses', name: 'TrainingCourse', component: TrainingCourse, meta: { title: '培训课程', icon: 'BookOutlined', roles: ['HR', 'ADMIN'] } },
+  { path: '/ability-tags', name: 'AbilityTag', component: AbilityTag, meta: { title: '能力标签', icon: 'TagOutlined', roles: ['HR', 'ADMIN'] } },
+  { path: '/resume-ability-rels', name: 'ResumeAbilityRel', component: ResumeAbilityRel, meta: { title: '简历能力关联', icon: 'LinkOutlined', roles: ['HR', 'ADMIN'] } },
   { path: '/contract-review', name: 'ContractReview', component: () => import('@/views/contractReview/index.vue'), meta: { title: '合同审查', icon: 'FileProtectOutlined', roles: ['HR', 'ADMIN'] } },
   { path: '/architecture', name: 'Architecture', component: () => import('@/views/architecture/index.vue'), meta: { title: '系统架构', icon: 'DeploymentUnitOutlined' } }
 ]
@@ -35,7 +35,16 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫：未登录跳登录页
+/** 读取登录时缓存的当前用户角色（与 BasicLayout 菜单过滤同源） */
+function currentRole(): string {
+  try {
+    return JSON.parse(localStorage.getItem('hragent_user') || '{}').role || 'EMPLOYEE'
+  } catch {
+    return 'EMPLOYEE'
+  }
+}
+
+// 路由守卫：未登录跳登录页；已登录但角色不匹配 meta.roles 跳工作台
 router.beforeEach((to, _from, next) => {
   if (to.meta.public) {
     next()
@@ -43,6 +52,12 @@ router.beforeEach((to, _from, next) => {
   }
   if (!getToken()) {
     next('/login')
+    return
+  }
+  const roles = to.meta.roles as string[] | undefined
+  if (roles?.length && !roles.includes(currentRole())) {
+    // 无权访问该页面，回退到工作台（与后端接口角色限制互为兜底）
+    next('/dashboard')
     return
   }
   next()

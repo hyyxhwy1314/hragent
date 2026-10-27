@@ -1,12 +1,11 @@
 package org.example.hragent.service.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.hragent.exception.BusinessException;
-import org.example.hragent.exception.ErrorCode;
 import org.example.hragent.service.AssigneeResolver;
 import org.example.hragent.service.AssigneeStrategy;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -33,12 +32,29 @@ public class AssigneeResolverImpl implements AssigneeResolver {
 
     /**
      * 根据流程类型，调用对应的策略实现
+     * <p>
+     * 业务人员通过设计器自建的流程通常没有专属审批人策略，此时按发起人本人兜底，
+     * 保证 BPMN 中 ${approver_xxx} 变量可正常解析、流程可发起并流转；
+     * 内置流程仍走各自策略，行为不变。
      */
     @Override
     public Map<String, String> resolve(String processKey, Long bizId, Long applyEmpId) {
         AssigneeStrategy strategy = strategyMap.get(processKey);
-        BusinessException.throwIf(strategy == null, ErrorCode.FLOW_DEFINITION_NOT_FOUND,
-                "未找到流程 " + processKey + " 的审批人策略");
+        if (strategy == null) {
+            log.warn("流程 {} 无专属审批人策略，按发起人 {} 本人兜底（适用于自建流程）", processKey, applyEmpId);
+            return selfFallback(applyEmpId);
+        }
         return strategy.resolve(bizId, applyEmpId);
+    }
+
+    /** 无策略流程的兜底审批人：发起人本人 */
+    private Map<String, String> selfFallback(Long applyEmpId) {
+        String self = String.valueOf(applyEmpId);
+        Map<String, String> fallback = new HashMap<>();
+        fallback.put("approver_dept", self);
+        fallback.put("approver_hr", self);
+        fallback.put("approver_director", self);
+        fallback.put("targetLeaderId", self);
+        return fallback;
     }
 }

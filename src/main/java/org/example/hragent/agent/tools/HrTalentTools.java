@@ -118,22 +118,58 @@ public class HrTalentTools implements HrToolSet {
     }
 
     /** 回答人力资源政策相关的知识问题 */
-    @Tool("回答人力资源政策、规章制度相关的知识问题，返回知识库中最相关的制度条款原文")
+    @Tool("回答人力资源政策、规章制度相关的知识问题，返回知识库中最相关的现行有效制度条款原文")
     public String hrKnowledgeQA(String query) {
         try {
-            List<KnowledgeRetrievalService.RetrievedChunk> chunks = knowledgeRetrievalService.retrieve(query);
+            KnowledgeRetrievalService.RetrievalResult result = knowledgeRetrievalService.retrieve(query);
+            List<KnowledgeRetrievalService.RetrievedChunk> chunks = result.chunks();
             if (chunks.isEmpty()) {
-                return String.format("知识库中未检索到与「%s」直接相关的制度条款，建议查阅《员工手册》或联系人力资源部确认。", query);
+                return expiredNotice(query, result.expiredChunks());
             }
-            StringBuilder result = new StringBuilder("知识库检索结果（请依据以下条款作答，并标注来源文档）：\n");
+            StringBuilder content = new StringBuilder("知识库检索结果（均为现行有效条款，请依据以下内容作答，并标注来源文档、版本与生效日期）。"
+                    + "即使用户以个人经历提问（如“我被调岗了，公司允许吗”），也必须直接给出制度结论与依据，不得只输出功能菜单或反问：\n");
             int index = 1;
             for (KnowledgeRetrievalService.RetrievedChunk chunk : chunks) {
-                result.append(String.format("【%d】《%s》· %s · 相关度 %.2f%n%s%n",
-                        index++, chunk.docTitle(), chunk.category(), chunk.score(), chunk.content()));
+                content.append(String.format("【%d】《%s》v%d · %s%s · 生效日期 %s · 相关度 %.2f%n%s%n",
+                        index++, chunk.docTitle(), chunk.version(), chunk.category(),
+                        sectionText(chunk), effectiveText(chunk), chunk.score(), chunk.content()));
             }
-            return result.toString().trim();
+            return content.toString().trim();
         } catch (Exception e) {
             return "处理人力资源知识库查询时出错: " + e.getMessage();
         }
+    }
+
+    /** 无现行条款时的答复：若存在已失效条款，明确告知不可作为依据 */
+    private String expiredNotice(String query, List<KnowledgeRetrievalService.RetrievedChunk> expiredChunks) {
+        if (expiredChunks.isEmpty()) {
+            return String.format("知识库中未检索到与「%s」直接相关的现行有效制度条款，建议查阅《员工手册》或联系人力资源部确认。"
+                    + "这是最终检索结果，请直接告知用户，不要重复调用本工具。", query);
+        }
+        StringBuilder notice = new StringBuilder(String.format(
+                "知识库中与「%s」相关的条款已失效或被新版本替代，不能作为答复依据：%n", query));
+        for (KnowledgeRetrievalService.RetrievedChunk chunk : expiredChunks) {
+            notice.append(String.format("- 《%s》v%d · %s%s · %s（状态 %s）%n",
+                    chunk.docTitle(), chunk.version(), chunk.category(),
+                    sectionText(chunk), validityText(chunk), chunk.status()));
+        }
+        notice.append("如员工询问相关政策，应告知其以人力资源部最新发布为准，并建议联系人力资源部确认。"
+                + "这是最终检索结果，不要重复调用本工具。");
+        return notice.toString().trim();
+    }
+
+    private String effectiveText(KnowledgeRetrievalService.RetrievedChunk chunk) {
+        return chunk.effectiveFrom() == null ? "未标注" : chunk.effectiveFrom().toString();
+    }
+
+    private String sectionText(KnowledgeRetrievalService.RetrievedChunk chunk) {
+        return chunk.sectionPath() == null || chunk.sectionPath().isBlank()
+                ? "" : " · " + chunk.sectionPath();
+    }
+
+    private String validityText(KnowledgeRetrievalService.RetrievedChunk chunk) {
+        String from = chunk.effectiveFrom() == null ? "未标注" : chunk.effectiveFrom().toString();
+        String to = chunk.effectiveTo() == null ? "长期" : chunk.effectiveTo().toString();
+        return String.format("有效期 %s 至 %s", from, to);
     }
 }

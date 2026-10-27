@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.example.hragent.annotation.RateLimit;
 import org.example.hragent.annotation.RepeatSubmit;
 import org.example.hragent.annotation.LogAction;
+import org.example.hragent.annotation.RequireRole;
 import org.example.hragent.converter.ResumeConverter;
 import org.example.hragent.dto.ResumeQueryDto;
 import org.example.hragent.dto.ResumeSaveDto;
@@ -51,6 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
 @RequestMapping("/resumes")
+@RequireRole({"HR", "ADMIN"})
 public class ResumeController extends BaseCrudController<Resume, ResumeVO, ResumeQueryDto, ResumeSaveDto, ResumeUpdateDto> {
 
     @Autowired

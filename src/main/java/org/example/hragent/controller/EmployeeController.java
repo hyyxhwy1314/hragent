@@ -1,19 +1,30 @@
 package org.example.hragent.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.example.hragent.annotation.RequireRole;
 import org.example.hragent.converter.EmployeeConverter;
 import org.example.hragent.dto.EmployeeQueryDto;
 import org.example.hragent.dto.EmployeeSaveDto;
 import org.example.hragent.dto.EmployeeUpdateDto;
 import org.example.hragent.entity.Employee;
 import org.example.hragent.service.EmployeeService;
+import org.example.hragent.service.impl.EmployeeNameResolver;
 import org.example.hragent.vo.EmployeeVO;
+import org.example.hragent.vo.PageVO;
+import org.example.hragent.vo.R;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/employees")
+@RequireRole({"HR", "ADMIN"})
 public class EmployeeController extends BaseCrudController<Employee, EmployeeVO, EmployeeQueryDto, EmployeeSaveDto, EmployeeUpdateDto> {
 
     @Autowired
@@ -21,6 +32,9 @@ public class EmployeeController extends BaseCrudController<Employee, EmployeeVO,
 
     @Autowired
     private EmployeeConverter employeeConverter;
+
+    @Autowired
+    private EmployeeNameResolver employeeNameResolver;
 
     @Override
     protected EmployeeService baseService() {
@@ -45,5 +59,21 @@ public class EmployeeController extends BaseCrudController<Employee, EmployeeVO,
          .like(queryDto.getDeptName() != null && !queryDto.getDeptName().isBlank(), Employee::getDeptName, queryDto.getDeptName())
          .eq(queryDto.getEmpStatus() != null, Employee::getEmpStatus, queryDto.getEmpStatus());
         return w;
+    }
+
+    /**
+     * 员工分页：在通用分页基础上批量回填直属上级姓名，前端无需再全量拉取员工表做映射。
+     */
+    @Override
+    @GetMapping("/page")
+    public R<PageVO<EmployeeVO>> page(EmployeeQueryDto queryDto) {
+        R<PageVO<EmployeeVO>> result = super.page(queryDto);
+        List<EmployeeVO> records = result.getData() == null ? null : result.getData().getRecords();
+        if (records != null && !records.isEmpty()) {
+            Map<Long, String> leaderNames = employeeNameResolver.resolveNames(
+                    records.stream().map(EmployeeVO::getLeaderId).filter(Objects::nonNull).collect(Collectors.toList()));
+            records.forEach(vo -> vo.setLeaderName(leaderNames.get(vo.getLeaderId())));
+        }
+        return result;
     }
 }

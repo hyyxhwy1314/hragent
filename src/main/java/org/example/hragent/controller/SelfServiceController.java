@@ -31,6 +31,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -69,7 +71,7 @@ public class SelfServiceController {
     /** 发起请假申请（创建请假单并发起审批流程） */
     @PostMapping("/leave/apply")
     public R<LeaveApplyResult> applyLeave(@Valid @RequestBody LeaveApplyReq req) {
-        Long empId = currentEmpId();
+        Long empId = CurrentUserService.requireEmpId();
         BusinessException.throwIf(req.getEndDate().isBefore(req.getStartDate()), ErrorCode.PARAM_ERROR, "请假结束日期不能早于开始日期");
 
         LeaveRequest request = leaveRequestService.createAndStart(empId, req.getLeaveType(), req.getStartDate(), req.getEndDate(), req.getReason());
@@ -93,7 +95,7 @@ public class SelfServiceController {
     /** 查询当前员工本年度假期余额 */
     @GetMapping("/leave/balance")
     public R<LeaveBalanceVO> leaveBalance() {
-        Long empId = currentEmpId();
+        Long empId = CurrentUserService.requireEmpId();
         int year = LocalDate.now().getYear();
         LeaveBalance balance = leaveBalanceService.getOrInit(empId, year);
         Employee emp = employeeService.getById(empId);
@@ -112,12 +114,15 @@ public class SelfServiceController {
     /** 查询当前员工请假记录（含审批状态与流程单号） */
     @GetMapping("/leave/records")
     public R<List<LeaveRequestVO>> leaveRecords() {
-        Long empId = currentEmpId();
+        Long empId = CurrentUserService.requireEmpId();
         List<LeaveRequest> list = leaveRequestService.lambdaQuery()
                 .eq(LeaveRequest::getEmpId, empId)
                 .orderByDesc(LeaveRequest::getId)
                 .last("LIMIT 50")
                 .list();
+        // 批量取流程实例，避免逐条 selectById（N+1）
+        Map<Long, FlowInstance> instMap = loadFlowInstances(
+                list.stream().map(LeaveRequest::getFlowInstanceId).collect(Collectors.toList()));
         return R.ok(list.stream().map(r -> {
             LeaveRequestVO vo = new LeaveRequestVO();
             vo.setId(r.getId());
@@ -127,7 +132,7 @@ public class SelfServiceController {
             vo.setLeaveDays(r.getLeaveDays());
             vo.setReason(r.getReason());
             vo.setCreateTime(r.getCreateTime());
-            fillFlow(vo, r.getFlowInstanceId(), r.getStatus());
+            fillFlow(vo, instMap.get(r.getFlowInstanceId()), r.getStatus());
             return vo;
         }).collect(Collectors.toList()));
     }
@@ -137,7 +142,7 @@ public class SelfServiceController {
     /** 发起证明开具申请（在职/收入证明） */
     @PostMapping("/certificate/apply")
     public R<CertificateApplyResult> applyCertificate(@Valid @RequestBody CertificateApplyReq req) {
-        Long empId = currentEmpId();
+        Long empId = CurrentUserService.requireEmpId();
         CertificateRequest request = certificateRequestService.createAndStart(empId, req.getCertType(), req.getPurpose());
 
         CertificateApplyResult result = new CertificateApplyResult();
@@ -150,12 +155,15 @@ public class SelfServiceController {
     /** 查询当前员工证明申请记录 */
     @GetMapping("/certificate/records")
     public R<List<CertificateRequestVO>> certificateRecords() {
-        Long empId = currentEmpId();
+        Long empId = CurrentUserService.requireEmpId();
         List<CertificateRequest> list = certificateRequestService.lambdaQuery()
                 .eq(CertificateRequest::getEmpId, empId)
                 .orderByDesc(CertificateRequest::getId)
                 .last("LIMIT 50")
                 .list();
+        // 批量取流程实例，避免逐条 selectById（N+1）
+        Map<Long, FlowInstance> instMap = loadFlowInstances(
+                list.stream().map(CertificateRequest::getFlowInstanceId).collect(Collectors.toList()));
         return R.ok(list.stream().map(r -> {
             CertificateRequestVO vo = new CertificateRequestVO();
             vo.setId(r.getId());
@@ -163,7 +171,7 @@ public class SelfServiceController {
             vo.setPurpose(r.getPurpose());
             vo.setContent(r.getContent());
             vo.setCreateTime(r.getCreateTime());
-            fillFlow(vo, r.getFlowInstanceId(), r.getStatus());
+            fillFlow(vo, instMap.get(r.getFlowInstanceId()), r.getStatus());
             return vo;
         }).collect(Collectors.toList()));
     }
@@ -173,7 +181,7 @@ public class SelfServiceController {
     /** 查询当前员工合同/转正到期提醒 */
     @GetMapping("/reminders")
     public R<List<ExpireReminderVO>> reminders() {
-        Long empId = currentEmpId();
+        Long empId = CurrentUserService.requireEmpId();
         List<ExpireReminder> list = expireReminderService.lambdaQuery()
                 .eq(ExpireReminder::getEmpId, empId)
                 .orderByDesc(ExpireReminder::getExpireDate)
@@ -193,12 +201,6 @@ public class SelfServiceController {
 
     // ================= 辅助 =================
 
-    private Long currentEmpId() {
-        Long empId = CurrentUserService.empId();
-        BusinessException.throwIf(empId == null, ErrorCode.UNAUTHORIZED);
-        return empId;
-    }
-
     private String flowNoOf(Long flowInstanceId) {
         if (flowInstanceId == null) {
             return "";
@@ -207,32 +209,25 @@ public class SelfServiceController {
         return fi == null ? "" : fi.getFlowNo();
     }
 
-    /** 回填流程单号/状态/状态文本；无流程实例时按申请单自身状态兜底 */
-    private void fillFlow(AbstractRequestVO vo, Long flowInstanceId, Integer requestStatus) {
-        if (flowInstanceId != null) {
-            FlowInstance fi = flowInstanceMapper.selectById(flowInstanceId);
-            if (fi != null) {
-                vo.setFlowNo(fi.getFlowNo());
-                vo.setFlowStatus(fi.getFlowStatus());
-                vo.setStatusText(flowStatusText(fi.getFlowStatus()));
-                return;
-            }
+    /** 批量加载流程实例：ID 列表 → (ID, 实例) Map，避免逐条查询（N+1） */
+    private Map<Long, FlowInstance> loadFlowInstances(List<Long> ids) {
+        List<Long> distinctIds = ids.stream().filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        if (distinctIds.isEmpty()) {
+            return new java.util.HashMap<>();
         }
-        vo.setStatusText(requestStatus != null && requestStatus == 1 ? "已通过" : "审批中");
+        return flowInstanceMapper.selectBatchIds(distinctIds).stream()
+                .collect(Collectors.toMap(FlowInstance::getId, f -> f, (a, b) -> a));
     }
 
-    /** 流程状态文本：进行中/已通过/已拒绝/已撤回 */
-    private String flowStatusText(Integer status) {
-        if (status == null) {
-            return "审批中";
+    /** 回填流程单号/状态/状态文本；无流程实例时按申请单自身状态兜底 */
+    private void fillFlow(AbstractRequestVO vo, FlowInstance fi, Integer requestStatus) {
+        if (fi != null) {
+            vo.setFlowNo(fi.getFlowNo());
+            vo.setFlowStatus(fi.getFlowStatus());
+            vo.setStatusText(FlowConstants.statusText(fi.getFlowStatus()));
+            return;
         }
-        switch (status) {
-            case FlowConstants.STATUS_RUNNING: return "审批中";
-            case FlowConstants.STATUS_APPROVED: return "已通过";
-            case FlowConstants.STATUS_REJECTED: return "已拒绝";
-            case FlowConstants.STATUS_CANCELED: return "已撤回";
-            default: return String.valueOf(status);
-        }
+        vo.setStatusText(requestStatus != null && requestStatus == 1 ? "已通过" : "审批中");
     }
 
     // ================= 请求/响应模型 =================

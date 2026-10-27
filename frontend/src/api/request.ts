@@ -65,6 +65,8 @@ instance.interceptors.response.use(
   },
   (err) => {
     const status = err?.response?.status
+    // 后端兜底异常（429/405/500 等）会带 R{code,msg} 结构，优先展示其中文提示
+    const bizMsg = err?.response?.data?.msg
     // 401：token 缺失/过期，清 token 跳登录页
     if (status === 401) {
       clearToken()
@@ -72,12 +74,22 @@ instance.interceptors.response.use(
       if (location.hash !== '#/login') {
         location.hash = '#/login'
       }
-      message.warning('登录已过期，请重新登录')
+      message.warning(bizMsg || '登录已过期，请重新登录')
       return Promise.reject(err)
     }
-    if (status === 404) message.error('接口不存在 (404)')
-    else if (status === 500) message.error('服务器错误 (500)')
-    else message.error(err?.message || '网络异常')
+    if (bizMsg) {
+      message.error(bizMsg)
+    } else if (status === 404) {
+      message.error('接口不存在 (404)')
+    } else if (status === 405) {
+      message.error('请求方法不支持 (405)')
+    } else if (status === 429) {
+      message.error('请求过于频繁，请稍后再试')
+    } else if (status === 500) {
+      message.error('服务器错误 (500)')
+    } else {
+      message.error(err?.message || '网络异常')
+    }
     return Promise.reject(err)
   }
 )

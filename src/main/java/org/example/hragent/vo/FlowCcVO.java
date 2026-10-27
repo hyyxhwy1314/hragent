@@ -29,6 +29,12 @@ public class FlowCcVO {
     /** 申请人 t_employee.id */
     private Long applyEmpId;
 
+    /** 申请人姓名（后端回填，避免前端全量拉取员工表映射） */
+    private String applyEmpName;
+
+    /** 业务对象展示名（后端回填，避免前端全量拉取简历表映射） */
+    private String bizName;
+
     /** 流程当前状态 */
     private Integer flowStatus;
 

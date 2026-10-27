@@ -1,6 +1,7 @@
 package org.example.hragent.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.example.hragent.annotation.RequireRole;
 import org.example.hragent.converter.TrainingCourseConverter;
 import org.example.hragent.dto.TrainingCourseQueryDto;
 import org.example.hragent.dto.TrainingCourseSaveDto;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/training-courses")
+@RequireRole({"HR", "ADMIN"})
 public class TrainingCourseController extends BaseCrudController<TrainingCourse, TrainingCourseVO, TrainingCourseQueryDto, TrainingCourseSaveDto, TrainingCourseUpdateDto> {
 
     @Autowired

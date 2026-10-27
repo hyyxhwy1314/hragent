@@ -6,6 +6,7 @@ import org.example.hragent.annotation.DistributedLock;
 import org.example.hragent.annotation.LogAction;
 import org.example.hragent.annotation.RateLimit;
 import org.example.hragent.annotation.RepeatSubmit;
+import org.example.hragent.annotation.RequireRole;
 import org.example.hragent.dto.FlowStartDto;
 import org.example.hragent.exception.BusinessException;
 import org.example.hragent.exception.ErrorCode;
@@ -59,6 +60,7 @@ public class FlowProcessController {
      * 同名流程会自动升级版本号。
      */
     @PostMapping("/deploy")
+    @RequireRole({"HR", "ADMIN"})
     @LogAction(module = "流程审批", action = "部署流程")
     @RateLimit(rate = 5, rateInterval = 3, rateIntervalUnit = TimeUnit.SECONDS, message = "部署过于频繁，请稍后再试")
     public R<Map<String, Object>> deploy(@RequestParam("file") MultipartFile file) throws IOException {
@@ -127,9 +129,10 @@ public class FlowProcessController {
      * - {@link DistributedLock} 防止同业务ID并发发起（避免重复流程实例）
      */
     @PostMapping("/start")
+    @RequireRole({"HR", "ADMIN"})
     @LogAction(module = "流程审批", action = "发起流程")
     @RepeatSubmit(interval = 5, unit = TimeUnit.SECONDS, message = "请勿重复发起流程")
-    @DistributedLock(key = "#dto.processKey + ':' + #dto.bizId", message = "流程发起中，请稍后")
+    @DistributedLock(key = "#dto.processKey + ':' + (#dto.bizId ?: 0)", message = "流程发起中，请稍后")
     public R<FlowInstanceVO> start(@Valid @RequestBody FlowStartDto dto) {
         return R.ok(flowOrchestratorService.start(dto));
     }
@@ -140,8 +143,7 @@ public class FlowProcessController {
     @PostMapping("/instances/{flowInstanceId}/cancel")
     @LogAction(module = "流程审批", action = "撤回流程")
     public R<Boolean> cancel(@PathVariable Long flowInstanceId) {
-        Long operatorEmpId = CurrentUserService.empId();
-        BusinessException.throwIf(operatorEmpId == null, ErrorCode.UNAUTHORIZED);
+        Long operatorEmpId = CurrentUserService.requireEmpId();
         return R.ok(flowOrchestratorService.cancel(flowInstanceId, operatorEmpId));
     }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, h, computed, watch } from 'vue'
+import { ref, h, computed, watch, reactive } from 'vue'
 import { Table, Button, Space, Select, Tag, Modal, Timeline, message, App as AntApp, Badge } from 'ant-design-vue'
 import {
   ReloadOutlined, PlusOutlined, UnorderedListOutlined, CheckCircleFilled, CloseCircleFilled,
@@ -7,8 +7,8 @@ import {
 } from '@ant-design/icons-vue'
 import {
   listInstances, startProcess, cancelFlow, getFlowTrace, listMyCc, markCcRead,
-  FLOW_STATUS_MAP, FLOW_TYPE_MAP,
-  type FlowInstance, type FlowTraceVO, type FlowCcVO
+  listDefinitions, FLOW_STATUS_MAP, FLOW_TYPE_MAP,
+  type FlowInstance, type FlowTraceVO, type FlowCcVO, type ProcessDefinition
 } from '@/api/modules/flow'
 import { employeeApi, type Employee } from '@/api/modules/employee'
 import { resumeApi, type Resume } from '@/api/modules/resume'
@@ -23,43 +23,32 @@ const loading = ref(false)
 const dataSource = ref<FlowInstance[]>([])
 const queryForm = ref<Record<string, any>>({})
 
-// 员工列表（用于姓名映射 + 部门主管选择）
+// 员工/简历列表：仅「发起流程」弹窗的下拉选项需要，改为打开弹窗时懒加载；
+// 列表页的申请人姓名/业务对象名称由后端 FlowInstanceVO、FlowCcVO 直接回填，无需前端全量拉取做映射。
 const employees = ref<Employee[]>([])
-const empMap = computed(() => {
-  const m: Record<number, Employee> = {}
-  employees.value.forEach(e => { if (e.id) m[e.id] = e })
-  return m
-})
-function empName(id?: number) {
-  if (!id) return '-'
-  const e = empMap.value[id]
-  return e ? (e.empName || e.empNo || `#${id}`) : `#${id}`
-}
-
-// 简历列表（入职流程的业务对象，状态=录用）
 const resumes = ref<Resume[]>([])
-const resumeMap = computed(() => {
-  const m: Record<number, Resume> = {}
-  resumes.value.forEach(r => { if (r.id) m[r.id] = r })
-  return m
-})
-function bizName(row: { bizId?: number; flowType: string }) {
-  if (!row.bizId) return '-'
-  // 入职流程 bizId 是简历ID
-  if (row.flowType === 'ONBOARD') {
-    const r = resumeMap.value[row.bizId]
-    return r ? (r.resumeName || `简历#${row.bizId}`) : `简历#${row.bizId}`
-  }
-  // 其他流程 bizId 是员工ID
-  return empName(row.bizId)
-}
 
-const flowTypeOpts = [
-  { label: '入职', value: 'ONBOARD' },
-  { label: '转正', value: 'REGULAR' },
-  { label: '调岗', value: 'TRANSFER' },
-  { label: '离职', value: 'LEAVE' }
-]
+// 内置流程 key：筛选中排除，避免与下方中文基础选项重复
+const BUILTIN_PROC_KEYS = new Set([
+  'onboard-process', 'regular-process', 'transfer-process', 'leave-process',
+  'leave-request-process', 'certificate-process', 'multi-sign-process'
+])
+// 流程类型筛选项：内置中文类型 + 业务人员自建流程（类型码取定义 key 大写，名称取定义 name）
+const flowTypeOpts = computed(() => {
+  const base = [
+    { label: '入职', value: 'ONBOARD' },
+    { label: '转正', value: 'REGULAR' },
+    { label: '调岗', value: 'TRANSFER' },
+    { label: '离职', value: 'LEAVE' },
+    { label: '请假', value: 'LEAVE_REQUEST' },
+    { label: '证明', value: 'CERTIFICATE' }
+  ]
+  const seen = new Set(base.map(o => o.value))
+  const custom = definitions.value
+    .filter(d => d.key && !BUILTIN_PROC_KEYS.has(d.key))
+    .map(d => ({ label: d.name || d.key, value: d.key.toUpperCase() }))
+  return [...base, ...custom.filter(o => !seen.has(o.value))]
+})
 const flowStatusOpts = [
   { label: '进行中', value: 1 },
   { label: '已通过', value: 2 },
@@ -67,15 +56,31 @@ const flowStatusOpts = [
   { label: '已撤回', value: 4 }
 ]
 
+// 服务端分页状态
+const pagination = reactive({ current: 1, pageSize: 10, total: 0 })
+
 async function fetchList() {
   loading.value = true
   try {
-    dataSource.value = await listInstances(queryForm.value) || []
+    const res = await listInstances({
+      ...queryForm.value,
+      pageNum: pagination.current,
+      pageSize: pagination.pageSize
+    })
+    dataSource.value = res?.records || []
+    pagination.total = Number(res?.total || 0)
   } catch {
     dataSource.value = []
+    pagination.total = 0
   } finally {
     loading.value = false
   }
+}
+
+function handleTableChange(pg: { current: number; pageSize: number }) {
+  pagination.current = pg.current
+  pagination.pageSize = pg.pageSize
+  fetchList()
 }
 
 async function loadEmployees() {
@@ -90,10 +95,19 @@ async function loadResumes() {
   } catch { resumes.value = [] }
 }
 
-Promise.all([fetchList(), loadEmployees(), loadResumes()])
+// 发起弹窗的下拉选项（员工/简历）按需懒加载，避免进入列表页即全量拉取
+let startOptionsLoaded = false
+async function ensureStartOptions() {
+  if (startOptionsLoaded) return
+  startOptionsLoaded = true
+  await Promise.all([loadEmployees(), loadResumes()])
+}
 
-function onSearch() { fetchList() }
-function onReset() { queryForm.value = {}; fetchList() }
+// 初始化加载：仅拉取流程列表（已部署定义在下方声明后单独加载）
+fetchList()
+
+function onSearch() { pagination.current = 1; fetchList() }
+function onReset() { queryForm.value = {}; pagination.current = 1; fetchList() }
 
 // ============ 抄送我的 ============
 const ccLoading = ref(false)
@@ -137,16 +151,51 @@ const startVisible = ref(false)
 const startForm = ref<{
   processKey: string
   bizId: any
+  /** 业务对象类型：EMPLOYEE / RESUME / __none__（不关联） */
+  bizType?: string
   targetLeaderId: any
   targetDeptName: string
   targetPosition: string
+  /** 自定义流程：从已部署定义中选择的 processKey */
+  customKey?: string
+  /** 自定义流程：业务参数键值对（提交时拼成 bizJson） */
+  bizParams: { key: string; value: string }[]
 }>({
   processKey: 'onboard-process',
   bizId: undefined,
+  bizType: undefined,
   targetLeaderId: undefined,
   targetDeptName: '',
-  targetPosition: ''
+  targetPosition: '',
+  customKey: undefined,
+  bizParams: []
 })
+
+// 是否自定义流程（从已部署定义列表里选，适配业务人员新建的流程）
+const isCustom = computed(() => startForm.value.processKey === '__custom__')
+
+// 已部署流程定义（供自定义发起入口选择，覆盖业务人员自建的新流程）
+const definitions = ref<ProcessDefinition[]>([])
+const defOptions = computed(() =>
+  definitions.value.map(d => ({ label: `${d.name}（${d.key} · v${d.version}）`, value: d.key }))
+)
+async function loadDefinitions() {
+  try {
+    definitions.value = (await listDefinitions()) || []
+  } catch {
+    definitions.value = []
+  }
+}
+
+// 自建流程的类型码 = 流程定义 key 的大写形式，用定义名称回显中文，避免列表出现原始码
+const defNameMap = computed(() => {
+  const m: Record<string, string> = {}
+  definitions.value.forEach(d => { if (d.key && d.name) m[d.key.toUpperCase()] = d.name })
+  return m
+})
+
+// 已部署定义须在 definitions 声明之后再加载，供自定义发起入口与「类型」中文回显
+loadDefinitions()
 
 // 是否入职流程（bizId 选简历 + 需指定部门主管）
 const isOnboard = computed(() => startForm.value.processKey === 'onboard-process')
@@ -199,51 +248,82 @@ const regularEmpOptions = computed(() =>
     }))
 )
 
-function openStart() {
+// 自定义流程：业务对象类型（决定 bizId 指向哪张业务表）
+const bizTypeOpts = [
+  { label: '员工（关联员工档案）', value: 'EMPLOYEE' },
+  { label: '简历（关联候选人简历）', value: 'RESUME' },
+  { label: '不关联业务对象', value: '__none__' }
+]
+// 自定义流程：按所选业务对象类型展示可选对象
+const customBizOptions = computed(() =>
+  startForm.value.bizType === 'EMPLOYEE' ? empOptions.value
+    : startForm.value.bizType === 'RESUME' ? resumeOptions.value
+    : []
+)
+// 切换业务对象类型时清空已选业务对象
+watch(() => startForm.value.bizType, () => { startForm.value.bizId = undefined })
+
+function addBizParam() { startForm.value.bizParams.push({ key: '', value: '' }) }
+function removeBizParam(idx: number) { startForm.value.bizParams.splice(idx, 1) }
+/** 将键值对参数拼成 bizJson（无有效参数则返回 undefined） */
+function buildBizJson(): string | undefined {
+  const obj: Record<string, string> = {}
+  startForm.value.bizParams.forEach(p => {
+    const k = p.key?.trim()
+    if (k) obj[k] = p.value ?? ''
+  })
+  return Object.keys(obj).length ? JSON.stringify(obj) : undefined
+}
+
+/** 统一重置发起表单；open 时刷新一次已部署定义列表，供自定义流程选择 */
+function openStartForm(processKey: string) {
   startForm.value = {
-    processKey: 'onboard-process',
+    processKey,
     bizId: null,
+    bizType: undefined,
     targetLeaderId: null,
     targetDeptName: '',
-    targetPosition: ''
+    targetPosition: '',
+    customKey: undefined,
+    bizParams: []
   }
+  loadDefinitions()
   startVisible.value = true
 }
 
-function openLeaveStart() {
-  startForm.value = {
-    processKey: 'leave-process',
-    bizId: null,
-    targetLeaderId: null,
-    targetDeptName: '',
-    targetPosition: ''
-  }
-  startVisible.value = true
-}
-
-function openRegularStart() {
-  startForm.value = {
-    processKey: 'regular-process',
-    bizId: null,
-    targetLeaderId: null,
-    targetDeptName: '',
-    targetPosition: ''
-  }
-  startVisible.value = true
-}
-
-function openTransferStart() {
-  startForm.value = {
-    processKey: 'transfer-process',
-    bizId: null,
-    targetLeaderId: null,
-    targetDeptName: '',
-    targetPosition: ''
-  }
-  startVisible.value = true
-}
+/** 统一入口：打开「发起流程」弹窗，流程类型在弹窗内选择（内置/自定义） */
+function openStart() { openStartForm('onboard-process') }
 
 async function handleStart() {
+  // 自定义流程：从已部署定义列表里选 processKey，适配业务人员新建的流程
+  if (isCustom.value) {
+    if (!startForm.value.customKey) {
+      message.warning('请选择要发起的流程定义')
+      return
+    }
+    if (!startForm.value.bizType) {
+      message.warning('请选择业务对象类型')
+      return
+    }
+    // 关联员工/简历时必须选定具体业务对象；不关联时 bizId 留空
+    const linkBiz = startForm.value.bizType !== '__none__'
+    if (linkBiz && !startForm.value.bizId) {
+      message.warning(startForm.value.bizType === 'RESUME' ? '请选择候选人简历' : '请选择员工')
+      return
+    }
+    try {
+      await startProcess({
+        processKey: startForm.value.customKey,
+        bizId: linkBiz ? startForm.value.bizId : undefined,
+        bizType: linkBiz ? startForm.value.bizType : undefined,
+        bizJson: buildBizJson()
+      })
+      message.success('流程已发起')
+      startVisible.value = false
+      fetchList()
+    } catch {}
+    return
+  }
   if (!startForm.value.bizId) {
     message.warning(isOnboard.value ? '请选择候选人简历' : isBizEmployee.value ? '请选择员工' : '请选择业务对象')
     return
@@ -311,7 +391,10 @@ async function onViewTrace(id?: number) {
 
 function statusText(s?: number) { return FLOW_STATUS_MAP[s || 0]?.label ?? '-' }
 function statusColor(s?: number) { return FLOW_STATUS_MAP[s || 0]?.color ?? 'default' }
-function typeText(t: string) { return FLOW_TYPE_MAP[t] || t }
+function typeText(t: string) { return FLOW_TYPE_MAP[t] || defNameMap.value[t] || t }
+// 业务对象/申请人名称由后端 VO 回填（bizName / applyEmpName），兜底显示原始ID
+function bizName(row: any) { return row?.bizName || (row?.bizId != null ? String(row.bizId) : '-') }
+function empName(row: any) { return row?.applyEmpName || (row?.applyEmpId != null ? String(row.applyEmpId) : '-') }
 
 const columns: any[] = [
   { title: '流水号', dataIndex: 'flowNo', width: 180 },
@@ -322,7 +405,7 @@ const columns: any[] = [
     customRender: ({ record }: any) => bizName(record)
   },
   { title: '申请人', dataIndex: 'applyEmpId', width: 120,
-    customRender: ({ record }: any) => empName(record.applyEmpId)
+    customRender: ({ record }: any) => empName(record)
   },
   { title: '创建时间', dataIndex: 'createTime', width: 180 },
   {
@@ -353,7 +436,7 @@ const ccColumns: any[] = [
     customRender: ({ record }: any) => bizName(record)
   },
   { title: '申请人', dataIndex: 'applyEmpId', width: 110,
-    customRender: ({ record }: any) => empName(record.applyEmpId)
+    customRender: ({ record }: any) => empName(record)
   },
   { title: '抄送节点', dataIndex: 'nodeName', width: 120 },
   { title: '抄送时间', dataIndex: 'createTime', width: 180 },
@@ -419,12 +502,7 @@ function traceDotColor(status: string) {
               <span style="color: rgba(0,0,0,0.45); font-size: 13px">共 {{ dataSource.length }} 条</span>
             </div>
             <div class="table-toolbar-right">
-              <Space>
-                <Button type="primary" :icon="h(PlusOutlined)" @click="openStart">发起入职流程</Button>
-                <Button :icon="h(PlusOutlined)" @click="openRegularStart">发起转正流程</Button>
-                <Button :icon="h(PlusOutlined)" @click="openTransferStart">发起调岗流程</Button>
-                <Button :icon="h(PlusOutlined)" @click="openLeaveStart">发起离职流程</Button>
-              </Space>
+              <Button type="primary" :icon="h(PlusOutlined)" @click="openStart">发起流程</Button>
             </div>
           </div>
 
@@ -467,9 +545,46 @@ function traceDotColor(status: string) {
             { label: '入职流程', value: 'onboard-process' },
             { label: '转正流程', value: 'regular-process' },
             { label: '调岗流程', value: 'transfer-process' },
-            { label: '离职流程', value: 'leave-process' }
+            { label: '离职流程', value: 'leave-process' },
+            { label: '自定义流程（选择已部署定义）', value: '__custom__' }
           ]" />
         </a-form-item>
+
+        <!-- 自定义流程：从已部署流程定义里动态选，支持业务人员新建的流程 -->
+        <template v-if="isCustom">
+          <a-form-item label="流程定义" required>
+            <Select v-model:value="startForm.customKey" :options="defOptions"
+              placeholder="选择已部署的流程定义" show-search option-filter-prop="label" />
+            <div v-if="defOptions.length === 0" style="color: #fa8c16; font-size: 12px; margin-top: 4px">
+              暂无已部署流程，请先到「流程设计器」新建并部署
+            </div>
+          </a-form-item>
+          <a-form-item label="业务对象类型" required>
+            <Select v-model:value="startForm.bizType" :options="bizTypeOpts"
+              placeholder="选择该流程关联的业务对象" />
+          </a-form-item>
+          <!-- 关联员工/简历时，从对应列表中选定具体业务对象（即 bizId） -->
+          <a-form-item v-if="customBizOptions.length" required
+            :label="startForm.bizType === 'RESUME' ? '候选人简历' : '员工'">
+            <Select v-model:value="startForm.bizId" :options="customBizOptions"
+              :placeholder="startForm.bizType === 'RESUME' ? '请选择候选人简历' : '请选择员工'"
+              show-search option-filter-prop="label" />
+          </a-form-item>
+          <a-form-item label="业务参数（可选）">
+            <div v-for="(p, idx) in startForm.bizParams" :key="idx"
+              style="display: flex; gap: 8px; margin-bottom: 8px">
+              <a-input v-model:value="p.key" placeholder="变量名，如 targetDeptName" />
+              <a-input v-model:value="p.value" placeholder="值" />
+              <Button type="text" danger size="small" @click="removeBizParam(idx)">删除</Button>
+            </div>
+            <Button type="dashed" block size="small" @click="addBizParam">
+              <PlusOutlined /> 添加参数
+            </Button>
+            <div style="color: rgba(0,0,0,0.45); font-size: 12px; margin-top: 4px">
+              参数将作为流程变量传入，供 BPMN 中的 ${变量名} 取值
+            </div>
+          </a-form-item>
+        </template>
 
         <!-- 入职流程：选候选人简历 -->
         <template v-if="isOnboard">

@@ -42,6 +42,9 @@ function statusTag(status?: number, text?: string) {
   return h(Tag, { color: m?.color || 'default' }, () => text || m?.label || '审批中')
 }
 
+/** 记录表格分页（后端按 LIMIT 返回，前端分页展示） */
+const tablePagination = { pageSize: 10, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` }
+
 async function refreshAll() {
   loading.value = true
   try {
@@ -221,7 +224,7 @@ const certColumns: any[] = [
         </div>
       </div>
       <Table :columns="leaveColumns" :data-source="leaveRecords" :loading="loading"
-        :pagination="false" :scroll="{ x: 960 }" row-key="id">
+        :pagination="tablePagination" :scroll="{ x: 960 }" row-key="id">
         <template #emptyText><Empty description="暂无请假记录" :image="Empty.PRESENTED_IMAGE_SIMPLE" /></template>
       </Table>
     </div>
@@ -235,7 +238,7 @@ const certColumns: any[] = [
         </div>
       </div>
       <Table :columns="certColumns" :data-source="certRecords" :loading="loading"
-        :pagination="false" :scroll="{ x: 720 }" row-key="id">
+        :pagination="tablePagination" :scroll="{ x: 720 }" row-key="id">
         <template #emptyText><Empty description="暂无证明记录" :image="Empty.PRESENTED_IMAGE_SIMPLE" /></template>
       </Table>
     </div>

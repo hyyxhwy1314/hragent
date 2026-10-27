@@ -1,4 +1,8 @@
 spring:
+  # 本地私有凭据文件（application-local.yaml 已被 .gitignore 忽略，不入库）；
+  # 存在时其配置项优先级高于本文件，用于注入飞书 MCP 等敏感凭据；不存在则自动忽略
+  config:
+    import: optional:classpath:application-local.yaml
   aop:
     proxy-target-class: true
     auto: true
@@ -61,17 +65,17 @@ hragent:
   agent:
     memory:
       # 单次模型推理允许携带的最大历史 token 数（超出自动丢弃最旧消息）
-      max-tokens: 6000
+      max-tokens: 2000
       # 单条工具结果回填会话记忆的最大字符数（防止长列表撑爆 token 预算）
-      max-tool-result-chars: 3000
+      max-tool-result-chars: 1200
     # 工具路由（分层 Tool Routing）：结构化注册表 -> 硬过滤 -> 粗分类 -> BM25 召回 -> 模型精选 -> 执行鉴权
     routing:
       # 运行环境：prod 时叠加生产黑名单（production-blocked-tools）
       environment: dev
       # 单次召回候选工具数上限
-      top-k: 10
+      top-k: 6
       # 域收缩后候选不足时，放宽到全部可见工具并扩大返回条数
-      expanded-top-k: 18
+      expanded-top-k: 8
       # 候选数低于该值时触发放宽召回
       min-candidates: 3
       # 低置信度阈值（仅用于评估，不阻断执行）
@@ -99,16 +103,49 @@ hragent:
   rag:
     # 是否启用知识库检索（关闭时 hrKnowledgeQA 退回模板话术）
     enabled: true
-    # 单次检索召回的片段数
+    # 单次检索最终返回的片段数（粗排召回后经 rerank 精排的条数）
     top-k: 5
-    # 相似度阈值，低于该值的片段不返回
-    min-score: 0.35
-    # 文档切分片段大小（字符）
+    # 粗排召回条数：先扩大召回，再交给 rerank 精排（两阶段检索）
+    recall-top-k: 20
+    # 粗排相似度阈值，低于该值的片段不进入精排
+    min-score: 0.3
+    # 结构感知切分的片段大小（字符）
     chunk-size: 400
-    # 相邻片段重叠字符数
+    # 长段落按句切分时的相邻片段重叠字符数
     chunk-overlap: 80
+    # 父子块回填时父块正文最大字符数（超出截断，防止单条命中占满上下文）
+    parent-max-chars: 1200
+    # 精排（rerank）：与主模型同一厂商、同一 key 与访问地址，仅模型名不同
+    rerank:
+      enabled: ${AI_RERANK_ENABLED:true}
+      model-name: ${AI_RERANK_MODEL_NAME:qwen3.7-text-rerank}
+      # DashScope 原生精排接口路径（挂载在同一 MaaS 主机下）
+      path: ${AI_RERANK_PATH:/api/v1/services/rerank/text-rerank/text-rerank}
+      api-key: ${AI_RERANK_API_KEY:${AI_API_KEY:}}
+      timeout-seconds: ${AI_RERANK_TIMEOUT_SECONDS:15}
     # 启动时是否重建知识库（删除旧片段与旧集合后重新向量化）
     reindex: false
+    # 文档时效治理：过期文档不删除，仅置为 EXPIRED 并从检索中硬过滤，保留原文用于审计
+    freshness:
+      # 是否启用时效治理（关闭仅用于排障，关闭后检索不再按有效期过滤）
+      enabled: true
+      # 默认复审周期（天），未在文档元信息中声明「复审日期」时按分类策略或该默认值计算
+      default-review-days: 365
+      # 复审到期宽限期（天）：超过复审日仍未复审，宽限期结束后自动失效
+      grace-days: 30
+      # 复审提醒提前天数：到期前 N 天开始邮件提醒 HR 复审
+      reminder-days: 30
+      # 失效提示阈值：失效片段精排得分达到该值且高于现行片段时，才提示「相关制度已失效」
+      hint-min-score: 0.5
+      # 分类复审周期（天），键为文档元信息中的「分类」
+      # 含中文的 Map key 需用 [] 包裹，否则 Spring 宽松绑定会把 key 清洗掉
+      category-review-days:
+        "[考勤管理]": 365
+        "[请假管理]": 365
+        "[转正管理]": 365
+        "[绩效管理]": 365
+        "[薪酬福利]": 180
+        "[行为规范]": 730
     qdrant:
       host: 127.0.0.1
       port: 6333
@@ -129,6 +166,19 @@ hragent:
       # 本次连接允许调用的工具（逗号分隔）；search-doc/search-user 仅支持用户身份（UAT），
       # 走应用身份（TAT）时需从列表中排除
       allowed-tools: create-doc,fetch-doc,update-doc,list-docs,get-comments,add-comments,get-user,fetch-file
+
+  # 飞书开放平台原生 OpenAPI（审批卡片推送 + 卡片回调驱动审批）
+  # 与云文档 MCP 复用同一个自建应用：需开通「发送单聊消息」im:message:send 权限，
+  # 并在开发者后台订阅「卡片回传交互 card.action.trigger」回调（订阅方式选「使用长连接接收回调」）。
+  # App ID/Secret 优先读 FEISHU_APP_ID/FEISHU_APP_SECRET 环境变量；未设置时直接复用云文档 MCP 的配置值
+  # （两者是同一个飞书自建应用），因此凭据只需在 MCP 处配置一次。
+  feishu:
+    enabled: true
+    app-id: "${FEISHU_APP_ID:${hragent.mcp.feishu.app-id:}}"
+    app-secret: "${FEISHU_APP_SECRET:${hragent.mcp.feishu.app-secret:}}"
+    base-url: https://open.feishu.cn/open-apis
+    token-endpoint: https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal
+    # 卡片接收人按员工手机号/邮箱解析为 open_id 后送达（需「通过手机号或邮箱获取用户 ID」contact:user.id:readonly 应用身份权限）
 
 flowable:
   database-schema-update: true
@@ -213,9 +263,32 @@ ai:
   api-key: ${AI_API_KEY:}
   base-url: ${AI_BASE_URL:https://llm-8sr4ofm58q8qaj4e.cn-beijing.maas.aliyuncs.com/compatible-mode/v1}
   model:
-    name: ${AI_MODEL_NAME:qwen3.7-flash}
+    name: ${AI_MODEL_NAME:qwen3.8-max}
   # 向量化模型：与对话模型共用同一 OpenAI 兼容端点（同 base-url/api-key），仅模型名不同
+  # 输出维度需与 hragent.rag.qdrant.vector-dim(1024) 保持一致，切换模型后需 reindex 重建向量
   embedding:
     model:
-      name: ${AI_EMBEDDING_MODEL_NAME:text-embedding-v3}
+      name: ${AI_EMBEDDING_MODEL_NAME:qwen3.7-text-embedding-flash}
+  # 本地轻量决策模型：只用于工具路由的「业务域分类」这一层决策，最终作答与工具参数生成仍由远程模型负责。
+  # 走本机 Ollama 的 OpenAI 兼容端点（本机部署在 D 盘），默认关闭；
+  # 开启后若调用失败/超时/输出非法，自动回退规则分类，不影响主链路。
+  routing:
+    enabled: ${AI_ROUTING_ENABLED:false}
+    base-url: ${AI_ROUTING_BASE_URL:http://127.0.0.1:11434/v1}
+    model-name: ${AI_ROUTING_MODEL_NAME:qwen2.5:3b-instruct}
+    # Ollama 不校验密钥，此处仅为满足 OpenAI 兼容客户端必填项
+    api-key: ${AI_ROUTING_API_KEY:ollama}
+    timeout-seconds: ${AI_ROUTING_TIMEOUT_SECONDS:20}
+    # 只读工具优先：让本地模型接管「只读/查询类工具」的选工具 + 生成参数这一跳，命中时跳过远程模型首跳。
+    # 写操作与流程类工具（发起流程/审批/登记简历等）仍由远程模型选定。依赖 routing.enabled=true，故两者需同时开启。
+    # 关闭（默认）时行为与启用前完全一致。
+    planning:
+      enabled: ${AI_ROUTING_PLANNING_ENABLED:false}
+    # 全量本地化：把 Agent 主模型（最终作答、工具参数生成，以及简历深度分析、合同审查等）
+    # 切换为本地模型。远程 API 模型的 Bean 与凭据配置保留不变（api 先保留），关闭本开关即一键切回。
+    # 提示：主模型本地化后，「本地域分类 / 本地只读规划」两项优化的目的（省远程 token）已不适用，
+    # 建议保持 ai.routing.enabled=false（域分类走规则），避免每轮多出多余的本地调用与延迟。
+    local-primary: ${AI_ROUTING_LOCAL_PRIMARY:false}
+    # 全量本地化时本地主模型的超时（秒）；本地 CPU 推理较慢，需给足时间，否则作答易被截断。
+    llm-timeout-seconds: ${AI_ROUTING_LLM_TIMEOUT_SECONDS:300}
 

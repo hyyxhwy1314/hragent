@@ -3,6 +3,7 @@ package org.example.hragent.controller;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.hragent.annotation.RateLimit;
+import org.example.hragent.annotation.RequireRole;
 import org.example.hragent.dto.ContractReviewDto;
 import org.example.hragent.service.ContractReviewService;
 import org.example.hragent.vo.ContractReviewVO;
@@ -21,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @RestController
 @RequestMapping("/contract-review")
+@RequireRole({"HR", "ADMIN"})
 public class ContractReviewController {
 
     private final ContractReviewService contractReviewService;

@@ -19,7 +19,8 @@ import java.util.function.Predicate;
  *   <li><b>注册</b>：{@link ToolRegistry} 聚合本地 @Tool 与远程 MCP 工具，产出可路由的 {@link ToolCard}
  *       （元数据来自注册表内置的声明式配置表）</li>
  *   <li><b>硬过滤</b>（本类 {@link #hardFilter}）：静态 Blocklist + 生产 Blocklist + 动态（角色可见性 / 运行时禁用）</li>
- *   <li><b>粗分类</b>：{@link ToolClassifier} 识别业务域，把候选收缩到域内</li>
+ *   <li><b>粗分类</b>：{@link DomainDecisionStrategy} 识别业务域，把候选收缩到域内
+ *       （默认规则实现 {@link ToolClassifier}，启用本地决策模型时切换为 {@link LocalModelDomainDecisionStrategy}）</li>
  *   <li><b>召回</b>：{@link ToolRecallStrategy}（默认 {@link Bm25ToolRecallStrategy}）对域内候选打分取 Top-K，
  *       候选不足则放宽到全部可见工具</li>
  *   <li><b>精选与兜底</b>（本类 {@link #route}）：召回结果 + 常驻（pinned）工具；无任何候选时回退只读核心工具，
@@ -34,18 +35,18 @@ public class ToolRouter {
     private static final Logger log = LoggerFactory.getLogger(ToolRouter.class);
 
     private final ToolRegistry registry;
-    private final ToolClassifier classifier;
+    private final DomainDecisionStrategy domainDecision;
     private final ToolRecallStrategy recallStrategy;
     private final ToolRoutingProperties props;
     private final ToolRoutingMetrics metrics;
 
     public ToolRouter(ToolRegistry registry,
-                      ToolClassifier classifier,
+                      DomainDecisionStrategy domainDecision,
                       ToolRecallStrategy recallStrategy,
                       ToolRoutingProperties props,
                       ToolRoutingMetrics metrics) {
         this.registry = registry;
-        this.classifier = classifier;
+        this.domainDecision = domainDecision;
         this.recallStrategy = recallStrategy;
         this.props = props;
         this.metrics = metrics;
@@ -56,7 +57,7 @@ public class ToolRouter {
      */
     public Result route(String query, Context ctx) {
         List<ToolCard> visible = hardFilter(registry.allCards(), ctx);
-        Set<String> domains = classifier.classify(query);
+        Set<String> domains = domainDecision.decide(query);
 
         List<ToolCard> scoped = visible.stream().filter(card -> card.inDomains(domains)).toList();
         List<ToolRecallStrategy.Scored> recalled = recallStrategy.recall(query, scoped, domains, props.getTopK());
@@ -88,7 +89,8 @@ public class ToolRouter {
                 cards.stream().map(ToolCard::specification).toList(),
                 domains,
                 lowConfidence,
-                schemaTokens);
+                schemaTokens,
+                cards);
     }
 
     /**
@@ -191,12 +193,14 @@ public class ToolRouter {
      * @param domains        本次请求识别到的业务域
      * @param lowConfidence  是否低置信度（未识别到业务域，或召回最高分过低）
      * @param schemaTokens   候选工具 Schema 的估算 token 数（评估用）
+     * @param cards          候选项卡片列表（供 {@link ToolPlanningStrategy} 按只读标记等元数据规划）
      */
     public record Result(
             List<String> toolNames,
             List<ToolSpecification> specifications,
             Set<String> domains,
             boolean lowConfidence,
-            int schemaTokens) {
+            int schemaTokens,
+            List<ToolCard> cards) {
     }
 }

@@ -1,6 +1,7 @@
 package org.example.hragent.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.example.hragent.annotation.RequireRole;
 import org.example.hragent.converter.AbilityTagConverter;
 import org.example.hragent.dto.AbilityTagQueryDto;
 import org.example.hragent.dto.AbilityTagSaveDto;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/ability-tags")
+@RequireRole({"HR", "ADMIN"})
 public class AbilityTagController extends BaseCrudController<AbilityTag, AbilityTagVO, AbilityTagQueryDto, AbilityTagSaveDto, AbilityTagUpdateDto> {
 
     @Autowired

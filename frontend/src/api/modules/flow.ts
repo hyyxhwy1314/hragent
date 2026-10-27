@@ -1,4 +1,4 @@
-import { httpGet, httpPost, httpUpload } from '../request'
+import { httpGet, httpPost, httpUpload, type PageVO, type PageParams } from '../request'
 
 /** 流程任务 */
 export interface TaskVO {
@@ -12,6 +12,10 @@ export interface TaskVO {
   createTime: string
   bizId: number
   applyEmpId: number
+  /** 申请人姓名（后端回填） */
+  applyEmpName?: string
+  /** 业务对象名称：入职流程为简历名，其余为员工姓名（后端回填） */
+  bizName?: string
 }
 
 /** 流程实例 */
@@ -20,7 +24,13 @@ export interface FlowInstance {
   flowNo: string
   flowType: string
   bizId: number
+  /** 业务对象类型：EMPLOYEE / RESUME / LEAVE_REQUEST */
+  bizType?: string
   applyEmpId: number
+  /** 申请人姓名（后端回填） */
+  applyEmpName?: string
+  /** 业务对象展示名（后端回填） */
+  bizName?: string
   flowStatus: number
   flowableProcInstId: string
   bizJson: string
@@ -42,7 +52,10 @@ export interface FlowTraceVO {
 /** 发起流程请求 */
 export interface FlowStartDTO {
   processKey: string
-  bizId: number
+  /** 业务主键ID（员工/简历/请假单ID）；不关联业务对象时不传 */
+  bizId?: number
+  /** 业务对象类型：EMPLOYEE / RESUME；内置流程可省略 */
+  bizType?: string
   bizJson?: string
 }
 
@@ -63,6 +76,10 @@ export interface FlowCcVO {
   flowType: string
   bizId: number
   applyEmpId: number
+  /** 申请人姓名（后端回填） */
+  applyEmpName?: string
+  /** 业务对象展示名（后端回填） */
+  bizName?: string
   flowStatus: number
   nodeName: string
   readFlag: boolean
@@ -137,12 +154,12 @@ export function cancelFlow(flowInstanceId: number): Promise<boolean> {
   return httpPost(`/flow/process/instances/${flowInstanceId}/cancel`)
 }
 
-/** 流程实例列表 */
-export function listInstances(params?: {
+/** 流程实例列表（服务端分页） */
+export function listInstances(params?: PageParams & {
   flowType?: string
   flowStatus?: number
   applyEmpId?: number
-}): Promise<FlowInstance[]> {
+}): Promise<PageVO<FlowInstance>> {
   return httpGet('/flow/query/instances', { params })
 }
 

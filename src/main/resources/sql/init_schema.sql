@@ -135,6 +135,7 @@ CREATE TABLE `t_flow_instance` (
     `flow_no`               VARCHAR(64)  NOT NULL                COMMENT '业务流水号',
     `flow_type`             VARCHAR(32)  NOT NULL                COMMENT '流程类型: PERFORMANCE/REGULAR/LEAVE/ONBOARD',
     `biz_id`                BIGINT       DEFAULT NULL            COMMENT '业务主键id',
+    `biz_type`              VARCHAR(16)  DEFAULT NULL            COMMENT '业务对象类型: EMPLOYEE/RESUME/LEAVE_REQUEST',
     `apply_emp_id`          BIGINT       NOT NULL                COMMENT '申请人(t_employee.id)',
     `flow_status`           TINYINT      DEFAULT 0               COMMENT '业务流程状态 0进行中 1通过 2拒绝 3撤销',
     `flowable_proc_inst_id` VARCHAR(64)  DEFAULT NULL            COMMENT 'Flowable原生流程实例id',
