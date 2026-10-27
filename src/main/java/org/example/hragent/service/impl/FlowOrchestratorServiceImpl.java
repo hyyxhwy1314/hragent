@@ -11,6 +11,10 @@ import org.example.hragent.entity.FlowApproval;
 import org.example.hragent.entity.FlowInstance;
 import org.example.hragent.exception.BusinessException;
 import org.example.hragent.exception.ErrorCode;
+import org.example.hragent.flow.support.FlowAccessGuard;
+import org.example.hragent.flow.support.FlowCcSupport;
+import org.example.hragent.flow.support.FlowDiagramSupport;
+import org.example.hragent.flow.support.FlowTaskViewAssembler;
 import org.example.hragent.mapper.EmployeeMapper;
 import org.example.hragent.mapper.FlowApprovalMapper;
 import org.example.hragent.mapper.FlowInstanceMapper;
@@ -170,16 +174,11 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
 
     /** 完成任务核心逻辑：任务归属校验 → 写入审批变量与意见 → 完成 → 写审批记录与状态同步 */
     private boolean doComplete(String taskId, Long approverEmpId, TaskCompleteDto dto) {
-        // 幂等：任务已被处理（重复点击/并发双提交/网络重试）时直接返回成功，不重复写审批记录、不二次流转
-        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        // 幂等：任务已被处理时返回 null，不重复写审批记录、不二次流转
+        Task task = pendingTaskAs(taskId, approverEmpId);
         if (task == null) {
-            boolean handled = historyService.createHistoricTaskInstanceQuery().taskId(taskId).count() > 0;
-            BusinessException.throwIf(!handled, ErrorCode.FLOW_TASK_NOT_FOUND);
-            log.info("审批重复提交，任务已处理完毕，幂等返回 taskId={}, operator={}", taskId, approverEmpId);
             return true;
         }
-        BusinessException.throwIf(!String.valueOf(approverEmpId).equals(task.getAssignee()),
-                ErrorCode.FLOW_TASK_NOT_ASSIGNEE);
 
         // 写入审批结果变量，供 BPMN 网关判断 approved
         Map<String, Object> vars = new HashMap<>();
@@ -238,15 +237,10 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
         Long approverEmpId = CurrentUserService.requireEmpId();
 
         // 幂等：任务已结束则无需转办，直接返回成功
-        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        Task task = pendingTaskAs(taskId, approverEmpId);
         if (task == null) {
-            boolean handled = historyService.createHistoricTaskInstanceQuery().taskId(taskId).count() > 0;
-            BusinessException.throwIf(!handled, ErrorCode.FLOW_TASK_NOT_FOUND);
-            log.info("任务转办重复提交，任务已处理完毕，幂等返回 taskId={}", taskId);
             return true;
         }
-        BusinessException.throwIf(!String.valueOf(approverEmpId).equals(task.getAssignee()),
-                ErrorCode.FLOW_TASK_NOT_ASSIGNEE);
         BusinessException.throwIf(dto.getDelegateToEmpId() == null, ErrorCode.PARAM_ERROR, "转办目标员工不能为空");
 
         Employee target = employeeMapper.selectById(dto.getDelegateToEmpId());
@@ -374,6 +368,25 @@ public class FlowOrchestratorServiceImpl implements FlowOrchestratorService {
     }
 
     // ========================= 辅助方法 =========================
+
+    /**
+     * 取待处理任务并校验审批人归属（审批/转办共用）。
+     * <p>
+     * 任务已处理（重复点击 / 并发双提交 / 事件重试）时返回 {@code null}，由调用方幂等返回；
+     * 任务既不在运行态也不在历史表时抛「任务不存在」；审批人不匹配抛「非任务处理人」。
+     */
+    private Task pendingTaskAs(String taskId, Long approverEmpId) {
+        Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+        if (task == null) {
+            boolean handled = historyService.createHistoricTaskInstanceQuery().taskId(taskId).count() > 0;
+            BusinessException.throwIf(!handled, ErrorCode.FLOW_TASK_NOT_FOUND);
+            log.info("任务已处理完毕，幂等返回 taskId={}, operator={}", taskId, approverEmpId);
+            return null;
+        }
+        BusinessException.throwIf(!String.valueOf(approverEmpId).equals(task.getAssignee()),
+                ErrorCode.FLOW_TASK_NOT_ASSIGNEE);
+        return task;
+    }
 
     /** 按 Flowable 流程实例ID 查业务流程实例 */
     private FlowInstance findFlowInstanceByProcInstId(String procInstId) {

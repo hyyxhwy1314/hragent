@@ -1,4 +1,4 @@
-package org.example.hragent.service.impl;
+package org.example.hragent.flow.strategy;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.extern.slf4j.Slf4j;

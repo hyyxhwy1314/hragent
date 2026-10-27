@@ -1,14 +1,9 @@
 package org.example.hragent.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
 import org.example.hragent.constant.FlowConstants;
-import org.example.hragent.dto.FlowStartDto;
 import org.example.hragent.entity.LeaveRequest;
-import org.example.hragent.exception.BusinessException;
-import org.example.hragent.exception.ErrorCode;
+import org.example.hragent.flow.support.BizFlowStarter;
 import org.example.hragent.mapper.LeaveRequestMapper;
-import org.example.hragent.service.FlowOrchestratorService;
 import org.example.hragent.service.LeaveRequestService;
 import org.example.hragent.vo.FlowInstanceVO;
 import org.springframework.stereotype.Service;
@@ -23,17 +18,14 @@ import java.util.Map;
 /**
  * 请假单 Service 实现
  */
-@Slf4j
 @Service
 public class LeaveRequestServiceImpl extends BaseServiceImpl<LeaveRequestMapper, LeaveRequest>
         implements LeaveRequestService {
 
-    private final FlowOrchestratorService flowOrchestratorService;
-    private final ObjectMapper objectMapper;
+    private final BizFlowStarter bizFlowStarter;
 
-    public LeaveRequestServiceImpl(FlowOrchestratorService flowOrchestratorService, ObjectMapper objectMapper) {
-        this.flowOrchestratorService = flowOrchestratorService;
-        this.objectMapper = objectMapper;
+    public LeaveRequestServiceImpl(BizFlowStarter bizFlowStarter) {
+        this.bizFlowStarter = bizFlowStarter;
     }
 
     @Override
@@ -51,23 +43,15 @@ public class LeaveRequestServiceImpl extends BaseServiceImpl<LeaveRequestMapper,
         request.setStatus(0);
         this.save(request);
 
-        // 发起请假审批流程：bizId=请假单ID，bizJson 平铺业务变量（用 ObjectMapper 序列化，避免手工拼串转义错误）
-        FlowStartDto dto = new FlowStartDto();
-        dto.setProcessKey(FlowConstants.PROC_KEY_LEAVE_REQUEST);
-        dto.setBizId(request.getId());
+        // 发起请假审批流程：bizId=请假单ID，bizJson 平铺业务变量
         Map<String, Object> bizVars = new LinkedHashMap<>();
         bizVars.put("leaveType", leaveType);
         bizVars.put("startDate", startDate.toString());
         bizVars.put("endDate", endDate.toString());
         bizVars.put("leaveDays", days);
         bizVars.put("reason", reason == null ? "" : reason);
-        try {
-            dto.setBizJson(objectMapper.writeValueAsString(bizVars));
-        } catch (Exception e) {
-            log.error("请假业务变量序列化失败", e);
-            throw new BusinessException(ErrorCode.OPERATION_FAILED, "请假业务参数序列化失败");
-        }
-        FlowInstanceVO vo = flowOrchestratorService.start(dto);
+        FlowInstanceVO vo = bizFlowStarter.start(
+                FlowConstants.PROC_KEY_LEAVE_REQUEST, request.getId(), bizVars, "请假");
 
         request.setFlowInstanceId(vo.getId());
         this.updateById(request);

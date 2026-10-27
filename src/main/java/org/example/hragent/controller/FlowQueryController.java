@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.example.hragent.entity.FlowInstance;
 import org.example.hragent.mapper.FlowInstanceMapper;
 import org.example.hragent.service.FlowOrchestratorService;
-import org.example.hragent.service.impl.FlowTaskViewAssembler;
+import org.example.hragent.flow.support.FlowTaskViewAssembler;
 import org.example.hragent.utils.CurrentUserService;
 import org.example.hragent.vo.FlowCcVO;
 import org.example.hragent.vo.FlowDiagramVO;

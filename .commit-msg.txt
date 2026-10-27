@@ -1,0 +1,10 @@
+refactor: 流程域代码归类到 flow 包 + 统一业务流程发起入口
+
+- 将 service/impl 中混放的流程代码按职责归入 flow 子包：
+  delegate/（10 个 Flowable JavaDelegate）、strategy/（9 个审批人策略）、
+  support/（权限校验、抄送、流程图、任务视图装配），service/impl 只保留业务服务实现
+- 新增 BizFlowStarter：业务单发起流程统一入口，用 ObjectMapper 序列化 bizJson，
+  替代请假/证明服务与 agent 工具中 5 处重复的 DTO 组装与手工 JSON 拼接，
+  修掉字符串转义隐患（HrSelfServiceTools、HrRecruitTools）
+- 收敛 FlowOrchestratorServiceImpl 审批/转办重复的「待处理任务 + 归属校验」为 pendingTaskAs
+- 文档同步包路径与后端模块列表

@@ -3,17 +3,16 @@ package org.example.hragent.agent.tools;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import dev.langchain4j.agent.tool.Tool;
 import org.example.hragent.constant.FlowConstants;
-import org.example.hragent.dto.FlowStartDto;
 import org.example.hragent.entity.CertificateRequest;
 import org.example.hragent.entity.Employee;
 import org.example.hragent.entity.ExpireReminder;
 import org.example.hragent.entity.LeaveBalance;
 import org.example.hragent.entity.LeaveRequest;
+import org.example.hragent.flow.support.BizFlowStarter;
 import org.example.hragent.mapper.ExpireReminderMapper;
 import org.example.hragent.mapper.LeaveRequestMapper;
 import org.example.hragent.service.CertificateRequestService;
 import org.example.hragent.service.EmployeeService;
-import org.example.hragent.service.FlowOrchestratorService;
 import org.example.hragent.service.LeaveBalanceService;
 import org.example.hragent.service.LeaveRequestService;
 import org.example.hragent.vo.FlowInstanceVO;
@@ -23,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 员工自助工具：请假申请、假期余额/记录、证明开具、到期提醒、转正资格校验。
@@ -39,7 +39,7 @@ public class HrSelfServiceTools implements HrToolSet {
     private final CertificateRequestService certificateRequestService;
     private final LeaveRequestMapper leaveRequestMapper;
     private final ExpireReminderMapper expireReminderMapper;
-    private final FlowOrchestratorService flowOrchestratorService;
+    private final BizFlowStarter bizFlowStarter;
     private final HrToolSupport support;
 
     public HrSelfServiceTools(EmployeeService employeeService,
@@ -48,7 +48,7 @@ public class HrSelfServiceTools implements HrToolSet {
                               CertificateRequestService certificateRequestService,
                               LeaveRequestMapper leaveRequestMapper,
                               ExpireReminderMapper expireReminderMapper,
-                              FlowOrchestratorService flowOrchestratorService,
+                              BizFlowStarter bizFlowStarter,
                               HrToolSupport support) {
         this.employeeService = employeeService;
         this.leaveRequestService = leaveRequestService;
@@ -56,7 +56,7 @@ public class HrSelfServiceTools implements HrToolSet {
         this.certificateRequestService = certificateRequestService;
         this.leaveRequestMapper = leaveRequestMapper;
         this.expireReminderMapper = expireReminderMapper;
-        this.flowOrchestratorService = flowOrchestratorService;
+        this.bizFlowStarter = bizFlowStarter;
         this.support = support;
     }
 
@@ -108,14 +108,13 @@ public class HrSelfServiceTools implements HrToolSet {
             request.setStatus(0);
             leaveRequestService.save(request);
 
-            FlowStartDto dto = new FlowStartDto();
-            dto.setProcessKey(FlowConstants.PROC_KEY_LEAVE_REQUEST);
-            dto.setBizId(request.getId());
-            dto.setBizJson(String.format(
-                    "{\"leaveType\":\"%s\",\"startDate\":\"%s\",\"endDate\":\"%s\",\"leaveDays\":%s,\"reason\":\"%s\"}",
-                    leaveType.replace("\"", "\\\""), startDate, endDate, days,
-                    reason == null ? "" : reason.replace("\"", "\\\"")));
-            FlowInstanceVO vo = flowOrchestratorService.start(dto);
+            FlowInstanceVO vo = bizFlowStarter.start(FlowConstants.PROC_KEY_LEAVE_REQUEST, request.getId(),
+                    Map.of("leaveType", leaveType,
+                            "startDate", startDate.toString(),
+                            "endDate", endDate.toString(),
+                            "leaveDays", days,
+                            "reason", reason == null ? "" : reason),
+                    "请假");
 
             request.setFlowInstanceId(vo.getId());
             leaveRequestService.updateById(request);
@@ -203,12 +202,8 @@ public class HrSelfServiceTools implements HrToolSet {
             request.setStatus(0);
             certificateRequestService.save(request);
 
-            FlowStartDto dto = new FlowStartDto();
-            dto.setProcessKey(FlowConstants.PROC_KEY_CERTIFICATE);
-            dto.setBizId(request.getId());
-            dto.setBizJson(String.format("{\"certType\":\"%s\",\"purpose\":\"%s\"}",
-                    certType, purpose == null ? "" : purpose.replace("\"", "\\\"")));
-            FlowInstanceVO vo = flowOrchestratorService.start(dto);
+            FlowInstanceVO vo = bizFlowStarter.start(FlowConstants.PROC_KEY_CERTIFICATE, request.getId(),
+                    Map.of("certType", certType, "purpose", purpose == null ? "" : purpose), "证明");
 
             request.setFlowInstanceId(vo.getId());
             certificateRequestService.updateById(request);

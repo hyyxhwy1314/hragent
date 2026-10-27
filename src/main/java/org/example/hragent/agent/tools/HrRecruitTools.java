@@ -3,15 +3,16 @@ package org.example.hragent.agent.tools;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import dev.langchain4j.agent.tool.Tool;
 import org.example.hragent.constant.FlowConstants;
-import org.example.hragent.dto.FlowStartDto;
 import org.example.hragent.entity.Employee;
 import org.example.hragent.entity.Resume;
-import org.example.hragent.service.FlowOrchestratorService;
+import org.example.hragent.flow.support.BizFlowStarter;
 import org.example.hragent.service.ResumeService;
 import org.example.hragent.vo.FlowInstanceVO;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 招聘与简历工具：简历查询/登记/录用，以及基于简历发起入职流程。
@@ -23,14 +24,14 @@ public class HrRecruitTools implements HrToolSet {
     private static final int RESUME_STATUS_SCREENING = 1;
 
     private final ResumeService resumeService;
-    private final FlowOrchestratorService flowOrchestratorService;
+    private final BizFlowStarter bizFlowStarter;
     private final HrToolSupport support;
 
     public HrRecruitTools(ResumeService resumeService,
-                          FlowOrchestratorService flowOrchestratorService,
+                          BizFlowStarter bizFlowStarter,
                           HrToolSupport support) {
         this.resumeService = resumeService;
-        this.flowOrchestratorService = flowOrchestratorService;
+        this.bizFlowStarter = bizFlowStarter;
         this.support = support;
     }
 
@@ -183,16 +184,12 @@ public class HrRecruitTools implements HrToolSet {
                 return String.format("未找到用人部门主管员工：%s，请确认姓名是否正确", leaderName);
             }
 
-            String bizJson = String.format("{\"targetLeaderId\": %d, \"targetDeptName\": \"%s\", \"targetPosition\": \"%s\"}",
-                    leader.getId(),
-                    support.nvl(leader.getDeptName()).replace("\"", "\\\""),
-                    support.nvl(resume.getExpectPosition()).replace("\"", "\\\""));
-
-            FlowStartDto dto = new FlowStartDto();
-            dto.setProcessKey(FlowConstants.PROC_KEY_ONBOARD);
-            dto.setBizId(resume.getId());
-            dto.setBizJson(bizJson);
-            FlowInstanceVO vo = flowOrchestratorService.start(dto);
+            Map<String, Object> bizVars = new LinkedHashMap<>();
+            bizVars.put("targetLeaderId", leader.getId());
+            bizVars.put("targetDeptName", support.nvl(leader.getDeptName()));
+            bizVars.put("targetPosition", support.nvl(resume.getExpectPosition()));
+            FlowInstanceVO vo = bizFlowStarter.start(
+                    FlowConstants.PROC_KEY_ONBOARD, resume.getId(), bizVars, "入职");
 
             return String.format("已为候选人 %s（简历ID %d）发起入职审批流程，流程单号 %s。\n"
                             + "审批路径：HR 审核 → 用人部门确认（分管主管 %s）→ 通过后自动创建员工记录。",

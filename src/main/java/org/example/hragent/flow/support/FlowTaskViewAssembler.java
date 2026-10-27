@@ -1,4 +1,4 @@
-package org.example.hragent.service.impl;
+package org.example.hragent.flow.support;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.example.hragent.constant.FlowConstants;
@@ -7,6 +7,7 @@ import org.example.hragent.entity.FlowInstance;
 import org.example.hragent.entity.Resume;
 import org.example.hragent.mapper.FlowInstanceMapper;
 import org.example.hragent.mapper.ResumeMapper;
+import org.example.hragent.service.impl.EmployeeNameResolver;
 import org.example.hragent.utils.FlowableUtils;
 import org.example.hragent.vo.FlowInstanceVO;
 import org.example.hragent.vo.TaskVO;

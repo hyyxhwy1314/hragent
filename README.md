@@ -155,6 +155,7 @@ hr-agent/
 - `entity/`
 - `exception/`
 - `feishu/`
+- `flow/`
 - `interceptor/`
 - `listener/`
 - `mapper/`
